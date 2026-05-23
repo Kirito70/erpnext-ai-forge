@@ -1,0 +1,40 @@
+# Tool: git-status-all-apps
+# Iterates apps/* running git status -s and remote info
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §7
+
+id: git-status-all-apps
+kind: tool
+version: 1.0.0
+status: stable
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-05-23
+
+wraps: "git status -s + git remote -v per app dir"
+purpose: "Show working-tree state and remote URLs for every app in the bench at once (the bench is not a git repo; each app is independent)."
+
+inputs: {}
+
+outputs:
+  per_app:
+    - app: string
+      branch: string
+      is_dirty: bool
+      uncommitted_files: list
+      ahead: int
+      behind: int
+      remote_url: string
+      remote_host: string   # github.com, gitlab.com, etc.
+
+requires_confirmation: false
+audit_severity: low
+
+safety_checks:
+  - id: SC-GITSTATUS-001
+    description: "Read-only. No fetch, no pull, no push."
+    action: read_only
+
+allowed_callers:
+  - agent:architect
+  - agent:devops-deployment
+  - agent:security-reviewer
+  - command:/forge-sync

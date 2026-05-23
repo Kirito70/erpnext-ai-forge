@@ -1,0 +1,33 @@
+{#-
+  Renders a canonical tool spec into a settings.json permissions fragment.
+  Input: tool artifact (parsed from canonical/tools/<id>.yaml).
+  Output: merged into <bench>/.claude/settings.json (deep merge, union arrays).
+
+  This template emits ONLY the permissions snippet; the forge sync engine
+  performs the deep merge with the existing settings.json per the rules in
+  ARCHITECTURE.md §6.2 and adapter.yaml settings_merge.
+
+  For tools wrapping bench commands, the corresponding Bash allow-list entry
+  is emitted. For tools requiring confirmation (e.g. bench-restart), no
+  blanket permission is granted — the developer types the site name each time.
+-#}
+{
+  "permissions": {
+    "allow": [
+{%- if artifact.wraps and not artifact.requires_confirmation %}
+      "Bash({{ artifact.wraps }})"
+{%- elif artifact.id == 'bench-clear-cache' %}
+      "Bash(bench --site * clear-cache)"
+{%- elif artifact.id == 'bench-migrate' %}
+      "Bash(bench --site * migrate)"
+{%- elif artifact.id == 'bench-logs' %}
+      "Read({{ env.FORGE_BENCH_PATH }}/logs/*.log)"
+{%- elif artifact.id == 'git-status-all-apps' %}
+      "Bash(git status*)",
+      "Bash(git remote*)"
+{%- elif artifact.id == 'override-checker' %}
+      "Bash(yarn check-conflicts)"
+{%- endif %}
+    ]
+  }
+}

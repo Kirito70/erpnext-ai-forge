@@ -1,0 +1,59 @@
+# Tool: patch-generator
+# Generates: numbered patch file + patches.txt entry
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §7
+
+id: patch-generator
+kind: tool
+version: 1.0.0
+status: stable
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-05-23
+
+wraps: "Native file generation + patches.txt append"
+purpose: "Create a correctly named, idempotent Frappe patch file for a custom app and add it to patches.txt."
+
+inputs:
+  app:
+    type: string
+    required: true
+    enum: [novizna_crm, novizna_core, novizna_pos, invoice_ninja_integration, noviznaerp_payroll, cargo_management, changemakers, erpnext_location]
+  slug:
+    type: string
+    required: true
+    description: "snake_case patch slug (e.g. backfill_industry_on_leads)."
+  description:
+    type: string
+    required: true
+    description: "One-line description for the patch file docstring and CHANGELOG entry."
+  date_prefix:
+    type: string
+    default: "auto"
+    description: "YYYY_MM_DD; defaults to today UTC."
+
+outputs:
+  files_written:
+    - apps/{app}/{app}/patches/v16_0_0/{date_prefix}_{slug}.py
+  patches_txt_appended: bool
+
+requires_confirmation: true
+confirmation_token: "{{ bench.primary_site }}"
+audit_severity: high
+
+safety_checks:
+  - id: SC-PATCH-001
+    description: "Reject if app is upstream"
+    action: abort
+  - id: SC-PATCH-002
+    description: "Reject if a patch with the same slug exists in patches.txt"
+    action: abort
+  - id: SC-PATCH-003
+    description: "Template enforces an `execute()` function with a docstring, a frappe.reload_doc() call when DocType is touched, and an idempotency guard"
+    action: enforce_template
+  - id: SC-PATCH-004
+    description: "Append entry to apps/{app}/{app}/patches.txt in correct version section (v16_0_0)"
+    action: enforce_template
+
+allowed_callers:
+  - agent:backend-specialist
+  - agent:devops-deployment
+  - command:/migrate-patch

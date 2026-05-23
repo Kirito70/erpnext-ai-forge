@@ -1,0 +1,142 @@
+# Claude Code adapter
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §3 + §4.0
+# Phase 1a: adapter mapping rules + skeleton templates.
+# Phase 2: forge render/sync engine consumes this file to write into <bench>/.claude/.
+
+tool: claude-code
+adapter_version: 0.1.0
+
+# Capability profile — Claude Code is the richest target.
+capabilities:
+  agents: true                  # via Task tool — fresh-context spawning
+  subagents: true
+  slash_commands: true
+  skills: true
+  custom_tools: true            # via MCP / Bash allow-list
+  per_app_files: true           # supports nested CLAUDE.md per app
+
+# Where rendered artifacts land in the bench.
+output_paths:
+  bench_root: "{{ env.FORGE_BENCH_PATH }}"
+  bench_claude_root: "{{ output_paths.bench_root }}/.claude"
+
+  root_claude_md: "{{ output_paths.bench_root }}/CLAUDE.md"   # cross-cutting only (Decision 19)
+  per_app_claude_md:
+    base: "{{ output_paths.bench_root }}/apps/{app}/CLAUDE.md"
+    apps:
+      - novizna_crm
+      - novizna_core
+      - novizna_pos
+      - invoice_ninja_integration
+      - noviznaerp_payroll
+      - cargo_management
+      - changemakers
+      - erpnext_location
+
+  agents_dir: "{{ output_paths.bench_claude_root }}/agents"
+  commands_dir: "{{ output_paths.bench_claude_root }}/commands"
+  skills_dir: "{{ output_paths.bench_claude_root }}/skills"
+  settings_json: "{{ output_paths.bench_claude_root }}/settings.json"
+  settings_backup: "{{ output_paths.bench_claude_root }}/settings.json.forge-backup"
+
+# Mapping rules: which canonical artifacts render where, using which templates.
+artifacts:
+  agents:
+    strategy: one_file_per_agent
+    source: canonical/agents/*.md
+    template: agent.md.j2
+    output: "{{ output_paths.agents_dir }}/{{ artifact.id }}.md"
+
+  commands:
+    strategy: one_file_per_command
+    source: canonical/commands/*.md
+    template: command.md.j2
+    output: "{{ output_paths.commands_dir }}/{{ artifact.id }}.md"
+
+  skills:
+    strategy: one_file_per_skill_in_domain_dir
+    source: canonical/skills/**/*.md
+    template: skill.md.j2
+    output: "{{ output_paths.skills_dir }}/{{ artifact.domain }}/{{ artifact.id }}.md"
+
+  policies:
+    strategy: referenced_by_agents
+    # Policies are not rendered to .claude/ directly — they are referenced by
+    # rendered agent prompts. The architect skill loads the relevant policy
+    # content inline when needed.
+    source: canonical/policies/*.{md,yaml}
+    template: null
+    output: null
+
+  tools:
+    strategy: settings_permissions_plus_doc
+    # Tool specs translate into two things:
+    #   1. Bash command allow-list entries in settings.json (so the tool's wrapped
+    #      command can run without per-invocation permission prompts)
+    #   2. Reference docs inlined into the agents that may call them
+    source: canonical/tools/*.yaml
+    template_settings: settings-tool-permission.json.j2
+    template_doc: tool-reference.md.j2
+    output_settings_merge_into: "{{ output_paths.settings_json }}"
+    output_doc: "{{ output_paths.bench_claude_root }}/tools/{{ artifact.id }}.md"
+
+  root_claude_md:
+    strategy: aggregate
+    sources:
+      - canonical/agents/architect.md
+      - canonical/policies/governance.md
+      - canonical/policies/escalation-rules.md
+      - discovery/INVENTORY.md   # for cross-app overview
+    template: claude-md-root.j2
+    output: "{{ output_paths.root_claude_md }}"
+
+  per_app_claude_md:
+    strategy: aggregate_per_app
+    # For each custom app, generate a per-app CLAUDE.md containing the relevant
+    # subset of agents, commands, skills, and discovery facts.
+    template: claude-md-per-app.j2
+    output: "{{ output_paths.per_app_claude_md.base }}"
+
+# settings.json merge rules per v0.2 Part B item 6.
+settings_merge:
+  strategy: deep_merge_with_backup
+  conflict_resolution: forge_wins_log_prior
+  array_strategy: union_by_identity
+  backup_file: "{{ output_paths.settings_backup }}"
+  log_conflicts_to_audit: true
+
+# Context-loading strategy per v0.2 §4.0.
+# Claude Code has no strict char budget (Task tool spawns fresh contexts),
+# but per-agent skill scoping keeps individual contexts lean.
+limits:
+  max_total_chars: null         # Claude Code: unlimited
+  per_agent_skill_budget: null  # skills load on demand
+
+context_loading:
+  architect_spawns_specialists_via: Task
+  specialists_run_in_fresh_context: true
+  skill_loading: on_demand_per_claude_skill_discovery
+  foundational_skills_always_present_for_in_scope_agents: true
+
+# Manifest written into each output dir per ADR-002.
+manifest:
+  enabled: true
+  filename: .forge-manifest.json
+  schema_version: 1
+
+# What `forge sync --tool claude-code` writes (canonical list of bench files).
+expected_outputs:
+  - "{{ output_paths.root_claude_md }}"
+  - "{{ output_paths.agents_dir }}/architect.md"
+  - "{{ output_paths.agents_dir }}/backend-specialist.md"
+  - "{{ output_paths.agents_dir }}/frontend-frappe-ui-specialist.md"
+  - "{{ output_paths.agents_dir }}/frontend-quasar-specialist.md"
+  - "{{ output_paths.agents_dir }}/integrations-specialist.md"
+  - "{{ output_paths.agents_dir }}/security-reviewer.md"
+  - "{{ output_paths.agents_dir }}/qa-test-engineer.md"
+  - "{{ output_paths.agents_dir }}/devops-deployment.md"
+  - "{{ output_paths.commands_dir }}/*.md"
+  - "{{ output_paths.skills_dir }}/**/*.md"           # populated by Phase 1b
+  - "{{ output_paths.settings_json }}"
+  - "{{ output_paths.settings_backup }}"
+  - "{{ output_paths.per_app_claude_md.base }}"        # per Decision 19 — 8 files

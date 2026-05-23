@@ -1,0 +1,27 @@
+{#-
+  Renders a canonical skill into Claude Code's skill format.
+  Input: artifact (a SKILL with frontmatter + body).
+  Output: <bench>/.claude/skills/<domain>/<id>.md
+  Phase 1b will populate canonical/skills/ — this template is in place for then.
+-#}
+{# AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT #}
+---
+name: {{ artifact.id }}
+description: {{ artifact.trigger | tojson }}
+{% if artifact.foundational -%}
+foundational: true
+{%- endif %}
+{% if artifact.scope_agents -%}
+scope:
+{% for a in artifact.scope_agents -%}
+  - {{ a }}
+{% endfor -%}
+{%- endif %}
+version: "{{ artifact.version }}"
+---
+
+{{ artifact.body }}
+
+---
+<sub>Synced from `canonical/skills/{{ artifact.domain }}/{{ artifact.id }}.md` v{{ artifact.version }}
+({{ artifact.source_commit | truncate(7, true, "") }}) at {{ forge.rendered_at }}.</sub>

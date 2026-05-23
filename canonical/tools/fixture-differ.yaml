@@ -1,0 +1,45 @@
+# Tool: fixture-differ
+# Diffs two fixture JSON snapshots
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §7
+
+id: fixture-differ
+kind: tool
+version: 1.0.0
+status: stable
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-05-23
+
+wraps: "Structured JSON diff (keyed by DocType + name)"
+purpose: "Compare two fixture JSON snapshots to detect unintended additions/removals before committing."
+
+inputs:
+  before:
+    type: path
+    required: true
+    description: "Path to fixture JSON snapshot before export."
+  after:
+    type: path
+    required: true
+    description: "Path to fixture JSON snapshot after export."
+
+outputs:
+  added: list
+  removed: list
+  modified: list
+  unchanged_count: int
+
+requires_confirmation: false
+audit_severity: low
+
+safety_checks:
+  - id: SC-FIXDIFF-001
+    description: "Read-only. Operates only on the two paths supplied."
+    action: read_only
+  - id: SC-FIXDIFF-002
+    description: "Refuse if either input is outside the bench or canonical/ tree"
+    action: abort
+
+allowed_callers:
+  - agent:backend-specialist
+  - agent:qa-test-engineer
+  - agent:devops-deployment

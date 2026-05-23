@@ -1,0 +1,51 @@
+# Tool: frontend-build
+# Wraps: yarn build (novizna_crm) OR quasar build -m pwa (novizna_pos)
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §7
+
+id: frontend-build
+kind: tool
+version: 1.0.0
+status: stable
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-05-23
+
+wraps: "Stack-detected build command per app"
+purpose: "Build the frontend for a custom app with a Vue/Quasar workspace."
+
+inputs:
+  app:
+    type: string
+    required: true
+    enum: [novizna_crm, novizna_pos]
+    description: "Only apps with frontend workspaces are valid."
+
+dispatch:
+  novizna_crm:
+    cwd: apps/novizna_crm/frontend
+    command: "yarn build"
+    output: apps/novizna_crm/novizna_crm/public/frontend/
+  novizna_pos:
+    cwd: apps/novizna_pos/novizna-pos-ui
+    command: "quasar build -m pwa"
+    output: apps/novizna_pos/novizna_pos/public/pos/
+
+outputs:
+  stdout: text
+  exit_code: int
+
+requires_confirmation: true
+confirmation_token: "{{ bench.primary_site }}"
+audit_severity: medium
+
+safety_checks:
+  - id: SC-FEBUILD-001
+    description: "Refuse if node_modules/ is missing under the workspace (developer hasn't run yarn install)"
+    action: abort
+  - id: SC-FEBUILD-002
+    description: "Warn if the active site is the primary site (live build risk)"
+    action: warn
+
+allowed_callers:
+  - agent:frontend-frappe-ui-specialist
+  - agent:frontend-quasar-specialist
+  - agent:devops-deployment

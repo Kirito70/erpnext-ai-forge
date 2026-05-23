@@ -1,0 +1,47 @@
+# Tool: override-checker
+# Wraps: yarn check-conflicts (in apps/novizna_crm/frontend/)
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §7 + Decision 16
+
+id: override-checker
+kind: tool
+version: 1.0.0
+status: stable
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-05-23
+
+wraps: "yarn check-conflicts (in apps/novizna_crm/frontend/)"
+purpose: "Verify the novizna_crm frontend override system invariants: every src_override/ file maps one-for-one to an existing upstream apps/crm/frontend/src/ file."
+
+inputs: {}
+
+outputs:
+  text: text
+  exit_code: int
+  conflicts:
+    - upstream_path: string
+      override_path: string
+      issue: enum [upstream_missing, upstream_renamed, override_drift_excessive]
+
+requires_confirmation: false
+audit_severity: low
+
+safety_checks:
+  - id: SC-OVERRIDE-001
+    description: "Read-only. Verifies the 3-layer system from Decision 16."
+    action: read_only
+
+invariants_enforced:
+  - "Every file in apps/novizna_crm/frontend/src_override/ must exist at the same relative path in apps/crm/frontend/src/"
+  - "Files in apps/novizna_crm/frontend/src/ may add anything new (no constraint)"
+  - "Files in apps/novizna_crm/crm_build/ are read-only and regenerated on every build"
+
+failure_modes:
+  upstream_missing: "Upstream file was removed in apps/crm/ — override is now orphaned. Action: delete the override or restore upstream equivalent."
+  upstream_renamed: "Upstream file moved or renamed — override must be relocated to match."
+  override_drift_excessive: "Override diverges >50% from upstream. Recommend extracting to a net-new src/ component."
+
+allowed_callers:
+  - agent:frontend-frappe-ui-specialist
+  - agent:architect
+  - command:/override-frontend
+  - command:/diff-upstream

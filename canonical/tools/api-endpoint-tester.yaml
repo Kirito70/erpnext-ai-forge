@@ -1,0 +1,60 @@
+# Tool: api-endpoint-tester
+# Invokes whitelist endpoints via Frappe's HTTP API
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §7
+
+id: api-endpoint-tester
+kind: tool
+version: 1.0.0
+status: stable
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-05-23
+
+wraps: "HTTP POST to /api/method/<method> with session cookie or API key"
+purpose: "Test a Frappe whitelist method end-to-end (auth, perms, payload)."
+
+inputs:
+  method:
+    type: string
+    required: true
+    description: "Dotted method path (e.g. novizna_crm.api.leads.bulk_assign)."
+  args:
+    type: object
+    required: false
+    description: "kwargs sent to the method."
+  user:
+    type: string
+    required: true
+    description: "User context. Administrator is rejected by default; pass a real user."
+  csrf_token:
+    type: string
+    required: false
+    description: "Required for non-GET if ignore_csrf is not set. Mirrors POS auth pattern (Decision 17)."
+
+outputs:
+  status_code: int
+  response: object
+  headers: object
+
+requires_confirmation_when:
+  - "method does not start with 'frappe.client.get' AND does not include '.list' (write candidate)"
+confirmation_token: "{{ bench.primary_site }}"
+audit_severity: high
+
+safety_checks:
+  - id: SC-APITEST-001
+    description: "Reject user='Administrator' unless explicitly justified via --allow-admin"
+    action: abort
+  - id: SC-APITEST-002
+    description: "Reject methods inside upstream apps (frappe.*, erpnext.*, etc.) unless --allow-upstream-read is set AND the method is a known read-only endpoint"
+    action: abort
+  - id: SC-APITEST-003
+    description: "Redact any 'password', 'token', 'api_key' fields from request and response logs"
+    action: redact_in_output
+
+allowed_callers:
+  - agent:qa-test-engineer
+  - agent:backend-specialist
+  - agent:integrations-specialist
+  - command:/write-tests
+  - command:/add-integration
+  - command:/scaffold-api

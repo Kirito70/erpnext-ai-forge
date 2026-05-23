@@ -1,0 +1,44 @@
+# Tool: bench-migrate
+# Wraps: bench --site {site} migrate
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §7
+
+id: bench-migrate
+kind: tool
+version: 1.0.0
+status: stable
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-05-23
+
+wraps: "bench --site {site} migrate"
+purpose: "Run pending DocType / patch migrations on a site."
+
+inputs:
+  site:
+    type: string
+    required: true
+    default_env: FORGE_PRIMARY_SITE
+    description: "Frappe site name (e.g. novizna-v16)."
+
+outputs:
+  stdout: text
+  exit_code: int
+
+requires_confirmation: false   # idempotent; safe to re-run
+audit_severity: medium
+
+safety_checks:
+  - id: SC-MIGRATE-001
+    description: "Refuse if uncommitted git changes exist under any upstream app dir (apps/frappe, apps/erpnext, etc.)"
+    action: abort
+  - id: SC-MIGRATE-002
+    description: "Refuse if site is not present in the bench"
+    action: abort
+  - id: SC-MIGRATE-003
+    description: "Log migration order and any new patches applied to audit JSONL"
+    action: log
+
+allowed_callers:
+  - agent:backend-specialist
+  - agent:devops-deployment
+  - command:/migrate-patch
+  - command:/scaffold-doctype

@@ -1,8 +1,8 @@
 # erpnext-ai-forge — Project Status
 
-**Last Updated:** 2026-05-23
-**Version:** 0.1.0
-**Active Phase:** Phase 0 — Scaffold + Discovery (in progress → completing today)
+**Last Updated:** 2026-05-24
+**Version:** 0.2.0
+**Active Phase:** Phase 1a — Claude Code authoring (complete) → Phase 1b kickoff next
 
 ---
 
@@ -51,23 +51,23 @@ No canonical agent, skill, command, or tool content has been authored yet. That 
 
 ---
 
-## 2. Canonical Layer — ⏸ NOT STARTED (Phase 1a/1b)
+## 2. Canonical Layer — ✅ PHASE 1a COMPLETE, ⏸ PHASE 1b PENDING
 
 | Subdir | Files | Status |
 |--------|-------|--------|
-| `canonical/agents/` | 8 agent specs | ⏸ Pending Phase 1a |
+| `canonical/agents/` | 8 agent specs | ✅ Phase 1a |
 | `canonical/skills/` | 20 skill modules across 10 domain dirs | ⏸ Pending Phase 1b |
-| `canonical/commands/` | 17 slash command specs | ⏸ Pending Phase 1a |
-| `canonical/tools/` | 14 tool specs | ⏸ Pending Phase 1a |
-| `canonical/policies/` | 4 policy docs (scoring, review, escalation, governance) | ⏸ Pending Phase 1a |
+| `canonical/commands/` | 17 slash command specs | ✅ Phase 1a |
+| `canonical/tools/` | 14 tool specs | ✅ Phase 1a |
+| `canonical/policies/` | 4 policy docs (scoring, review, escalation, governance) | ✅ Phase 1a |
 
 ---
 
-## 3. Adapter Layer — ⏸ NOT STARTED (Phase 2 + Phase 3)
+## 3. Adapter Layer — Claude Code ✅, others ⏸ (Phase 3)
 
 | Adapter | adapter.yaml | Templates | Output Verified |
 |---------|--------------|-----------|-----------------|
-| `claude-code` | ⏸ | ⏸ | ⏸ |
+| `claude-code` | ✅ | ✅ (7 templates) | ⏸ (Phase 2 renderer needed) |
 | `cursor` | ⏸ | ⏸ | ⏸ |
 | `opencode` | ⏸ | ⏸ | ⏸ |
 | `cline` | ⏸ | ⏸ | ⏸ |

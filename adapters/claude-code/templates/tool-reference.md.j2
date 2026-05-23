@@ -1,0 +1,32 @@
+{#-
+  Renders a canonical tool spec into a human-readable reference doc.
+  Input: tool artifact (parsed from canonical/tools/<id>.yaml).
+  Output: <bench>/.claude/tools/<id>.md — agents reference this when explaining
+          tool behavior to the developer.
+-#}
+{# AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT #}
+# Tool: {{ artifact.id }}
+
+**Wraps:** `{{ artifact.wraps }}`
+**Purpose:** {{ artifact.purpose }}
+**Requires confirmation:** {{ "yes — type the site name (" + bench.primary_site + ")" if artifact.requires_confirmation else "no" }}
+**Audit severity:** {{ artifact.audit_severity }}
+
+## Inputs
+{% for name, spec in artifact.inputs.items() -%}
+- `{{ name }}` ({{ spec.type }}{% if spec.required %}, required{% endif %}){% if spec.description %} — {{ spec.description }}{% endif %}
+{% endfor %}
+
+## Safety Checks
+{% for check in artifact.safety_checks -%}
+- **{{ check.id }}** ({{ check.action }}): {{ check.description }}
+{% endfor %}
+
+## Allowed Callers
+{% for caller in artifact.allowed_callers -%}
+- `{{ caller }}`
+{% endfor %}
+
+---
+<sub>Synced from `canonical/tools/{{ artifact.id }}.yaml` v{{ artifact.version }}
+({{ artifact.source_commit | truncate(7, true, "") }}) at {{ forge.rendered_at }}.</sub>

@@ -1,0 +1,49 @@
+# Tool: fixture-exporter
+# Wraps: bench --site {site} export-fixtures --app {app}
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §7
+
+id: fixture-exporter
+kind: tool
+version: 1.0.0
+status: stable
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-05-23
+
+wraps: "bench --site {site} export-fixtures --app {app}"
+purpose: "Export Custom Fields, Property Setters, Custom Scripts, Workflows, Roles to apps/{app}/{app}/fixtures/."
+
+inputs:
+  site:
+    type: string
+    required: true
+    default_env: FORGE_PRIMARY_SITE
+  app:
+    type: string
+    required: true
+    enum: [novizna_crm, novizna_core, novizna_pos, invoice_ninja_integration, noviznaerp_payroll, cargo_management, changemakers, erpnext_location]
+
+outputs:
+  fixture_diff: text   # diff of before vs after JSON
+  files_written:
+    - apps/{app}/{app}/fixtures/*.json
+
+requires_confirmation: true
+confirmation_token: "{{ bench.primary_site }}"
+audit_severity: high
+
+safety_checks:
+  - id: SC-FIXTURE-001
+    description: "Reject if app is upstream"
+    action: abort
+  - id: SC-FIXTURE-002
+    description: "Diff fixture JSON before write and present to developer for review"
+    action: prompt
+  - id: SC-FIXTURE-003
+    description: "Refuse if no Custom Fields, Property Setters, or fixtures hook entry exists for the app (likely accidental)"
+    action: warn
+
+allowed_callers:
+  - agent:backend-specialist
+  - agent:devops-deployment
+  - command:/scaffold-doctype
+  - command:/add-integration

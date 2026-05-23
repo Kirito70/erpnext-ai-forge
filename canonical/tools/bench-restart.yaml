@@ -1,0 +1,41 @@
+# Tool: bench-restart
+# Wraps: bench restart
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §7 + Decision 13
+
+id: bench-restart
+kind: tool
+version: 1.0.0
+status: stable
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-05-23
+
+wraps: "bench restart"
+purpose: "Restart all supervisor processes (web, worker, scheduler, socketio)."
+
+inputs: {}
+
+outputs:
+  stdout: text
+  exit_code: int
+
+requires_confirmation: true
+confirmation_token: "{{ bench.primary_site }}"  # Decision 13: type the SITE NAME, not 'yes'
+audit_severity: high
+
+safety_checks:
+  - id: SC-RESTART-001
+    description: "Echo the list of running processes before prompting for confirmation"
+    action: prompt
+  - id: SC-RESTART-002
+    description: "Warn if active web sessions are detected via socketio"
+    action: prompt
+  - id: SC-RESTART-003
+    description: "Log restart event with timestamp and triggering agent to audit JSONL"
+    action: log
+
+allowed_callers:
+  - agent:devops-deployment
+
+# Why DevOps-only: bench-restart affects every site and every active session.
+# Backend Specialists may *request* a restart from the architect, who escalates
+# to the developer via the confirmation prompt before DevOps invokes the tool.

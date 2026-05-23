@@ -1,0 +1,29 @@
+{#-
+  Renders a canonical agent into Claude Code's subagent format.
+  Input: artifact object with frontmatter + body (parsed from canonical/agents/<id>.md).
+  Output: <bench>/.claude/agents/<id>.md
+  Phase 2 will fill in the actual Jinja rendering logic; this is the skeleton template.
+-#}
+{# AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT #}
+---
+name: {{ artifact.id }}
+description: {{ artifact.trigger | tojson }}
+{% if artifact.tools -%}
+tools: {{ artifact.tools | join(", ") }}
+{%- endif %}
+{% if artifact.model -%}
+model: {{ artifact.model }}
+{%- endif %}
+---
+
+{{ artifact.body }}
+
+{#-
+  Footer: provenance + manifest references.
+  Phase 2 renderer writes a corresponding .forge-manifest.json sibling
+  containing source_commit, source_file_path, source_version.
+-#}
+
+---
+<sub>Synced from `canonical/agents/{{ artifact.id }}.md` v{{ artifact.version }}
+({{ artifact.source_commit | truncate(7, true, "") }}) at {{ forge.rendered_at }}.</sub>

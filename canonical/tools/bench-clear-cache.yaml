@@ -1,0 +1,36 @@
+# Tool: bench-clear-cache
+# Wraps: bench --site {site} clear-cache
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §7
+
+id: bench-clear-cache
+kind: tool
+version: 1.0.0
+status: stable
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-05-23
+
+wraps: "bench --site {site} clear-cache"
+purpose: "Clear Frappe's Redis cache for a site (DocType meta, translations, includes)."
+
+inputs:
+  site:
+    type: string
+    required: true
+    default_env: FORGE_PRIMARY_SITE
+
+outputs:
+  stdout: text
+  exit_code: int
+
+requires_confirmation: false
+audit_severity: low
+
+safety_checks:
+  - id: SC-CLEARCACHE-001
+    description: "Refuse if site is not present in the bench"
+    action: abort
+
+allowed_callers:
+  - agent:backend-specialist
+  - agent:devops-deployment
+  - agent:frontend-frappe-ui-specialist

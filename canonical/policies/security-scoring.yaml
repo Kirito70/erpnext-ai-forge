@@ -1,0 +1,105 @@
+# Security Scoring Policy
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §8.2 + Decision 11 + Part B item 3
+# Schema borrowed from ai-forge (ADR-001) with tightened thresholds.
+
+policy:
+  id: security-scoring
+  kind: policy
+  version: 1.0.0
+  owners: [m.tayyab9736@gmail.com]
+  last_reviewed: 2026-05-23
+
+starting_score: 100
+
+thresholds:
+  auto_accept: 95          # ≥ 95 → sync proceeds with no prompt
+  warn_floor: 80           # 80–94 → require typed one-line justification logged to audit JSONL
+  block_floor: 80          # < 80 → block sync
+  external_skill_minimum: 98  # externally sourced skills must clear this bar
+
+deductions:
+  # Frappe/ERPNext-specific risks (highest weight first)
+  - id: D-EDIT-UPSTREAM
+    pattern: "Writes inside apps/{frappe,erpnext,crm,hrms,lending,lms,education,helpdesk,gameplan,drive,press}"
+    deduction: 50
+    severity: CRITICAL
+    rationale: "Upstream apps are read-only. Any modification must be redirected into a custom app or fixture."
+
+  - id: D-READ-SITE-CONFIG
+    pattern: "Reads or echoes contents of sites/<site>/site_config.json or sites/common_site_config.json"
+    deduction: 50
+    severity: CRITICAL
+    rationale: "site_config.json holds DB password and encryption key. Key names may be surfaced; values must never enter model context."
+
+  - id: D-CURL-SHELL
+    pattern: "Contains 'curl ... | sh' or wget pipe-to-shell"
+    deduction: 50
+    severity: CRITICAL
+    rationale: "Arbitrary-code-execution via remote payload."
+
+  - id: D-DANGEROUS-SKIP-PERMS
+    pattern: "Mentions --dangerously-skip-permissions or equivalent override flag"
+    deduction: 40
+    severity: HIGH
+    rationale: "Removes the user's permission gate; never appropriate in canonical content."
+
+  - id: D-SQL-FSTRING
+    pattern: "frappe.db.sql(f\"...{var}...\") or .format() interpolation in SQL"
+    deduction: 30
+    severity: HIGH
+    rationale: "SQL injection. Use the values= keyword for parameter binding."
+
+  - id: D-EXTERNAL-UNREVIEWED
+    pattern: "Skill source is external (network-fetched) and has not passed a security review"
+    deduction: 30
+    severity: HIGH
+    rationale: "External content is untrusted input. Forces explicit review before acceptance."
+
+  - id: D-BENCH-RESTART-NO-CONFIRM
+    pattern: "Recommends running 'bench restart' or any destructive bench command without typed confirmation"
+    deduction: 25
+    severity: HIGH
+    rationale: "Confirmation token must be the site name (Decision 13)."
+
+  - id: D-GUEST-WHITELIST-NO-PERM
+    pattern: "@frappe.whitelist(allow_guest=True) example without an accompanying permission/rate-limit note"
+    deduction: 25
+    severity: HIGH
+    rationale: "Guest endpoints must be intentional and protected."
+
+  - id: D-IGNORE-PERMISSIONS
+    pattern: "Recommends ignore_permissions=True without a justifying comment"
+    deduction: 20
+    severity: HIGH
+    rationale: "Permission bypass without rationale is a code-review red flag."
+
+  - id: D-PUSH-NO-REMOTE
+    pattern: "Pushes to git without echoing the remote URL or requiring typed confirmation of the remote host"
+    deduction: 20
+    severity: HIGH
+    rationale: "Avoid pushing to the wrong remote across the developer's many app repos."
+
+  - id: D-OUTSIDE-PATHS
+    pattern: "Writes outside canonical/ or bench apps/<custom-app>/ paths"
+    deduction: 15
+    severity: MEDIUM
+    rationale: "Limit blast radius."
+
+severities:
+  CRITICAL: { deduction_floor: 40, blocks_sync: true }
+  HIGH:     { deduction_floor: 20, blocks_sync: false }
+  MEDIUM:   { deduction_floor: 10, blocks_sync: false }
+  LOW:      { deduction_floor: 1,  blocks_sync: false }
+
+calibration:
+  scheduled: "After the first 10 skills are authored in Phase 1b, run `forge score canonical/skills/` and manually inspect any clusters of scores in unexpected bands. Adjust deductions if the distribution is too lenient or too punitive."
+  reviewer: m.tayyab9736@gmail.com
+
+# When an artifact lands in 80–94, the developer types a one-line reason that
+# is logged to audit JSONL alongside the artifact's manifest hash. The
+# justification text is searchable via `forge audit --grep`.
+justification:
+  required_band: [80, 94]
+  log_field: justification
+  min_length: 10
+  max_length: 280

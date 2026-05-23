@@ -1,0 +1,57 @@
+# Tool: bench-logs
+# Reads: logs/{frappe,worker,scheduler,web.error,web.access}.log
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §7
+
+id: bench-logs
+kind: tool
+version: 1.0.0
+status: stable
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-05-23
+
+wraps: "tail / grep over bench logs/ files"
+purpose: "Read recent bench log content for debugging."
+
+inputs:
+  source:
+    type: enum
+    values: [frappe, worker, scheduler, web.error, web.access]
+    required: true
+  tail:
+    type: int
+    default: 200
+    max: 5000
+  grep:
+    type: string
+    required: false
+    description: "Regex applied after tail."
+
+outputs:
+  text: text
+
+requires_confirmation: false
+audit_severity: low
+
+safety_checks:
+  - id: SC-LOGS-001
+    description: "Read-only. Refuse any write or rotate operation."
+    action: abort
+  - id: SC-LOGS-002
+    description: |
+      Redact lines containing secret-name patterns from output:
+        - api_key, apikey, api-key
+        - password, passwd, pwd
+        - token (when value-like), secret, encryption_key
+        - Authorization: Bearer
+    action: redact_in_output
+  - id: SC-LOGS-003
+    description: "Cap output at 5,000 lines after grep filter"
+    action: truncate
+
+allowed_callers:
+  - agent:devops-deployment
+  - agent:backend-specialist
+  - agent:integrations-specialist
+  - agent:architect
+  - command:/bench-logs
+  - command:/explain-hook

@@ -1,0 +1,23 @@
+{#-
+  Renders a canonical slash command into Claude Code's command format.
+  Input: artifact object with frontmatter + body.
+  Output: <bench>/.claude/commands/<id>.md  (invoked as /<id>)
+-#}
+{# AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT #}
+---
+description: {{ artifact.description | default(artifact.body.first_paragraph) | tojson }}
+{% if artifact.argument_hint -%}
+argument-hint: {{ artifact.argument_hint }}
+{%- endif %}
+{% if artifact.allowed_tools -%}
+allowed-tools: {{ artifact.allowed_tools | join(", ") }}
+{%- endif %}
+---
+
+{{ artifact.body }}
+
+---
+**Triggers agents:** {{ artifact.triggers_agents | join(", ") }}
+
+<sub>Synced from `canonical/commands/{{ artifact.id }}.md` v{{ artifact.version }}
+({{ artifact.source_commit | truncate(7, true, "") }}) at {{ forge.rendered_at }}.</sub>

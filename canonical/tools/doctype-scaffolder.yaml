@@ -1,0 +1,71 @@
+# Tool: doctype-scaffolder
+# Generates: DocType JSON + controller stub + test stub + hooks entry suggestion
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §7
+
+id: doctype-scaffolder
+kind: tool
+version: 1.0.0
+status: stable
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-05-23
+
+wraps: "Native file generation (not a bench command)"
+purpose: "Generate a new DocType under a custom app with controller, JSON definition, test stub, and a suggested hooks.py addition."
+
+inputs:
+  name:
+    type: string
+    required: true
+    description: "DocType label (will be converted to snake_case ID)."
+  app:
+    type: string
+    required: true
+    enum: [novizna_crm, novizna_core, novizna_pos, invoice_ninja_integration, noviznaerp_payroll, cargo_management, changemakers, erpnext_location]
+    description: "Custom app target. Upstream apps are rejected (Non-Goal #1)."
+  module:
+    type: string
+    required: true
+    description: "Module name within the app (must exist in modules.txt or be added)."
+  fields:
+    type: list
+    required: true
+    description: "Field spec list, e.g. ['manifest_no:Data', 'branch:Link/Branch', 'status:Select/Open|Closed|Void']"
+  submittable:
+    type: bool
+    default: false
+  is_child_table:
+    type: bool
+    default: false
+
+outputs:
+  files_written:
+    - apps/{app}/{app}/{module}/doctype/{name_snake}/{name_snake}.json
+    - apps/{app}/{app}/{module}/doctype/{name_snake}/{name_snake}.py
+    - apps/{app}/{app}/{module}/doctype/{name_snake}/test_{name_snake}.py
+    - apps/{app}/{app}/{module}/doctype/{name_snake}/__init__.py
+  hooks_suggestion: text   # printed for developer to copy into hooks.py if needed
+
+requires_confirmation: true
+confirmation_token: "{{ bench.primary_site }}"
+audit_severity: high
+
+safety_checks:
+  - id: SC-DTSCAFF-001
+    description: "Reject if app is in the upstream list"
+    action: abort
+  - id: SC-DTSCAFF-002
+    description: "Reject if a DocType with the same ID already exists in any app"
+    action: abort
+  - id: SC-DTSCAFF-003
+    description: "Reject if module is not present in apps/{app}/{app}/modules.txt (suggest adding it first)"
+    action: abort
+  - id: SC-DTSCAFF-004
+    description: "Enforce naming convention from discovery: if the app uses a prefix (e.g. crm_, invoice_ninja_), require the new DocType to follow it"
+    action: warn
+  - id: SC-DTSCAFF-005
+    description: "Controller stub must include a top-of-file 'from frappe.model.document import Document' import and a docstring per CLAUDE.md PEP 257 rule"
+    action: enforce_template
+
+allowed_callers:
+  - agent:backend-specialist
+  - command:/scaffold-doctype

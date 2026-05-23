@@ -1,0 +1,56 @@
+# Tool: bench-console
+# Wraps: bench --site {site} console
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §7
+
+id: bench-console
+kind: tool
+version: 1.0.0
+status: stable
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-05-23
+
+wraps: "bench --site {site} console"
+purpose: "Run a Python script in the Frappe context (frappe.local initialized)."
+
+inputs:
+  site:
+    type: string
+    required: true
+    default_env: FORGE_PRIMARY_SITE
+  script:
+    type: string
+    required: true
+    description: "Python source to execute inside the Frappe shell."
+
+outputs:
+  stdout: text
+  stderr: text
+  exit_code: int
+
+requires_confirmation: true            # any code execution is a write candidate
+confirmation_token: "{{ bench.primary_site }}"
+audit_severity: high
+
+safety_checks:
+  - id: SC-CONSOLE-001
+    description: |
+      Static-scan the script for mutation patterns. Block if any of these patterns
+      match unless --allow-mutation was explicitly passed by the caller:
+        - frappe.db.sql\\(.*(DELETE|DROP|TRUNCATE|UPDATE|ALTER|CREATE|INSERT)
+        - .save\\(.*ignore_permissions=True
+        - frappe.delete_doc
+        - frappe.db.set_value with no permission context
+    action: abort_unless_override
+  - id: SC-CONSOLE-002
+    description: "Redact lines matching secret-name patterns (api_key, password, token) from logged stdout"
+    action: log
+  - id: SC-CONSOLE-003
+    description: "Reject any attempt to read sites/<site>/site_config.json contents"
+    action: abort
+
+allowed_callers:
+  - agent:backend-specialist
+  - agent:qa-test-engineer
+  - agent:devops-deployment
+  - command:/explain-doctype
+  - command:/optimize-query

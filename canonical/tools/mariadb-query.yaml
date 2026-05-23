@@ -1,0 +1,71 @@
+# Tool: mariadb-query
+# Direct MariaDB connection in read-only mode
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §7 + Decision 12 + Part B item 5
+
+id: mariadb-query
+kind: tool
+version: 1.0.0
+status: stable
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-05-23
+
+wraps: "Direct MariaDB connection via FORGE_MARIADB_DSN"
+purpose: "Run read-only SELECT/SHOW/EXPLAIN/DESCRIBE against the site database for diagnostics, query profiling, schema inspection."
+
+inputs:
+  sql:
+    type: string
+    required: true
+    description: "SQL statement. Must be read-only."
+  params:
+    type: list
+    required: false
+    description: "Parameter bindings for the query."
+
+outputs:
+  rows: list_of_dict
+  row_count: int
+  columns: list
+  warnings: list
+
+requires_confirmation: false
+audit_severity: medium
+
+# Two-layer safety per v0.2 Part B item 5
+safety_checks:
+  - id: SC-MQ-001
+    description: |
+      PRIMARY: Connect as a MariaDB user with only SELECT, SHOW, EXPLAIN, DESCRIBE grants.
+      This is the recommended default — it doesn't depend on parser correctness.
+      The DSN is read from FORGE_MARIADB_DSN env var (Decision 12); auto-reading
+      sites/<site>/site_config.json is forbidden.
+    action: enforce_at_connect
+    rationale: "Grant-based hard limit; the database itself rejects mutation attempts."
+
+  - id: SC-MQ-002
+    description: |
+      FALLBACK: Even with grant-based access, parse the incoming SQL with sqlglot
+      (MariaDB dialect) and reject any statement whose top-level Expression is not
+      one of: Select, Show, Explain, Describe, With (CTE wrapping a Select).
+      Reject multi-statement input (anything with a `;` followed by non-whitespace).
+    action: parse_and_reject
+    parser: sqlglot
+    rationale: "Defense in depth; catches accidental compound queries before the DB even sees them."
+
+  - id: SC-MQ-003
+    description: "Cap result set at 1000 rows; cap query duration at 10 seconds"
+    action: truncate
+  - id: SC-MQ-004
+    description: "Redact column values matching secret-name patterns (api_key, password, token, secret)"
+    action: redact_in_output
+
+connection:
+  dsn_env_var: FORGE_MARIADB_DSN
+  fail_message: "FORGE_MARIADB_DSN not set. Per v0.2 Decision 12, this tool requires explicit opt-in via .env; site_config.json is never auto-read."
+
+allowed_callers:
+  - agent:backend-specialist
+  - agent:security-reviewer
+  - command:/optimize-query
+  - command:/explain-doctype
+  - command:/review-security
