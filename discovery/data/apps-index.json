@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-23T00:00:00Z",
+  "generated_by": "manual Phase 0 discovery (will be automated by `forge discover` in Phase 2)",
+  "bench_path": "/home/tayyab/Work/Projects/erp/novizna-v16/novizna-v16",
+  "upstream_apps": [
+    { "name": "frappe", "type": "upstream", "stack": "python", "modifiable": false },
+    { "name": "erpnext", "type": "upstream", "stack": "python", "modifiable": false },
+    { "name": "crm", "type": "upstream", "stack": "python + frappe-ui-vue3", "modifiable": false },
+    { "name": "hrms", "type": "upstream", "stack": "python + frappe-ui-vue3", "modifiable": false },
+    { "name": "lending", "type": "upstream", "stack": "python", "modifiable": false },
+    { "name": "lms", "type": "upstream", "stack": "python + frappe-ui-vue3", "modifiable": false },
+    { "name": "education", "type": "upstream", "stack": "python + frappe-ui-vue3", "modifiable": false },
+    { "name": "helpdesk", "type": "upstream", "stack": "python + frappe-ui-vue3", "modifiable": false },
+    { "name": "gameplan", "type": "upstream", "stack": "python + frappe-ui-vue3", "modifiable": false },
+    { "name": "drive", "type": "upstream", "stack": "python + frappe-ui-vue3", "modifiable": false },
+    { "name": "press", "type": "upstream", "stack": "python + frappe-ui-vue3", "modifiable": false }
+  ],
+  "custom_apps": [
+    {
+      "name": "novizna_crm",
+      "type": "custom",
+      "stack": "python + frappe-ui-vue3",
+      "frontend_override_system": "3-layer (src_override/ shadows upstream crm, src/ adds net-new, crm_build/ is generated)",
+      "extends": "crm",
+      "doctype_count": 2,
+      "whitelist_api_count": 40,
+      "purpose": "Novizna CRM extension over upstream Frappe CRM"
+    },
+    {
+      "name": "novizna_core",
+      "type": "custom",
+      "stack": "python",
+      "doctype_count": 0,
+      "whitelist_api_count": 1,
+      "requires": ["erpnext_location"],
+      "purpose": "Cross-app utilities; currency exchange providers"
+    },
+    {
+      "name": "novizna_pos",
+      "type": "custom",
+      "stack": "python + quasar-vue3-pwa",
+      "frontend_path": "apps/novizna_pos/novizna-pos-ui/",
+      "build_command": "quasar build -m pwa",
+      "auth_model": "Frappe session cookie + CSRF token (no JWT) — per v0.2 Decision 17",
+      "doctype_count": 3,
+      "whitelist_api_count": 33,
+      "purpose": "POS Quasar PWA with restaurant integration composables"
+    },
+    {
+      "name": "invoice_ninja_integration",
+      "type": "custom",
+      "stack": "python + js-bundle",
+      "doctype_count": 10,
+      "whitelist_api_count": 56,
+      "purpose": "Invoice Ninja two-way sync; webhook handlers; custom fields on ERPNext doctypes"
+    },
+    {
+      "name": "noviznaerp_payroll",
+      "type": "custom",
+      "stack": "python",
+      "doctype_count": 73,
+      "whitelist_api_count": 53,
+      "purpose": "Payroll overrides + custom DocTypes (EOBI, salary, biometric attendance, loans)",
+      "notes": "Largest custom app by DocType count; many SQL anti-patterns flagged"
+    },
+    {
+      "name": "cargo_management",
+      "type": "custom",
+      "stack": "python",
+      "doctype_count": 12,
+      "whitelist_api_count": 10,
+      "purpose": "Parcel tracking + EasyPost / 17Track webhook integration"
+    },
+    {
+      "name": "changemakers",
+      "type": "custom",
+      "stack": "python + frappe-ui-vue3",
+      "doctype_count": 52,
+      "whitelist_api_count": 9,
+      "purpose": "Nonprofit / member workflows"
+    },
+    {
+      "name": "erpnext_location",
+      "type": "custom",
+      "stack": "python",
+      "doctype_count": 4,
+      "whitelist_api_count": 3,
+      "purpose": "Location / geo extensions for ERPNext"
+    }
+  ],
+  "totals": {
+    "upstream_app_count": 11,
+    "custom_app_count": 8,
+    "custom_doctype_count": 156,
+    "custom_whitelist_api_count": 205
+  }
+}

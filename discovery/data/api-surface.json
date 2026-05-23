@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-23T00:00:00Z",
+  "note": "Sample of whitelist API methods per custom app (first 5 per app). Phase 2 `forge discover` will produce the full surface including arguments, permission checks, allow_guest flags.",
+  "custom_apps": {
+    "novizna_crm": {
+      "total_whitelist_methods": 40,
+      "sample_methods": [
+        "get_erpnext_customers",
+        "get_erpnext_quotations",
+        "sync_erpnext_customers",
+        "import_customers_as_leads",
+        "get_deal_addresses"
+      ],
+      "primary_modules": [
+        "novizna_crm/api/leads.py",
+        "novizna_crm/api/deals.py",
+        "novizna_crm/api/erpnext_sync.py",
+        "novizna_crm/api/crm_import.py",
+        "novizna_crm/api/universal_import.py",
+        "novizna_crm/api/import_leads.py",
+        "novizna_crm/api/connector_manager.py"
+      ]
+    },
+    "novizna_pos": {
+      "total_whitelist_methods": 33,
+      "sample_methods": [
+        "get_users_for_pos_profile",
+        "save_invoice",
+        "submit_invoice",
+        "get_pos_closing_entry",
+        "save_pos_closing_entry"
+      ],
+      "primary_modules": [
+        "novizna_pos/novizna_pos/api.py",
+        "novizna_pos/novizna_pos/invoice.py"
+      ]
+    },
+    "invoice_ninja_integration": {
+      "total_whitelist_methods": 56,
+      "sample_methods": [
+        "register_webhooks",
+        "unregister_webhooks",
+        "get_webhook_status",
+        "refresh_webhooks",
+        "get_sync_dashboard_data"
+      ]
+    },
+    "cargo_management": {
+      "total_whitelist_methods": 10,
+      "sample_methods": [
+        "easypost_webhook",
+        "get_tracking_status",
+        "get_parcel_query",
+        "find_package_by_tracking_number",
+        "webhook_17track"
+      ]
+    },
+    "noviznaerp_payroll": {
+      "total_whitelist_methods": 53,
+      "note": "Includes www/ guest-allowed endpoints for careers and job applications."
+    },
+    "novizna_core": { "total_whitelist_methods": 1 },
+    "changemakers": { "total_whitelist_methods": 9 },
+    "erpnext_location": { "total_whitelist_methods": 3 }
+  },
+  "guest_endpoints": [
+    {
+      "app": "novizna_pos",
+      "path": "novizna_pos/novizna_pos/api.py:82",
+      "purpose": "(to verify) — guest POS API surface"
+    },
+    {
+      "app": "cargo_management",
+      "path": "cargo_management/parcel_management/doctype/parcel/api/easypost_api.py:84",
+      "method": "POST",
+      "purpose": "EasyPost webhook receiver"
+    },
+    {
+      "app": "noviznaerp_payroll",
+      "paths": [
+        "noviznaerp_payroll/www/careers.py:9",
+        "noviznaerp_payroll/www/careers.py:21",
+        "noviznaerp_payroll/www/job_apply.py:8",
+        "noviznaerp_payroll/www/job_apply.py:22",
+        "noviznaerp_payroll/www/job_detail.py:5"
+      ],
+      "purpose": "Public careers / job application pages"
+    }
+  ]
+}

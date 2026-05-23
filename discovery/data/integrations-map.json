@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-23T00:00:00Z",
+  "note": "External integrations detected by hostname matching in custom app code. Per v0.2 Decision 18: vendor SDK wrappers live in apps/novizna_crm/novizna_crm/connectors/, orchestration in apps/novizna_crm/novizna_crm/api/.",
+  "vendor_directory": "apps/novizna_crm/novizna_crm/api/connectors/",
+  "connectors_present": [
+    "google_sheets.py",
+    "hubspot.py",
+    "linkedin.py",
+    "zoho.py"
+  ],
+  "vendor_endpoints_detected": {
+    "linkedin": ["https://api.linkedin.com/v2"],
+    "google_oauth": ["https://oauth2.googleapis.com/token"],
+    "google_drive": ["https://www.googleapis.com/drive/v3/files"],
+    "google_sheets": ["https://sheets.googleapis.com/v4/spreadsheets/"],
+    "zoho_crm": ["https://www.zohoapis.com/crm/v2"],
+    "zoho_sheet": ["https://sheet.zoho.com/api/v2"]
+  },
+  "orchestration_modules": {
+    "path": "apps/novizna_crm/novizna_crm/api/",
+    "files": [
+      "crm_import.py",
+      "universal_import.py",
+      "import_leads.py",
+      "connector_manager.py",
+      "leads.py",
+      "deals.py",
+      "erpnext_sync.py"
+    ],
+    "note": "Generic import / orchestration code lives here (NOT in connectors/)."
+  },
+  "invoice_ninja": {
+    "app": "invoice_ninja_integration",
+    "note": "Separate top-level app (not under novizna_crm). Has its own DocTypes (10) for Invoice Ninja company / mapping / sync logs. Custom fields on ERPNext doctypes via custom_fields.py."
+  },
+  "easypost_17track": {
+    "app": "cargo_management",
+    "webhook_endpoints": [
+      "cargo_management/parcel_management/doctype/parcel/api/easypost_api.py:84 (POST, guest)",
+      "cargo_management — webhook_17track method"
+    ]
+  }
+}

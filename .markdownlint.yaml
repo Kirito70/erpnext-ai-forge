@@ -1,0 +1,5 @@
+default: true
+MD013: false   # line length — disabled for tables and code blocks
+MD024: false   # duplicate headings — allowed across sections
+MD033: false   # inline HTML — needed for diagrams and details blocks
+MD041: false   # first line as h1 — frontmatter blocks the heading

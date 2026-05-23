@@ -1,0 +1,97 @@
+# erpnext-ai-forge — global configuration
+# Version: 0.1.0
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md
+
+project:
+  name: erpnext-ai-forge
+  version: 0.1.0
+  description: "Cross-tool AI agent standardization framework for the Novizna v16 ERPNext/Frappe bench"
+
+# Target bench (resolved at sync time; can be overridden via FORGE_BENCH_PATH env var)
+bench:
+  path: "{{ env.FORGE_BENCH_PATH }}"
+  primary_site: "{{ env.FORGE_PRIMARY_SITE }}"
+
+# Tools managed by `forge sync --all` (Phase 3 rollout order per v0.2 Decision 5)
+enabled_tools:
+  - claude-code        # Phase 1a/1b — primary target
+  # The following are enabled per Phase 3 rollout:
+  # - cursor           # Phase 3 week 1
+  # - opencode         # Phase 3 week 2
+  # - cline            # Phase 3 week 3
+  # - copilot          # Phase 3 week 4 (GitHub + VS Code, single adapter)
+  # - codex            # Phase 3 week 5
+  # - antigravity      # Phase 3 week 6 (minimal-capability target)
+
+# Security thresholds (tightened per v0.2 Decision 11 + Part B item 3)
+security:
+  auto_accept_threshold: 95         # ≥ 95 → auto-accept
+  warn_threshold: 80                # 80–94 → warn, require typed justification
+  block_threshold: 80               # < 80 → block sync
+  external_skill_threshold: 98      # external/imported skills must clear ≥ 98
+  require_typed_justification: true # 80–94 score forces developer to type one-line reason
+  log_justifications_to_audit: true
+
+# Audit logging (v0.2 Section 8.4 + Decision 14)
+audit:
+  enabled: true
+  path: audit/
+  rotation: daily
+  retention_days: 365              # 1 year, local-only
+  compress_after_days: 30
+  backup:
+    enabled: true
+    cadence: monthly
+    method: tar+gpg
+    destination: "{{ env.FORGE_AUDIT_BACKUP_DIR }}"
+    gpg_recipient: "{{ env.FORGE_AUDIT_GPG_RECIPIENT }}"
+
+# Sync behaviour (v0.2 Section 3.5 + Part B item 7)
+sync:
+  staging_dir: .forge-staging
+  transactional: true              # --all aborts if any adapter fails
+  write_manifest: true             # .forge-manifest.json per output dir
+  manifest_version: 1
+  backup_claude_settings: true     # .claude/settings.json.forge-backup on every sync
+
+# Commit conventions (v0.2 Decision 20)
+commits:
+  enforce_conventional: true
+  scopes:
+    - scaffold
+    - forge
+    - agents
+    - skills
+    - commands
+    - tools
+    - adapters
+    - discovery
+    - audit
+    - docs
+    - ci
+  types: [feat, fix, refactor, chore, docs, test, perf, ci]
+
+# Confirmation tokens (v0.2 Decision 13)
+confirmations:
+  destructive_token: "{{ bench.primary_site }}"   # type the site name, not "yes"
+
+# Discovery (v0.2 Section 1 + Decision 15)
+discovery:
+  cadence: on_demand
+  auto_trigger_on_stale_reference: true
+  output_dir: discovery/
+
+# Upstream-app guard (v0.2 Section 8.3 + Section 6.1)
+upstream_apps:
+  - frappe
+  - erpnext
+  - crm
+  - hrms
+  - lending
+  - lms
+  - education
+  - helpdesk
+  - gameplan
+  - drive
+  - press
+guard_action: reject               # any write under apps/<upstream>/ → reject

@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-23T00:00:00Z",
+  "note": "Phase 0 lists DocType IDs and module paths only. Phase 2 `forge discover` will add field schemas, permissions, custom-vs-fixture classification.",
+  "custom_apps": {
+    "novizna_crm": [
+      "crm_import_log",
+      "crm_lead_industry"
+    ],
+    "novizna_core": [],
+    "novizna_pos": [
+      "branch_warehouse",
+      "cash_variance_entry",
+      "noviznapos_settings"
+    ],
+    "invoice_ninja_integration": [
+      "invoice_ninja_company",
+      "invoice_ninja_company_mapping",
+      "invoice_ninja_currency_account_mapping",
+      "invoice_ninja_customer_group",
+      "invoice_ninja_customer_group_mapping",
+      "invoice_ninja_settings",
+      "invoice_ninja_sync_logs",
+      "invoice_ninja_task",
+      "invoice_ninja_tax_rate",
+      "invoice_ninja_tax_template_mapping"
+    ],
+    "noviznaerp_payroll": {
+      "_count": 73,
+      "_sample": [
+        "additional_salary_details",
+        "advance_policy_setup",
+        "attendance_tool",
+        "biometric_device",
+        "biometric_device_logs",
+        "bimonthly_employees",
+        "bimonthly_salaries",
+        "bulk_additional_salary_tool",
+        "employee_biometric_attendance",
+        "eobi",
+        "eobi_policy",
+        "full_and_final_account_details",
+        "full_and_final_accounts_setup",
+        "geo_fancing_by_city",
+        "geo_fancing_by_radius",
+        "loan_criteria",
+        "loan_product_emi",
+        "notice_period_policy"
+      ],
+      "_note": "Full list will be produced by `forge discover` (Phase 2)."
+    },
+    "cargo_management": {
+      "_count": 12,
+      "_note": "Full list pending Phase 2 automated discovery."
+    },
+    "changemakers": {
+      "_count": 52,
+      "_note": "Full list pending Phase 2 automated discovery."
+    },
+    "erpnext_location": {
+      "_count": 4,
+      "_note": "Full list pending Phase 2 automated discovery."
+    }
+  },
+  "naming_conventions_observed": {
+    "novizna_crm": "crm_<noun>",
+    "invoice_ninja_integration": "invoice_ninja_<noun>",
+    "noviznaerp_payroll": "snake_case domain nouns (no app prefix)",
+    "novizna_pos": "snake_case (no consistent prefix; e.g. branch_warehouse, cash_variance_entry, noviznapos_settings)"
+  }
+}

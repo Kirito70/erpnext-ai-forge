@@ -1,0 +1,41 @@
+# erpnext-ai-forge — CI pipeline (placeholder; Phase 4 fills in real jobs)
+# Triggers: push to main, all PRs
+
+name: forge-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    name: forge validate + score + tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install forge CLI
+        run: |
+          pip install -e forge/
+
+      - name: forge validate
+        run: forge validate
+
+      - name: forge score (canonical/)
+        run: forge score --path canonical/ --fail-below 80
+
+      - name: forge test (pytest + golden fixtures)
+        run: forge test
+
+      # Phase 4 will add:
+      # - gitleaks scan
+      # - markdownlint
+      # - yamllint
+      # - upload audit log artifact for forensics

@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-23T00:00:00Z",
+  "note": "Per v0.2 Section 8.5 and Decision 12: only KEY NAMES recorded. Values are never read into the model context.",
+  "primary_site": "novizna-v16",
+  "site_config_keys": [
+    "db_host",
+    "db_name",
+    "db_password",
+    "db_port",
+    "db_type",
+    "db_user",
+    "encryption_key",
+    "user_type_doctype_limit"
+  ],
+  "common_site_config_keys": [
+    "background_workers",
+    "developer_mode",
+    "file_watcher_port",
+    "frappe_user",
+    "gunicorn_workers",
+    "ignore_csrf",
+    "live_reload",
+    "rebase_on_pull",
+    "redis_cache",
+    "redis_queue",
+    "redis_socketio",
+    "restart_supervisor_on_update",
+    "restart_systemd_on_update",
+    "serve_default_site",
+    "shallow_clone",
+    "socketio_port",
+    "use_redis_auth",
+    "webserver_port"
+  ],
+  "integration_keys_expected_but_not_present": [
+    "zoho_client_id",
+    "zoho_client_secret",
+    "hubspot_api_key",
+    "google_oauth_client_id",
+    "google_oauth_client_secret",
+    "linkedin_client_id",
+    "invoice_ninja_api_token"
+  ],
+  "integration_keys_expected_note": "Integrations are present in code (apps/novizna_crm/novizna_crm/api/connectors/) but no corresponding keys appear in site_config.json — suggests credentials are stored in DocType settings rows (e.g., Invoice Ninja Settings, Zoho Settings) rather than site config. Phase 2 will inspect Settings DocTypes for per-tenant credential layout.",
+  "security_flag": {
+    "key": "ignore_csrf",
+    "severity": "HIGH",
+    "finding": "CSRF protection disabled site-wide. Cross-referenced in anti-pattern-findings.json AP-005."
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-23T00:00:00Z",
+  "scope": "custom apps only (8 apps); upstream apps not scanned per v0.2 Section 8.3",
+  "findings": [
+    {
+      "id": "AP-001",
+      "severity": "HIGH",
+      "pattern": "frappe.db.sql(f\"...\") — SQL injection via f-string interpolation",
+      "occurrences_found": 11,
+      "examples": [
+        "apps/noviznaerp_payroll/noviznaerp_payroll/custom/loan_custom.py:137",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/custom/loan_custom.py:150",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/custom/loan_custom.py:240",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/custom/salary_structure_custom.py:11",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/custom/salary_structure_custom.py:12",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/overrides/leave_encashment_override.py:119",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/custom/loan_interest_accrual_custom.py:57",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/report/loan_register/loan_register.py:111",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/bulk_additional_salary_tool/bulk_additional_salary_tool.py:51",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/attendance_tool/attendance_tool.py:207",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/overrides/salary_slip_override.py:149"
+      ],
+      "recommendation": "Replace with `frappe.db.sql(query, values={...})` parameterized form. Most occurrences interpolate doc IDs and account numbers — fixable with named bindings.",
+      "skill_to_author": "canonical/skills/data/sql-best-practices.md"
+    },
+    {
+      "id": "AP-002",
+      "severity": "MEDIUM",
+      "pattern": "@frappe.whitelist(allow_guest=True) — guest-accessible endpoints",
+      "occurrences_found": 10,
+      "scope_apps": ["noviznaerp_payroll", "cargo_management", "novizna_pos"],
+      "examples": [
+        "apps/noviznaerp_payroll/noviznaerp_payroll/www/careers.py:9",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/www/job_apply.py:8",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/www/job_detail.py:5",
+        "apps/cargo_management/cargo_management/parcel_management/doctype/parcel/api/easypost_api.py:84",
+        "apps/novizna_pos/novizna_pos/novizna_pos/api.py:82"
+      ],
+      "recommendation": "Each guest endpoint must (a) verify webhook signature (cargo_management easypost), (b) rate-limit (noviznaerp_payroll careers), or (c) re-evaluate whether guest access is required (novizna_pos api.py:82 needs review)."
+    },
+    {
+      "id": "AP-003",
+      "severity": "MEDIUM",
+      "pattern": "ignore_permissions=True — frequent permission bypass",
+      "occurrences_found": 99,
+      "recommendation": "Each occurrence should have a justifying comment. Most legitimate uses are inside scheduled tasks or post-installation patches; uses inside user-triggered code paths are suspicious. Phase 2 `forge score` will flag occurrences without a justifying comment within 3 lines."
+    },
+    {
+      "id": "AP-004",
+      "severity": "MEDIUM",
+      "pattern": "frappe.db.commit() — explicit commit inside non-test code",
+      "occurrences_found": 73,
+      "recommendation": "Commits inside `doc_events` hooks break atomicity. Commits inside scheduled tasks are usually safe. Phase 2 audit will categorize each occurrence by call-site type."
+    },
+    {
+      "id": "AP-005",
+      "severity": "HIGH",
+      "pattern": "ignore_csrf=true in common_site_config.json",
+      "location": "sites/common_site_config.json",
+      "recommendation": "CSRF protection is globally disabled across all sites in this bench. Verify this is required (likely set for the Quasar POS PWA which has its own CSRF handling via Frappe session cookie + token header per v0.2 Decision 17). If only the POS needs it, scope it instead of disabling site-wide."
+    },
+    {
+      "id": "AP-006",
+      "severity": "INFO",
+      "pattern": "Naming convention drift across apps",
+      "details": [
+        "novizna_crm uses crm_<noun> prefix (good)",
+        "invoice_ninja_integration uses invoice_ninja_<noun> prefix (good)",
+        "noviznaerp_payroll uses domain nouns with no app prefix (acceptable, but globally ambiguous)",
+        "novizna_pos mixes branch_warehouse / cash_variance_entry / noviznapos_settings — inconsistent prefix usage"
+      ],
+      "recommendation": "Adopt a standard in canonical/skills/frappe-core/conventions.md: optional app prefix; if used, used consistently for all DocTypes in that app."
+    }
+  ],
+  "totals": {
+    "high_severity_findings": 2,
+    "medium_severity_findings": 3,
+    "info_findings": 1,
+    "scan_completeness": "initial pass — focused on common patterns; Phase 4 `forge score` will produce per-file scores against the full deduction table"
+  }
+}

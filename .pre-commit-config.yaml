@@ -1,0 +1,55 @@
+# erpnext-ai-forge — pre-commit hooks (v0.2 Decision 4)
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.43.0
+    hooks:
+      - id: markdownlint
+        args: [--config, .markdownlint.yaml]
+        files: \.md$
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: [-c, .yamllint.yaml]
+
+  # forge score --staged — runs only on staged canonical artifacts
+  - repo: local
+    hooks:
+      - id: forge-score-staged
+        name: forge score (staged canonical artifacts)
+        entry: forge score --staged
+        language: system
+        files: ^canonical/.*\.(md|yaml|yml)$
+        pass_filenames: false
+
+      - id: forge-validate
+        name: forge validate (schema + drift)
+        entry: forge validate
+        language: system
+        pass_filenames: false
+
+      - id: forge-commit-format
+        name: forge commit (Conventional Commits scope check)
+        entry: forge commit --check
+        language: system
+        stages: [commit-msg]
