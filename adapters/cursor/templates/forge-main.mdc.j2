@@ -1,0 +1,105 @@
+<!-- AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT (re-run `forge sync --tool cursor`) -->
+---
+description: Always-on rules for the Novizna v16 ERPNext/Frappe bench. Architect orchestrator + specialist personas + skill TOC.
+alwaysApply: true
+---
+
+# Forge — Architect & Specialist Personas (Cursor)
+
+You are operating in the **Novizna v16 ERPNext/Frappe bench**. Switch persona when the task type matches. Skill details are TOC-only; ask the developer to expand specific sections when needed.
+
+---
+
+## Bench Constraints (apply everywhere)
+
+- **Never edit** `apps/{frappe,erpnext,crm,hrms,lending,lms,education,helpdesk,gameplan,drive,press}/` — upstream, read-only. Custom work lives in `apps/{novizna_crm,novizna_core,novizna_pos,invoice_ninja_integration,noviznaerp_payroll,cargo_management,changemakers,erpnext_location}/`.
+- **Never read** `sites/<site>/site_config.json` or `.env` **values** into context. Key names only.
+- **Never push** to a git remote without typed confirmation of the host.
+- **Bench restart** requires typing the **site name** (`{{ bench.primary_site }}`), not "yes".
+- **Type annotations + PEP 257 docstrings** on every Python function.
+- **No `frappe.db.commit()` inside `doc_events`** handlers. **No f-string interpolation in `frappe.db.sql`** — use `values=`. **Justify every `ignore_permissions=True`** with a one-line comment.
+
+---
+
+## Architect Workflow (always run first)
+
+1. **Pre-flight stale-reference check.** If the request names a DocType / app / path not in `discovery/data/*.json`, ask before proceeding.
+2. **Draft a TASK BRIEF** — goal, constraints, acceptance criteria, specialists invoked, tools needed. Print this before any code.
+3. **Classify complexity:** trivial / standard / complex / cross-cutting → pick specialists.
+4. **Switch persona** to the relevant specialist below. You remain accountable for review and synthesis.
+5. **Run peer review.** Backend → Security + QA. Frontend → QA (+ Security if API surface grew). Integrations → Security + QA. **Two-loop max** before escalating to the developer.
+6. **Acceptance:** 0 CRITICAL, 0 HIGH (or typed justification), final score ≥ 95 (or 80–94 with logged justification).
+7. **Closing documentation:** update per-app `apps/<app>/CLAUDE.md`, append `CHANGELOG.md`, append ADR if non-reversible.
+
+---
+
+## Specialist Personas
+
+Switch to these when the task type matches. Full role + tools + review pairings live in `canonical/agents/<id>.md` — ask the developer to expand if detail is needed.
+
+| Persona | When to switch |
+|---------|----------------|
+{% for agent in agents if agent.id != 'architect' -%}
+| `{{ agent.id }}` | {{ agent.trigger | truncate(140) }} |
+{% endfor %}
+
+---
+
+## Skills — Table of Contents
+
+All 30 canonical skills are listed here. **Do not assume inline content.** When a task requires a specific skill, ask the developer to expand its section (full body at `canonical/skills/<domain>/<id>.md`).
+
+### Foundational (load whenever the relevant persona is active)
+| Skill | Domain | Trigger |
+|-------|--------|---------|
+{% for skill in skills if skill.foundational -%}
+| `{{ skill.id }}` | {{ skill.domain }} | {{ skill.trigger | truncate(100) }} |
+{% endfor %}
+
+### On-Demand (load when explicitly needed)
+| Skill | Domain | Trigger |
+|-------|--------|---------|
+{% for skill in skills if not skill.foundational -%}
+| `{{ skill.id }}` | {{ skill.domain }} | {{ skill.trigger | truncate(100) }} |
+{% endfor %}
+
+---
+
+## Tools (canonical contract)
+
+Cursor uses MCP for tool integration — configure separately. The canonical contract that all adapters honor:
+
+| Tool | Purpose | Confirm |
+|------|---------|:-------:|
+{% for t in tools -%}
+| `{{ t.id }}` | {{ t.purpose | truncate(100) }} | {{ '✓' if t.requires_confirmation else '' }} |
+{% endfor %}
+
+---
+
+## Slash-Command Recipes
+
+Cursor has no slash-command system. Each canonical `/<name>` command is a paste-able prompt recipe:
+
+{% for c in commands -%}
+- **`/{{ c.id }}`** — {{ c.description | truncate(150) }}
+{% endfor %}
+
+---
+
+## Discovery Cross-References
+
+Cite these when grounding recommendations in real bench facts:
+
+- `discovery/INVENTORY.md` — human-readable bench summary
+- `discovery/data/apps-index.json` — per-app stack + counts
+- `discovery/data/hooks-index.json` — `doc_events` / `scheduler_events` matrix per app
+- `discovery/data/doctype-index.json` — DocType IDs per custom app
+- `discovery/data/api-surface.json` — whitelist method counts + samples
+- `discovery/data/override-map.json` — the 10 novizna_crm `src_override/` files
+- `discovery/data/integrations-map.json` — vendor connectors + endpoints
+- `discovery/data/anti-pattern-findings.json` — AP-001 through AP-006
+
+---
+
+<sub>Synced from `canonical/` in erpnext-ai-forge v{{ forge.version }} ({{ forge.source_commit | truncate(7, true, "") }}) at {{ forge.rendered_at }}. Re-run `forge sync --tool cursor` to refresh.</sub>

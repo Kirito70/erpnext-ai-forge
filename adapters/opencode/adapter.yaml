@@ -1,0 +1,47 @@
+# OpenCode adapter
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §3 + §4.0
+# OpenCode supports AGENTS.md aggregation + per-slash-command files.
+
+tool: opencode
+adapter_version: 0.1.0
+
+capabilities:
+  agents: true                  # AGENTS.md is the host file
+  subagents: false              # no Task tool equivalent — personas via switch
+  slash_commands: true          # /cmd via .opencode/commands/
+  skills: false                 # rendered as TOC in AGENTS.md
+  custom_tools: true            # via opencode.json tool list (out of scope for sync)
+  per_app_files: false          # OpenCode reads one AGENTS.md at the bench root
+
+output_paths:
+  bench_root: "{{ env.FORGE_BENCH_PATH }}"
+  agents_md: "{{ output_paths.bench_root }}/AGENTS.md"
+  opencode_root: "{{ output_paths.bench_root }}/.opencode"
+  commands_dir: "{{ output_paths.opencode_root }}/commands"
+
+limits:
+  max_total_chars: 20000        # OpenCode/Codex per v0.2 §4.0
+
+artifacts:
+  # Single AGENTS.md at bench root with architect + specialist personas + skill TOC.
+  forge_agents:
+    strategy: aggregate
+    template: AGENTS.md.j2
+    output: "{{ output_paths.agents_md }}"
+
+  # One slash-command file per canonical command — OpenCode reads these natively.
+  # Key name `commands` matches the render.py iterator that handles one-file-per-command.
+  commands:
+    strategy: one_file_per_command
+    template: command.md.j2
+    output: "{{ output_paths.commands_dir }}/{{ artifact.id }}.md"
+
+context_loading:
+  specialists_inlined: true
+  foundational_skills_inlined: false   # too large for OpenCode's char budget
+  on_demand_skills_strategy: toc_with_expand_instruction
+
+manifest:
+  enabled: true
+  filename: .forge-manifest.json
+  schema_version: 1

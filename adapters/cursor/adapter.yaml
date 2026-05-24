@@ -1,0 +1,64 @@
+# Cursor adapter
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §3 + §4.0 (no subagent concept)
+# Cursor has no Task tool, no slash commands. Specialists are inlined into
+# the architect's rule file as "When task type X, behave per Section Y".
+
+tool: cursor
+adapter_version: 0.1.0
+
+capabilities:
+  agents: false                 # implicit only — no native agent concept
+  subagents: false
+  slash_commands: false         # cmd palette only, no /-prefix custom commands
+  skills: false                 # scoped via globs in rule files
+  custom_tools: true            # via MCP config (out of scope for sync)
+  per_app_files: true           # rule files can scope by glob
+
+output_paths:
+  bench_root: "{{ env.FORGE_BENCH_PATH }}"
+  cursor_root: "{{ output_paths.bench_root }}/.cursor"
+  rules_dir: "{{ output_paths.cursor_root }}/rules"
+
+# Per v0.2 §4.0 Context Loading Strategy for Cursor:
+#   max_total_chars: 40000 per rule file
+# We split into multiple rule files (each under budget) rather than one
+# monolithic file, using Cursor's `globs:` frontmatter to scope when relevant.
+limits:
+  max_total_chars: 40000
+
+artifacts:
+  # The main always-on rule file: architect + all specialists inlined + skill TOC.
+  # `alwaysApply: true` so Cursor loads it on every interaction.
+  forge_main:
+    strategy: aggregate
+    template: forge-main.mdc.j2
+    output: "{{ output_paths.rules_dir }}/forge-main.mdc"
+
+  # Per-app context files with glob scope so they activate only when the
+  # developer edits files under that app.
+  forge_per_app:
+    strategy: aggregate_per_app
+    template: forge-per-app.mdc.j2
+    output: "{{ output_paths.rules_dir }}/forge-{{ app.name }}.mdc"
+
+context_loading:
+  specialists_inlined: true
+  foundational_skills_inlined: true
+  on_demand_skills_strategy: toc_with_expand_instruction
+  budget_enforcement: warn_only       # Phase 4 will hard-enforce
+
+manifest:
+  enabled: true
+  filename: .forge-manifest.json
+  schema_version: 1
+
+expected_outputs:
+  - "{{ output_paths.rules_dir }}/forge-main.mdc"
+  - "{{ output_paths.rules_dir }}/forge-novizna_crm.mdc"
+  - "{{ output_paths.rules_dir }}/forge-novizna_pos.mdc"
+  - "{{ output_paths.rules_dir }}/forge-novizna_core.mdc"
+  - "{{ output_paths.rules_dir }}/forge-invoice_ninja_integration.mdc"
+  - "{{ output_paths.rules_dir }}/forge-noviznaerp_payroll.mdc"
+  - "{{ output_paths.rules_dir }}/forge-cargo_management.mdc"
+  - "{{ output_paths.rules_dir }}/forge-changemakers.mdc"
+  - "{{ output_paths.rules_dir }}/forge-erpnext_location.mdc"

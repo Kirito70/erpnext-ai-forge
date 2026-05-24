@@ -1,0 +1,75 @@
+<!-- AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT (re-run `forge sync --tool codex`) -->
+# AGENTS (Codex) — Novizna v16 ERPNext/Frappe Bench
+
+Codex reads this file. Per [Decision 8](../../erp/novizna-v16/novizna-v16/ULTRAPLAN-AI-FRAMEWORK-v0.2.md), Codex gets its own file (not shared with OpenCode's `AGENTS.md`) so hand-edits don't conflict across tools.
+
+The architect orchestrates; switch persona when the task type matches.
+
+---
+
+## Bench Constraints
+
+- **Never edit** `apps/{frappe,erpnext,crm,hrms,lending,lms,education,helpdesk,gameplan,drive,press}/` — upstream, read-only.
+- Custom work lives in `apps/{novizna_crm,novizna_core,novizna_pos,invoice_ninja_integration,noviznaerp_payroll,cargo_management,changemakers,erpnext_location}/`.
+- Never read `sites/<site>/site_config.json` or `.env` **values** into context. Key names only.
+- Never push to a git remote without typed confirmation of the host.
+- `bench restart` requires typing the **site name** (`{{ bench.primary_site }}`), not "yes".
+- Type annotations + PEP 257 docstrings on every Python function.
+- No `frappe.db.commit()` inside `doc_events`. No f-string interpolation in `frappe.db.sql` — use `values=`.
+
+---
+
+## Architect Workflow
+
+1. Pre-flight stale-reference check against `discovery/data/*.json`.
+2. Draft TASK BRIEF: goal, constraints, acceptance, specialists, tools.
+3. Switch persona to relevant specialist.
+4. Peer review (Backend → Security + QA; Frontend → QA; Integrations → Security + QA). **Two-loop max** then escalate.
+5. Acceptance: 0 CRITICAL, 0 HIGH, final score ≥ 95.
+6. Closing documentation: per-app `CLAUDE.md`, `CHANGELOG.md`, ADRs.
+
+---
+
+## Specialist Personas
+
+| Persona | When to switch |
+|---------|----------------|
+{% for agent in agents if agent.id != 'architect' -%}
+| `{{ agent.id }}` | {{ agent.trigger | truncate(140) }} |
+{% endfor %}
+
+---
+
+## Skills (TOC)
+
+### Foundational
+{% for skill in skills if skill.foundational -%}
+- `{{ skill.id }}` ({{ skill.domain }})
+{% endfor %}
+
+### On-Demand
+{% for skill in skills if not skill.foundational -%}
+- `{{ skill.id }}` ({{ skill.domain }})
+{% endfor %}
+
+---
+
+## Tools (canonical contract)
+
+| Tool | Purpose | Confirm |
+|------|---------|:-------:|
+{% for t in tools -%}
+| `{{ t.id }}` | {{ t.purpose | truncate(100) }} | {{ '✓' if t.requires_confirmation else '' }} |
+{% endfor %}
+
+---
+
+## Command Recipes
+
+{% for c in commands -%}
+- **`/{{ c.id }}`** — {{ c.description | truncate(150) }}
+{% endfor %}
+
+---
+
+<sub>Synced from `canonical/` in erpnext-ai-forge v{{ forge.version }} ({{ forge.source_commit | truncate(7, true, "") }}).</sub>

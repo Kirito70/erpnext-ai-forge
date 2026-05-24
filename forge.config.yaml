@@ -12,16 +12,15 @@ bench:
   path: "{{ env.FORGE_BENCH_PATH }}"
   primary_site: "{{ env.FORGE_PRIMARY_SITE }}"
 
-# Tools managed by `forge sync --all` (Phase 3 rollout order per v0.2 Decision 5)
+# Tools managed by `forge sync --all` (all 7 adapters enabled — Phase 3 complete)
 enabled_tools:
-  - claude-code        # Phase 1a/1b — primary target
-  # The following are enabled per Phase 3 rollout:
-  # - cursor           # Phase 3 week 1
-  # - opencode         # Phase 3 week 2
-  # - cline            # Phase 3 week 3
-  # - copilot          # Phase 3 week 4 (GitHub + VS Code, single adapter)
-  # - codex            # Phase 3 week 5
-  # - antigravity      # Phase 3 week 6 (minimal-capability target)
+  - claude-code        # Phase 1a/1b — primary target (subagent-capable)
+  - cursor             # Phase 3 — full subagent-inlined rules + per-app globs
+  - opencode           # Phase 3 — AGENTS.md aggregate + native slash commands
+  - cline              # Phase 3 — .clinerules/ aggregate + per-app rules
+  - copilot            # Phase 3 — .github/copilot-instructions.md + per-app applyTo
+  - codex              # Phase 3 — AGENTS.codex.md aggregate (Decision 8)
+  - antigravity        # Phase 3 — minimal system.md (re-scope per Decision 6)
 
 # Security thresholds (tightened per v0.2 Decision 11 + Part B item 3)
 security:

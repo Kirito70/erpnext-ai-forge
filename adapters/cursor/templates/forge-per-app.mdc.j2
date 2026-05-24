@@ -1,0 +1,93 @@
+<!-- AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT (re-run `forge sync --tool cursor`) -->
+---
+description: App-specific context for {{ app.name }} — activates when editing files under apps/{{ app.name }}/
+globs: apps/{{ app.name }}/**/*
+alwaysApply: false
+---
+
+# {{ app.name }} — App Context (Cursor)
+
+**Stack:** {{ app.stack }}
+**Custom DocTypes:** {{ app.doctype_count | default(0) }}
+**Whitelist APIs:** {{ app.whitelist_api_count | default(0) }}
+{% if app.purpose %}**Purpose:** {{ app.purpose }}{% endif %}
+
+---
+
+## Where Things Live
+
+{% if app.name == "novizna_crm" -%}
+| Surface | Path |
+|---------|------|
+| Backend | `apps/novizna_crm/novizna_crm/` |
+| API modules | `apps/novizna_crm/novizna_crm/api/` |
+| Vendor connectors | `apps/novizna_crm/novizna_crm/api/connectors/` (Decision 18) |
+| Frontend (3-layer override) | `apps/novizna_crm/frontend/{src/, src_override/}` |
+| Generated (never edit) | `apps/novizna_crm/crm_build/`, `apps/novizna_crm/novizna_crm/public/frontend/` |
+
+### Frontend Override Rule (critical)
+
+Three layers, three placement rules:
+
+- Change existing CRM component/page → `frontend/src_override/<same path as upstream>`
+- Add brand-new component/page → `frontend/src/...`
+- Sidebar → `frontend/src/index.js` `customSidebarItems`
+
+Never edit `crm_build/` (wiped on every build) or `apps/crm/frontend/src/` (upstream). Run `yarn check-conflicts` after CRM updates.
+{%- elif app.name == "novizna_pos" -%}
+| Surface | Path |
+|---------|------|
+| Backend | `apps/novizna_pos/novizna_pos/` |
+| API | `apps/novizna_pos/novizna_pos/novizna_pos/api.py` + `invoice.py` |
+| Frontend (Quasar PWA) | `apps/novizna_pos/novizna-pos-ui/src/` |
+| Build output | `apps/novizna_pos/novizna_pos/public/pos/` |
+
+### Auth (Decision 17)
+
+Frappe session cookie + `X-Frappe-CSRF-Token` header on non-GET requests. **No JWT.** CSRF token hydrates at app boot.
+
+### Build
+
+```bash
+cd apps/novizna_pos/novizna-pos-ui
+quasar dev          # local dev with hot reload
+quasar build -m pwa # production build
+```
+{%- else -%}
+| Surface | Path |
+|---------|------|
+| Backend | `apps/{{ app.name }}/{{ app.name }}/` |
+| API | `apps/{{ app.name }}/{{ app.name }}/api.py` (if present) |
+| DocTypes | `apps/{{ app.name }}/{{ app.name }}/{{ app.name }}/doctype/` |
+{%- endif %}
+
+---
+
+## App-Specific Rules
+
+{% if app.name == "novizna_crm" -%}
+- DocType naming: `crm_<noun>` prefix
+- Override registry: every `src_override/` file mirrors an upstream `apps/crm/frontend/src/` path one-for-one
+- Vendor connectors live in `connectors/`; orchestration in `api/`
+{%- elif app.name == "novizna_pos" -%}
+- TypeScript strict — no `any` without `// FIXME: typing` comment
+- Pinia stores own shared state; composables wrap stores
+- All API calls go through `src/boot/axios.ts`
+- Service Worker: new asset classes must be allowlisted in `quasar.config.ts`
+{%- elif app.name == "noviznaerp_payroll" -%}
+- 73 DocTypes — largest custom app. Bare domain nouns; prefer app-prefixed names for new ones.
+- **Known anti-patterns to avoid in new code:** 11 occurrences of `frappe.db.sql(f"...")` (AP-001). Do not add more.
+{%- elif app.name == "invoice_ninja_integration" -%}
+- DocType naming: `invoice_ninja_<noun>` prefix
+- Custom fields on ERPNext doctypes scoped via this app's fixture
+{%- elif app.name == "cargo_management" -%}
+- EasyPost + 17Track webhook receivers — every guest-allowed handler must verify signature first
+{%- elif app.name == "novizna_core" -%}
+- Cross-app utilities. Currency exchange providers under `currency_exchange/`. Requires `erpnext_location`.
+{%- else -%}
+- See per-app `CLAUDE.md` if present, otherwise follow Frappe conventions.
+{%- endif %}
+
+---
+
+<sub>Synced from canonical in erpnext-ai-forge v{{ forge.version }} ({{ forge.source_commit | truncate(7, true, "") }}) at {{ forge.rendered_at }}.</sub>

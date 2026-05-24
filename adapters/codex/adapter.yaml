@@ -1,0 +1,38 @@
+# Codex (OpenAI) adapter
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §3 + Decision 8
+# Per Decision 8: separate AGENTS.codex.md (no FORGE markers on shared AGENTS.md).
+
+tool: codex
+adapter_version: 0.1.0
+
+capabilities:
+  agents: false                 # implicit; AGENTS file is the host
+  subagents: false
+  slash_commands: false
+  skills: false
+  custom_tools: false           # limited
+  per_app_files: false          # Codex reads a single AGENTS file
+
+output_paths:
+  bench_root: "{{ env.FORGE_BENCH_PATH }}"
+  agents_md: "{{ output_paths.bench_root }}/AGENTS.codex.md"
+
+limits:
+  max_total_chars: 20000        # Codex per v0.2 §4.0
+
+artifacts:
+  # Single aggregate file at bench root.
+  forge_agents:
+    strategy: aggregate
+    template: AGENTS.codex.md.j2
+    output: "{{ output_paths.agents_md }}"
+
+context_loading:
+  specialists_inlined: true
+  foundational_skills_inlined: false
+  on_demand_skills_strategy: toc_with_expand_instruction
+
+manifest:
+  enabled: true
+  filename: .forge-manifest.json
+  schema_version: 1

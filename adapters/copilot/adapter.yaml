@@ -1,0 +1,46 @@
+# GitHub Copilot + VS Code Copilot adapter (single adapter per Decision 7)
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §3 + §4.0
+
+tool: copilot
+adapter_version: 0.1.0
+
+capabilities:
+  agents: false
+  subagents: false
+  slash_commands: false         # limited custom /-commands
+  skills: false                 # applyTo globs scope instructions
+  custom_tools: false           # none custom
+  per_app_files: true           # via .github/instructions/<scope>.instructions.md
+
+output_paths:
+  bench_root: "{{ env.FORGE_BENCH_PATH }}"
+  github_dir: "{{ output_paths.bench_root }}/.github"
+  main_md: "{{ output_paths.github_dir }}/copilot-instructions.md"
+  instructions_dir: "{{ output_paths.github_dir }}/instructions"
+  prompts_dir: "{{ output_paths.github_dir }}/prompts"
+
+limits:
+  max_total_chars: 30000        # Copilot per v0.2 §4.0
+
+artifacts:
+  # Main instructions file — Copilot Chat reads this for every repo interaction.
+  copilot_instructions:
+    strategy: aggregate
+    template: copilot-instructions.md.j2
+    output: "{{ output_paths.main_md }}"
+
+  # Per-app instruction files with `applyTo:` glob frontmatter.
+  copilot_per_app:
+    strategy: aggregate_per_app
+    template: per-app.instructions.md.j2
+    output: "{{ output_paths.instructions_dir }}/{{ app.name }}.instructions.md"
+
+context_loading:
+  specialists_inlined: true
+  foundational_skills_inlined: false
+  on_demand_skills_strategy: toc_with_expand_instruction
+
+manifest:
+  enabled: true
+  filename: .forge-manifest.json
+  schema_version: 1

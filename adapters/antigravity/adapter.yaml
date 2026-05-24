@@ -1,0 +1,46 @@
+# Antigravity adapter
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §3 + Decision 6
+# Minimal-capability target. Assume no subagents, no slash commands until
+# the config surface is confirmed in Phase 3 by direct inspection.
+
+tool: antigravity
+adapter_version: 0.1.0
+
+capabilities:
+  agents: false                 # unknown — assume implicit
+  subagents: false              # assumed no
+  slash_commands: false         # assumed no
+  skills: false
+  custom_tools: false
+  per_app_files: false
+
+output_paths:
+  bench_root: "{{ env.FORGE_BENCH_PATH }}"
+  antigravity_root: "{{ output_paths.bench_root }}/.antigravity"
+  system_md: "{{ output_paths.antigravity_root }}/system.md"
+
+limits:
+  max_total_chars: 15000        # Antigravity per v0.2 §4.0 (provisional)
+
+artifacts:
+  # Single minimal system prompt with architect + Backend + Security only.
+  # Per Decision 6, we trim the persona list aggressively given the unconfirmed
+  # config surface.
+  forge_system:
+    strategy: aggregate
+    template: system.md.j2
+    output: "{{ output_paths.system_md }}"
+
+context_loading:
+  specialists_inlined: true
+  inlined_specialists_only:
+    - architect
+    - backend-specialist
+    - security-reviewer
+  foundational_skills_inlined: false
+  on_demand_skills_strategy: toc_with_expand_instruction
+
+manifest:
+  enabled: true
+  filename: .forge-manifest.json
+  schema_version: 1

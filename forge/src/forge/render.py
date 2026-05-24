@@ -157,16 +157,37 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
     adapter_dir = repo_root / "adapters" / tool
     env = _build_jinja_env(adapter_dir)
 
-    # Resolve adapter output paths (templated strings → concrete paths)
+    # Resolve adapter output paths. Each adapter declares its own paths;
+    # claude-code uses `bench_claude_root`, cursor uses `rules_dir`, etc.
+    # Resolve iteratively so later entries can reference earlier ones.
+    output_paths_cfg = adapter_cfg.get("output_paths", {})
+    resolved_paths: dict[str, Any] = {
+        "bench_root": str(forge_ctx.bench_path),
+        "bench_claude_root": str(forge_ctx.bench_path / ".claude"),
+    }
     output_ctx = {
         "env": dict(os.environ),
-        "output_paths": {
-            "bench_root": str(forge_ctx.bench_path),
-            "bench_claude_root": str(forge_ctx.bench_path / ".claude"),
-        },
+        "output_paths": resolved_paths,
         "bench": {"primary_site": forge_ctx.primary_site},
     }
-    output_paths_cfg = adapter_cfg.get("output_paths", {})
+    # Up to 5 passes for forward references like
+    # `rules_dir: "{{ output_paths.cursor_root }}/rules"`.
+    for _pass in range(5):
+        progress = False
+        for key, value in output_paths_cfg.items():
+            if key in resolved_paths or not isinstance(value, str):
+                continue
+            try:
+                resolved_paths[key] = _resolve(value, output_ctx)
+                progress = True
+            except Exception:
+                continue  # may resolve in a later pass
+        if not progress:
+            break
+    # Pass through any non-string entries (lists, nested dicts e.g. per_app_claude_md)
+    for key, value in output_paths_cfg.items():
+        if key not in resolved_paths:
+            resolved_paths[key] = value
 
     def resolve_path(template_str: str) -> Path:
         return Path(_resolve(template_str, output_ctx))
@@ -343,6 +364,93 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
                     artifact_kind="aggregate",
                 )
             )
+
+    # --- Aggregate strategies (Cursor, OpenCode, Cline, Copilot, Codex, Antigravity) ---
+    # Each entry in adapter.yaml `artifacts:` with strategy: aggregate emits one
+    # output file rendered from the full canonical set. The template receives
+    # `agents`, `commands`, `skills`, `tools`, `policies`, plus `forge`, `bench`,
+    # and `discovery` (for per-app contexts).
+    artifacts_cfg = adapter_cfg.get("artifacts", {})
+    aggregate_entries = [
+        (kind, spec)
+        for kind, spec in artifacts_cfg.items()
+        if isinstance(spec, dict) and spec.get("strategy") == "aggregate"
+    ]
+    if aggregate_entries:
+        all_agents = [_artifact_to_template_dict(a) for a in load_agents(repo_root)]
+        all_commands = [_artifact_to_template_dict(c) for c in load_commands(repo_root)]
+        all_skills = [_artifact_to_template_dict(s) for s in load_skills(repo_root)]
+        all_tools = [_tool_to_template_dict(t) for t in load_tools(repo_root)]
+        for kind, spec in aggregate_entries:
+            tmpl = env.get_template(spec["template"])
+            content = tmpl.render(
+                agents=all_agents,
+                commands=all_commands,
+                skills=all_skills,
+                tools=all_tools,
+                forge={
+                    "version": forge_ctx.version,
+                    "source_commit": forge_ctx.source_commit,
+                    "rendered_at": forge_ctx.rendered_at.isoformat(),
+                },
+                bench={"primary_site": forge_ctx.primary_site},
+                discovery={
+                    "custom_apps": discovery.apps.get("custom_apps", []),
+                    "anti_patterns": discovery.anti_patterns,
+                },
+            )
+            output_path = resolve_path(spec["output"])
+            rendered.append(
+                RenderedArtifact(
+                    tool=tool,
+                    source_path=repo_root / "canonical",
+                    output_path=output_path,
+                    content=content,
+                    source_commit=forge_ctx.source_commit,
+                    source_version=forge_version,
+                    artifact_id=f"aggregate/{kind}",
+                    artifact_kind="aggregate",
+                )
+            )
+
+    # --- Aggregate per-app strategy (Copilot's per-app applyTo, etc.) ---
+    per_app_aggregates = [
+        (kind, spec)
+        for kind, spec in artifacts_cfg.items()
+        if isinstance(spec, dict) and spec.get("strategy") == "aggregate_per_app"
+    ]
+    if per_app_aggregates:
+        for kind, spec in per_app_aggregates:
+            tmpl = env.get_template(spec["template"])
+            for app_data in discovery.apps.get("custom_apps", []):
+                app_name = app_data["name"]
+                content = tmpl.render(
+                    app=app_data,
+                    forge={
+                        "version": forge_ctx.version,
+                        "source_commit": forge_ctx.source_commit,
+                        "rendered_at": forge_ctx.rendered_at.isoformat(),
+                    },
+                    bench={"primary_site": forge_ctx.primary_site},
+                )
+                # Pass `app` as the full dict so adapter.yaml output strings can
+                # use `{{ app.name }}` (and `{{ app.stack }}`, etc.).
+                output_path = _resolve(
+                    spec["output"],
+                    {**output_ctx, "app": app_data, "app_name": app_name},
+                )
+                rendered.append(
+                    RenderedArtifact(
+                        tool=tool,
+                        source_path=repo_root / "discovery" / "INVENTORY.md",
+                        output_path=Path(output_path),
+                        content=content,
+                        source_commit=forge_ctx.source_commit,
+                        source_version=forge_version,
+                        artifact_id=f"aggregate-per-app/{kind}/{app_name}",
+                        artifact_kind="aggregate",
+                    )
+                )
 
     return rendered
 

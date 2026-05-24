@@ -1,8 +1,8 @@
 # erpnext-ai-forge — Project Status
 
 **Last Updated:** 2026-05-24
-**Version:** 0.3.1
-**Active Phase:** Phase 1b + Phase 2 + Phase 2.x complete → Phase 3 (per-tool adapter rollout) next
+**Version:** 0.4.0
+**Active Phase:** Phase 3 complete (all 7 adapters) → Phase 4 (security gates + logging) next
 
 ---
 
@@ -67,13 +67,13 @@ No canonical agent, skill, command, or tool content has been authored yet. That 
 
 | Adapter | adapter.yaml | Templates | Output Verified |
 |---------|--------------|-----------|-----------------|
-| `claude-code` | ✅ | ✅ (7 templates) | ⏸ (Phase 2 renderer needed) |
-| `cursor` | ⏸ | ⏸ | ⏸ |
-| `opencode` | ⏸ | ⏸ | ⏸ |
-| `cline` | ⏸ | ⏸ | ⏸ |
-| `copilot` | ⏸ | ⏸ | ⏸ |
-| `codex` | ⏸ | ⏸ | ⏸ |
-| `antigravity` | ⏸ | ⏸ | ⏸ |
+| `claude-code` | ✅ | ✅ (7 templates) | ✅ Phase 2 renderer |
+| `cursor` | ✅ | ✅ (2 templates) | ✅ 9 files / 21k chars total |
+| `opencode` | ✅ | ✅ (2 templates) | ✅ AGENTS.md (7k) + 17 commands |
+| `cline` | ✅ | ✅ (2 templates) | ✅ 9 files / 11k chars total |
+| `copilot` | ✅ | ✅ (2 templates) | ✅ 9 files / 12k chars total |
+| `codex` | ✅ | ✅ (1 template) | ✅ AGENTS.codex.md (7k) |
+| `antigravity` | ✅ | ✅ (1 template) | ✅ system.md (5.5k, minimal) |
 
 ---
 

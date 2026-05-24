@@ -1,0 +1,34 @@
+<!-- AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT -->
+
+# {{ app.name }} — App Context (Cline)
+
+**Stack:** {{ app.stack }}
+**Custom DocTypes:** {{ app.doctype_count | default(0) }}
+**Whitelist APIs:** {{ app.whitelist_api_count | default(0) }}
+{% if app.purpose %}**Purpose:** {{ app.purpose }}{% endif %}
+
+## Activate When Editing
+- `apps/{{ app.name }}/**/*`
+
+## App-Specific Rules
+{% if app.name == "novizna_crm" -%}
+- DocType naming: `crm_<noun>` prefix.
+- Frontend 3-layer override: `src_override/` mirrors `apps/crm/frontend/src/` one-for-one. Never edit `crm_build/` or upstream.
+- Vendor connectors in `connectors/`; orchestration in `api/`.
+{%- elif app.name == "novizna_pos" -%}
+- TypeScript strict; Pinia stores own shared state; all API calls go through `src/boot/axios.ts`.
+- Auth = Frappe session cookie + `X-Frappe-CSRF-Token` header on non-GET. No JWT.
+{%- elif app.name == "noviznaerp_payroll" -%}
+- 73 DocTypes — bare nouns. Prefer app-prefixed names for new DocTypes.
+- **Known anti-pattern:** 11 occurrences of `frappe.db.sql(f"...")` (AP-001). Do not add more.
+{%- elif app.name == "invoice_ninja_integration" -%}
+- DocType naming: `invoice_ninja_<noun>` prefix.
+{%- elif app.name == "cargo_management" -%}
+- EasyPost + 17Track webhook receivers — every guest handler must verify signature first.
+{%- else -%}
+- Follow Frappe conventions; see `apps/{{ app.name }}/CLAUDE.md` if present.
+{%- endif %}
+
+---
+
+<sub>Synced from canonical in erpnext-ai-forge v{{ forge.version }} ({{ forge.source_commit | truncate(7, true, "") }}).</sub>

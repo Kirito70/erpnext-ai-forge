@@ -13,6 +13,48 @@ Section order per release: **Added / Changed / Deprecated / Removed / Fixed / Se
 
 ---
 
+## [0.4.0] — 2026-05-24
+
+### Added — Phase 3 (per-tool adapter rollout)
+
+All 6 non-Claude adapters from v0.2 Decision 5 are now implemented. `forge.config.yaml` `enabled_tools` now lists 7 adapters total.
+
+| Adapter | Output | Char budget | Strategy |
+|---------|--------|------------:|----------|
+| `cursor` | `<bench>/.cursor/rules/forge-main.mdc` + 8 per-app `.mdc` | 40k | Aggregate + per-app with `globs:` |
+| `opencode` | `<bench>/AGENTS.md` + `.opencode/commands/*.md` (×17) | 20k | Aggregate + native slash commands |
+| `cline` | `<bench>/.clinerules/00-forge-main.md` + 8 per-app | 35k | Aggregate + per-app |
+| `copilot` | `<bench>/.github/copilot-instructions.md` + 8 per-app instructions | 30k | Aggregate + per-app `applyTo:` glob |
+| `codex` | `<bench>/AGENTS.codex.md` (Decision 8 — separate from OpenCode) | 20k | Single aggregate |
+| `antigravity` | `<bench>/.antigravity/system.md` (architect + 2 specialists only) | 15k | Minimal (Decision 6) |
+
+### Added — renderer enhancements
+- **`strategy: aggregate`** in render.py — renders the full canonical set (agents, commands, skills, tools) into one output file via a single template. Used by every non-Claude adapter.
+- **`strategy: aggregate_per_app`** — renders one output per custom app (Cursor, Cline, Copilot use this for `globs:` / `applyTo:` scoped per-app context files).
+- **Iterative output_paths resolution** — adapter.yaml can declare arbitrary path keys (e.g., `rules_dir`, `instructions_dir`) and they're resolved in dependency order so later entries can reference earlier ones.
+- Per-app aggregate passes the full app dict (not just the name), so adapter.yaml output strings like `forge-{{ app.name }}.mdc` resolve correctly.
+
+### Tests
+- 25 new tests in `test_adapters.py`, 118 total, 100% passing:
+  - Per-adapter render smoke (file counts, char budgets, expected output names)
+  - Parametrized capability matrix check (all 7 adapters expose required keys)
+  - Parametrized char budget assertion (Cursor 40k / Cline 35k / Copilot 30k / OpenCode-Codex 20k / Antigravity 15k)
+  - Provenance footer check (every aggregate output carries `erpnext-ai-forge` + `AUTO-GENERATED`)
+
+### Changed
+- `forge.config.yaml` `enabled_tools` flipped from `[claude-code]` to all 7 adapters
+- `VERSION` 0.3.1 → 0.4.0 (MINOR — six new adapters)
+- `PROJECT-STATUS.md` reflects Phase 3 completion
+
+### Notes on context-loading strategy (v0.2 §4.0)
+The renderer correctly implements the per-tool strategies:
+- **Claude Code:** Task tool spawns specialists in fresh contexts; skills loaded on demand
+- **Cursor / Cline / Copilot:** specialists inlined as persona summary tables; foundational skills as TOC (not inlined — would exceed budget); on-demand skills as a separate TOC the developer expands
+- **OpenCode / Codex:** same as no-subagent tools but using `AGENTS.md` / `AGENTS.codex.md` as host file
+- **Antigravity:** even more restrictive — only architect + Backend + Security personas inlined; all other specialists in a one-line summary table
+
+---
+
 ## [0.3.1] — 2026-05-24
 
 ### Added — Phase 2.x deferred pieces

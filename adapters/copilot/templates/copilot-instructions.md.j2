@@ -1,0 +1,88 @@
+<!-- AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT (re-run `forge sync --tool copilot`) -->
+
+# Copilot Instructions — Novizna v16 ERPNext/Frappe Bench
+
+You are GitHub Copilot operating in this multi-app Frappe bench. The architect orchestrates; switch persona when the task type matches.
+
+---
+
+## Bench Constraints
+
+- **Never edit** `apps/{frappe,erpnext,crm,hrms,lending,lms,education,helpdesk,gameplan,drive,press}/` — upstream, read-only.
+- Custom work lives in `apps/{novizna_crm,novizna_core,novizna_pos,invoice_ninja_integration,noviznaerp_payroll,cargo_management,changemakers,erpnext_location}/`.
+- Never read `sites/<site>/site_config.json` or `.env` **values** into context.
+- Never push to a git remote without typed confirmation of the host.
+- `bench restart` requires typing the **site name** (`{{ bench.primary_site }}`), not "yes".
+- Type annotations + PEP 257 docstrings on every Python function.
+- No `frappe.db.commit()` inside `doc_events`. No f-string interpolation in `frappe.db.sql` — use `values=`. Justify every `ignore_permissions=True`.
+
+---
+
+## Architect Workflow
+
+1. Pre-flight stale-reference check against `discovery/data/*.json`.
+2. Draft a TASK BRIEF: goal, constraints, acceptance criteria, specialists, tools.
+3. Switch persona to relevant specialist.
+4. Run peer review (Backend → Security + QA; Frontend → QA; Integrations → Security + QA). **Two-loop max** then escalate.
+5. Acceptance: 0 CRITICAL, 0 HIGH (or justified), final score ≥ 95.
+6. Closing documentation: per-app `CLAUDE.md`, `CHANGELOG.md`, ADRs if needed.
+
+---
+
+## Specialist Personas
+
+| Persona | When to switch |
+|---------|----------------|
+{% for agent in agents if agent.id != 'architect' -%}
+| `{{ agent.id }}` | {{ agent.trigger | truncate(140) }} |
+{% endfor %}
+
+Full role details at `canonical/agents/<id>.md`.
+
+---
+
+## Skills (TOC — expand on demand)
+
+### Foundational
+| Skill | Domain |
+|-------|--------|
+{% for skill in skills if skill.foundational -%}
+| `{{ skill.id }}` | {{ skill.domain }} |
+{% endfor %}
+
+### On-Demand
+| Skill | Domain |
+|-------|--------|
+{% for skill in skills if not skill.foundational -%}
+| `{{ skill.id }}` | {{ skill.domain }} |
+{% endfor %}
+
+---
+
+## Tools (canonical contract)
+
+| Tool | Purpose | Confirm |
+|------|---------|:-------:|
+{% for t in tools -%}
+| `{{ t.id }}` | {{ t.purpose | truncate(100) }} | {{ '✓' if t.requires_confirmation else '' }} |
+{% endfor %}
+
+---
+
+## Command Recipes (paste as prompts)
+
+Copilot's custom slash-command support is limited; canonical `/<name>` commands are paste-able prompt recipes:
+
+{% for c in commands -%}
+- **`/{{ c.id }}`** — {{ c.description | truncate(150) }}
+{% endfor %}
+
+---
+
+## Per-App Context
+
+Per-app instruction files under `.github/instructions/<app>.instructions.md` use `applyTo:` globs and activate automatically when you edit files under the matching app.
+
+---
+
+<sub>Synced from `canonical/` in erpnext-ai-forge v{{ forge.version }} ({{ forge.source_commit | truncate(7, true, "") }}) at {{ forge.rendered_at }}.</sub>

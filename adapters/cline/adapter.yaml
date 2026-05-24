@@ -1,0 +1,41 @@
+# Cline adapter
+# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §3 + §4.0
+
+tool: cline
+adapter_version: 0.1.0
+
+capabilities:
+  agents: false
+  subagents: false
+  slash_commands: false
+  skills: false
+  custom_tools: true            # via MCP, out of scope
+  per_app_files: true
+
+output_paths:
+  bench_root: "{{ env.FORGE_BENCH_PATH }}"
+  clinerules_dir: "{{ output_paths.bench_root }}/.clinerules"
+
+limits:
+  max_total_chars: 35000        # Cline per v0.2 §4.0
+
+artifacts:
+  forge_main:
+    strategy: aggregate
+    template: 00-forge-main.md.j2
+    output: "{{ output_paths.clinerules_dir }}/00-forge-main.md"
+
+  forge_per_app:
+    strategy: aggregate_per_app
+    template: forge-per-app.md.j2
+    output: "{{ output_paths.clinerules_dir }}/10-app-{{ app.name }}.md"
+
+context_loading:
+  specialists_inlined: true
+  foundational_skills_inlined: false
+  on_demand_skills_strategy: toc_with_expand_instruction
+
+manifest:
+  enabled: true
+  filename: .forge-manifest.json
+  schema_version: 1
