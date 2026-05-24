@@ -11,8 +11,58 @@ Section order per release: **Added / Changed / Deprecated / Removed / Fixed / Se
 
 ## [Unreleased]
 
-### Added
-- (Phase 1b) 20 skill modules with bench-grounded examples (pending)
+---
+
+## [0.3.0] — 2026-05-24
+
+### Added — Phase 1b (canonical skill content)
+- **30 skill modules** across 10 domain directories (`canonical/skills/`), ~5,274 lines total. All grounded in real bench facts from `discovery/data/*.json`:
+  - `frappe-core/` — 6 skills (conventions, doctype-authoring, hooks-and-events, whitelist-api-patterns, permissions-model, migration-patches)
+  - `frontend/` — 3 skills (frappe-ui-components, novizna-crm-override-system, vue3-quasar-patterns)
+  - `data/` — 2 skills (sql-best-practices, mariadb-debugging) with AP-001 file:line attribution
+  - `reporting/` — 4 skills (script-report-authoring, query-report-authoring, print-format-authoring, workflow-authoring)
+  - `integrations/` — 3 skills (oauth-patterns, webhooks, queueing-retry-backoff)
+  - `security/` — 2 skills (review-checklist, secrets-handling)
+  - `testing/` — 3 skills (frappe-unittest, pytest-patterns, e2e-playwright)
+  - `debugging/` — 1 skill (bench-logs)
+  - `erpnext-domains/` — 5 skills (sales, accounting, hr-payroll, pos, crm)
+  - `meta/` — 1 skill (skill-authoring-guide)
+- 14 skills classified `foundational: true` per agent-spec scoping
+- Every "Don't" example links to a discovery AP-id when it mirrors a standing finding
+
+### Added — Phase 2 (forge sync engine)
+- `forge/src/forge/loader.py` — parses canonical/ Markdown + frontmatter + tools YAML + discovery JSON into typed dataclasses
+- `forge/src/forge/models.py` — `CanonicalArtifact`, `ToolSpec`, `DiscoverySnapshot`, `ForgeContext`
+- `forge/src/forge/render.py` — Jinja-based renderer; consumes adapter.yaml, produces `RenderedArtifact` list
+- `forge/src/forge/sync.py` — transactional sync per v0.2 Part B item 7: render → stage → validate → atomic per-file swap; aborts whole `--all` run if any adapter fails
+- `forge/src/forge/manifest.py` — `.forge-manifest.json` writer + reader (ADR-002 schema with source_commit, sha256 per file)
+- `forge/src/forge/settings_merge.py` — deep merge for `.claude/settings.json` (Part B item 6): deep merge dicts, union arrays by identity, forge-wins scalars with conflict log, `.forge-backup` on every write
+- `forge/src/forge/audit.py` — JSONL append + tail viewer + monthly tar+gpg backup
+- `forge/src/forge/scoring.py` — security score against canonical/policies/security-scoring.yaml deductions with per-extension and per-path filters
+- All 8 CLI commands wired to real implementations (no more "not yet implemented")
+
+### Added — Tests
+- 63 tests, 100% passing:
+  - `test_loader.py` (14 tests) — frontmatter, discovery, tools, adapter config
+  - `test_render.py` (6 tests) — Claude Code renders 8 agents + 17 commands + 30 skills + 14 tools + 8 per-app CLAUDE.md + root CLAUDE.md
+  - `test_manifest.py` (5 tests) — schema, write/read roundtrip
+  - `test_settings_merge.py` (8 tests) — deep merge, array union, scalar conflict, backup
+  - `test_scoring.py` (10 tests) — per-rule deductions, path/extension filters, canonical sanity
+  - `test_audit.py` (4 tests) — JSONL append, year/month dir, tail filters
+  - `test_cli_smoke.py` (11 tests) — every CLI command exits 0
+  - `test_cli_integration.py` (5 tests) — end-to-end validate/render/score/sync against real canonical
+
+### Changed
+- AUTO-GENERATED markers in Jinja templates switched from `{# ... #}` (stripped by Jinja) to `<!-- ... -->` (preserved in output)
+- `command.md.j2` description derives from frontmatter `trigger` when no explicit `description` is set
+- `tool-reference.md.j2` uses `spec.get(...)` for optional dict fields (description, type, required)
+- `forge/pyproject.toml` dropped `readme = "../README.md"` (setuptools rejects parent paths)
+- `VERSION` bumped 0.2.0 → 0.3.0 (MINOR — substantial new content + sync engine)
+- `PROJECT-STATUS.md` updated to reflect Phase 1b + Phase 2 completion
+
+### Security
+- Per-extension filtering ensures `.py`-only patterns (D-SQL-FSTRING, D-IGNORE-PERMISSIONS, D-GUEST-WHITELIST) don't fire on pedagogical "Don't" examples in canonical Markdown
+- `canonical/` documentation that names a deduction by literal string (e.g., "curl ... | sh") is exempt from triggering that same deduction
 
 ---
 

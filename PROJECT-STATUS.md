@@ -1,8 +1,8 @@
 # erpnext-ai-forge — Project Status
 
 **Last Updated:** 2026-05-24
-**Version:** 0.2.0
-**Active Phase:** Phase 1a — Claude Code authoring (complete) → Phase 1b kickoff next
+**Version:** 0.3.0
+**Active Phase:** Phase 1b + Phase 2 complete → Phase 3 (per-tool adapter rollout) next
 
 ---
 
@@ -56,7 +56,7 @@ No canonical agent, skill, command, or tool content has been authored yet. That 
 | Subdir | Files | Status |
 |--------|-------|--------|
 | `canonical/agents/` | 8 agent specs | ✅ Phase 1a |
-| `canonical/skills/` | 20 skill modules across 10 domain dirs | ⏸ Pending Phase 1b |
+| `canonical/skills/` | 30 skill modules across 10 domain dirs | ✅ Phase 1b |
 | `canonical/commands/` | 17 slash command specs | ✅ Phase 1a |
 | `canonical/tools/` | 14 tool specs | ✅ Phase 1a |
 | `canonical/policies/` | 4 policy docs (scoring, review, escalation, governance) | ✅ Phase 1a |
@@ -81,14 +81,14 @@ No canonical agent, skill, command, or tool content has been authored yet. That 
 
 | Command | Skeleton | Real Implementation |
 |---------|----------|---------------------|
-| `forge discover` | ✅ | ⏸ Phase 2 |
-| `forge validate` | ✅ | ⏸ Phase 2 |
-| `forge render` | ✅ | ⏸ Phase 2 |
-| `forge sync` | ✅ | ⏸ Phase 2 |
-| `forge audit` | ✅ | ⏸ Phase 2 |
-| `forge score` | ✅ | ⏸ Phase 4 |
-| `forge test` | ✅ | ⏸ Phase 2 |
-| `forge commit` | ✅ | ⏸ Phase 2 |
+| `forge discover` | ✅ | ✅ (Phase 2 baseline — full bench walking deferred to 2.x) |
+| `forge validate` | ✅ | ✅ schema + caller refs (drift check deferred to 2.x) |
+| `forge render` | ✅ | ✅ |
+| `forge sync` | ✅ | ✅ transactional staging + atomic swap + manifest |
+| `forge audit` | ✅ | ✅ JSONL append + tail + tar+gpg backup |
+| `forge score` | ✅ | ✅ per-extension + per-path filtering |
+| `forge test` | ✅ | ✅ wraps pytest |
+| `forge commit` | ✅ | ⏸ skeleton only — scoped Commit helper deferred |
 
 ---
 

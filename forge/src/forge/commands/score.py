@@ -1,25 +1,52 @@
-"""`forge score` — security score canonical artifacts.
-
-Phase 0 skeleton. Real implementation in Phase 4 will:
-  - Start each artifact at 100
-  - Apply deduction table from canonical/policies/security-scoring.yaml
-    (e.g. -50 reads site_config, -50 edits upstream apps, -40 dangerously-skip-permissions)
-  - Thresholds per v0.2 Decision 11 + Part B item 3:
-      ≥ 95 auto-accept | 80-94 warn (typed justification) | < 80 block | external ≥ 98
-  - Write computed score back to artifact frontmatter (security_score)
-  - Exit non-zero if any file scores below --fail-below
-"""
+"""`forge score` — security score canonical artifacts."""
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
+import typer
 from rich.console import Console
+
+from forge.loader import find_repo_root
+from forge.scoring import render_score_report, score_path
 
 console = Console()
 
 
+def _staged_files(repo_root: Path) -> list[Path]:
+    """Return git-staged files inside canonical/ (and other relevant dirs)."""
+    try:
+        result = subprocess.run(
+            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
+            cwd=repo_root, capture_output=True, text=True, check=True, timeout=5,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        return []
+    paths: list[Path] = []
+    for line in result.stdout.splitlines():
+        candidate = repo_root / line
+        if candidate.is_file() and candidate.suffix in {".md", ".yaml", ".yml", ".py", ".j2"}:
+            paths.append(candidate)
+    return paths
+
+
 def run(path: Path, staged: bool, fail_below: int) -> None:
-    scope = "git-staged files" if staged else str(path)
-    console.print("[yellow]not yet implemented[/yellow]")
-    console.print(f"  would score: {scope} (fail below {fail_below})")
+    repo_root = find_repo_root()
+    if staged:
+        targets = _staged_files(repo_root)
+        if not targets:
+            console.print("[green]No staged files to score.[/green]")
+            return
+        results = []
+        for t in targets:
+            from forge.scoring import score_file
+            results.append(score_file(t, repo_root))
+    else:
+        target = (repo_root / path) if not path.is_absolute() else path
+        results = score_path(target, repo_root)
+
+    report, exit_code = render_score_report(results, fail_below)
+    console.print(report)
+    if exit_code != 0:
+        raise typer.Exit(code=exit_code)

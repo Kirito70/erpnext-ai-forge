@@ -4,7 +4,7 @@
   Output: <bench>/.claude/tools/<id>.md — agents reference this when explaining
           tool behavior to the developer.
 -#}
-{# AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT #}
+<!-- AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT -->
 # Tool: {{ artifact.id }}
 
 **Wraps:** `{{ artifact.wraps }}`
@@ -14,12 +14,12 @@
 
 ## Inputs
 {% for name, spec in artifact.inputs.items() -%}
-- `{{ name }}` ({{ spec.type }}{% if spec.required %}, required{% endif %}){% if spec.description %} — {{ spec.description }}{% endif %}
+- `{{ name }}` ({{ spec.get('type', 'any') }}{% if spec.get('required') %}, required{% endif %}){% if spec.get('description') %} — {{ spec.get('description') }}{% endif %}
 {% endfor %}
 
 ## Safety Checks
 {% for check in artifact.safety_checks -%}
-- **{{ check.id }}** ({{ check.action }}): {{ check.description }}
+- **{{ check.get('id', '?') }}** ({{ check.get('action', '?') }}): {{ check.get('description', '') }}
 {% endfor %}
 
 ## Allowed Callers

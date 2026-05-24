@@ -3,9 +3,9 @@
   Input: artifact object with frontmatter + body.
   Output: <bench>/.claude/commands/<id>.md  (invoked as /<id>)
 -#}
-{# AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT #}
+<!-- AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT -->
 ---
-description: {{ artifact.description | default(artifact.body.first_paragraph) | tojson }}
+description: {{ artifact.description | tojson }}
 {% if artifact.argument_hint -%}
 argument-hint: {{ artifact.argument_hint }}
 {%- endif %}
