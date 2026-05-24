@@ -13,6 +13,44 @@ Section order per release: **Added / Changed / Deprecated / Removed / Fixed / Se
 
 ---
 
+## [0.3.1] — 2026-05-24
+
+### Added — Phase 2.x deferred pieces
+- **`forge commit`** — scoped Conventional Commits helper (`forge/src/forge/commit_helper.py`):
+  - Infers commit scope from staged file paths against `forge.config.yaml` `commits.scopes` (canonical/agents → `agents`, canonical/skills → `skills`, forge/ → `forge`, etc.). Multi-scope changes resolve to `scaffold` when no single scope reaches 60% share.
+  - Infers commit type (`feat`/`fix`/`refactor`/`docs`/`test`/`perf`/`chore`) from body text via keyword heuristics.
+  - `--check` mode validates `.git/COMMIT_EDITMSG` against the convention — wires up the commit-msg git hook contract declared in `.pre-commit-config.yaml`.
+- **`forge discover`** — automated bench walking (`forge/src/forge/discover_bench.py`):
+  - Walks `<bench>/apps/<custom-app>/`, skipping upstream apps from `forge.config.yaml`.
+  - Detects per-app stack: Quasar PWA / Frappe-UI Vue3 / pure backend.
+  - Parses `hooks.py` for boolean signals (`doc_events`, `scheduler_events`, `fixtures`, `app_include_js`, `after_install`, etc.) via regex.
+  - Lists DocType IDs, counts `@frappe.whitelist()` declarations, samples method names.
+  - Scans for the four standing anti-patterns: SQL f-string, `allow_guest=True`, `ignore_permissions=True`, and `frappe.db.commit()` in non-test code, with file:line attribution.
+  - Builds the novizna_crm override map from `apps/novizna_crm/frontend/{src,src_override}/`.
+  - Records `site_config.json` and `common_site_config.json` **key names only** (never values), flags `ignore_csrf` if present.
+  - Writes 7 JSON files matching the Phase 0 schema. `INVENTORY.md` stays human-authored.
+- **`forge validate --check-drift`** — manifest-based drift detection (`forge/src/forge/drift.py`):
+  - For every `.forge-manifest.json` in the bench, verifies each listed file's current sha256 matches the manifest's recorded sha256 (catches hand-edits and missing files).
+  - Compares `manifest.source_commit` against current repo HEAD; flags staleness when out of date.
+  - Skips `.forge-staging/` (transient sync artifacts).
+
+### Changed
+- `forge/src/forge/commands/discover.py` — wired to the real walker (was Phase 0 stub printing snapshot freshness only).
+- `forge/src/forge/commands/commit.py` — wired to `commit_helper.propose()` and `check_message()`.
+- `forge/src/forge/commands/validate.py` — `--check-drift` flag now invokes `drift.check_drift()` and rolls drift findings into the issues list.
+- Removed `test_discover_runs` from `test_cli_smoke.py` and `test_discover_prints_snapshot` / `test_discover_app_lookup` from `test_cli_integration.py` — discover writes into the host repo's `discovery/data/` tree, which would clobber the Phase 0 hand-authored snapshot. Behavior is covered by `test_discover_bench.py` against isolated fake benches.
+
+### Tests
+- 30 new tests, 93 total, 100% passing:
+  - `test_commit_helper.py` (16 tests) — scope inference, type inference, check_message validation, propose
+  - `test_discover_bench.py` (8 tests) — stack detection, hooks parsing, DocType/whitelist listing, anti-pattern scanning, end-to-end with fake bench
+  - `test_drift.py` (6 tests) — clean bench, hand-edit detection, missing file, staleness, staging dir skipped
+
+### Fixed
+- `infer_type_from_body` no longer mis-classifies "Update the README" as `feat` (the word "new" in "new install steps" was suppressing the docs branch). Doc-noun signals now win unconditionally.
+
+---
+
 ## [0.3.0] — 2026-05-24
 
 ### Added — Phase 1b (canonical skill content)

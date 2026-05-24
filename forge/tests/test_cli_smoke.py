@@ -35,9 +35,9 @@ def test_help() -> None:
     assert result.exit_code == 0
 
 
-def test_discover_runs() -> None:
-    result = runner.invoke(app, ["discover"])
-    assert result.exit_code == 0
+# test_discover_runs removed: `forge discover` writes into the host repo's
+# discovery/data/ tree, which would clobber the Phase 0 hand-authored snapshot.
+# discover behavior is covered by test_discover_bench.py against fake benches.
 
 
 def test_validate_runs() -> None:

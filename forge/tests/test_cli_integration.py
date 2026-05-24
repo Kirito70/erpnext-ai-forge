@@ -49,16 +49,9 @@ def test_score_canonical_skills():
     assert result.exit_code == 0, result.stdout
 
 
-def test_discover_prints_snapshot():
-    result = runner.invoke(app, ["discover"])
-    assert result.exit_code == 0
-    assert "custom apps" in result.stdout
-
-
-def test_discover_app_lookup():
-    result = runner.invoke(app, ["discover", "--app", "novizna_crm"])
-    assert result.exit_code == 0
-    assert "novizna_crm" in result.stdout
+# discover CLI is exercised via test_discover_bench.py with fake benches —
+# we deliberately avoid running it against the host repo here so the real
+# discovery/data/*.json snapshot stays intact during test runs.
 
 
 def test_sync_dry_run_claude_code():

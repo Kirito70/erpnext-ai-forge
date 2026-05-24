@@ -1,8 +1,8 @@
 # erpnext-ai-forge — Project Status
 
 **Last Updated:** 2026-05-24
-**Version:** 0.3.0
-**Active Phase:** Phase 1b + Phase 2 complete → Phase 3 (per-tool adapter rollout) next
+**Version:** 0.3.1
+**Active Phase:** Phase 1b + Phase 2 + Phase 2.x complete → Phase 3 (per-tool adapter rollout) next
 
 ---
 
@@ -81,14 +81,14 @@ No canonical agent, skill, command, or tool content has been authored yet. That 
 
 | Command | Skeleton | Real Implementation |
 |---------|----------|---------------------|
-| `forge discover` | ✅ | ✅ (Phase 2 baseline — full bench walking deferred to 2.x) |
-| `forge validate` | ✅ | ✅ schema + caller refs (drift check deferred to 2.x) |
+| `forge discover` | ✅ | ✅ automated bench walking + anti-pattern scan |
+| `forge validate` | ✅ | ✅ schema + caller refs + `--check-drift` manifest verification |
 | `forge render` | ✅ | ✅ |
 | `forge sync` | ✅ | ✅ transactional staging + atomic swap + manifest |
 | `forge audit` | ✅ | ✅ JSONL append + tail + tar+gpg backup |
 | `forge score` | ✅ | ✅ per-extension + per-path filtering |
 | `forge test` | ✅ | ✅ wraps pytest |
-| `forge commit` | ✅ | ⏸ skeleton only — scoped Commit helper deferred |
+| `forge commit` | ✅ | ✅ scope/type inference + commit-msg hook validation |
 
 ---
 

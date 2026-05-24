@@ -47,12 +47,16 @@ def run(path: Optional[Path], check_drift: bool) -> None:
             if caller not in known_callers:
                 issues.append(f"unknown caller in {tool.source_path.name}: {caller}")
 
-    # Drift check is a Phase-2.x deliverable (compare manifest sha vs current sha)
+    # Drift check: read every .forge-manifest.json in the bench and verify
+    # recorded sha256s + source commits.
     if check_drift:
-        console.print(
-            "[yellow]Drift check:[/yellow] manifest-based drift detection ships in Phase 2.x. "
-            "For now, run `forge sync --dry-run` to compare staged vs bench output."
-        )
+        from forge.drift import check_drift as run_drift_check
+        from forge.drift import render_drift_report
+        report = run_drift_check(repo_root)
+        console.print(f"\n[cyan]Drift check:[/cyan]")
+        console.print(render_drift_report(report))
+        if report.has_drift:
+            issues.append(f"{sum(1 for f in report.findings if f.severity == 'DRIFT')} drift finding(s)")
 
     console.print(
         f"\n[cyan]Loaded:[/cyan] {len(agents)} agents, {len(commands)} commands, "

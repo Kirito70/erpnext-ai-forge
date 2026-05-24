@@ -1,48 +1,38 @@
-"""`forge discover` — walk the bench and refresh discovery/ outputs.
-
-Phase 2 baseline: re-reads existing discovery/INVENTORY.md and reports
-its current freshness. The full bench-walking automation is still in
-flight (Phase 2.x). For now, the initial Phase 0 hand-authored discovery
-under discovery/ is the authoritative snapshot; this command surfaces
-its age and freshness so the developer knows when to re-author it.
-"""
+"""`forge discover` — walk the bench and refresh discovery/ outputs."""
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+import typer
 from rich.console import Console
 
-from forge.loader import find_repo_root, load_discovery
+from forge.discover_bench import discover_bench
+from forge.loader import find_repo_root
 
 console = Console()
 
 
 def run(bench: Optional[Path], app_name: Optional[str], json_only: bool) -> None:
     repo_root = find_repo_root()
-    discovery = load_discovery(repo_root)
 
-    console.print(f"[cyan]Discovery snapshot:[/cyan] {repo_root / 'discovery'}")
-    if discovery.generated_at:
-        console.print(f"  generated_at: {discovery.generated_at}")
-    console.print(
-        f"  custom apps:  {len(discovery.apps.get('custom_apps', []))}"
-    )
-    console.print(
-        f"  upstream apps: {len(discovery.apps.get('upstream_apps', []))}"
-    )
-    if app_name:
-        info = discovery.app(app_name)
-        if info:
-            console.print(f"\n[cyan]App {app_name}:[/cyan]")
-            for k, v in info.items():
-                console.print(f"  {k}: {v}")
-        else:
-            console.print(f"[red]Unknown app: {app_name}[/red]")
+    try:
+        written = discover_bench(
+            repo_root=repo_root,
+            bench_override=bench,
+            only_app=app_name,
+        )
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=2)
 
-    console.print(
-        "\n[yellow]Note:[/yellow] full bench-walking automation lands in Phase 2.x; "
-        "current discovery is hand-authored at discovery/INVENTORY.md."
-    )
+    scope = f"app={app_name}" if app_name else "all custom apps"
+    console.print(f"[green]✓[/green] discovered {scope} — wrote {len(written)} files:")
+    for name, path in sorted(written.items()):
+        console.print(f"  {name}  →  {path.relative_to(repo_root)}")
+    if not json_only:
+        console.print(
+            "\n[yellow]Note:[/yellow] INVENTORY.md is human-authored. "
+            "Update it manually if structural narrative changes (counts come from JSON above)."
+        )
