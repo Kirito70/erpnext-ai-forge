@@ -3,6 +3,9 @@
 #
 # Jobs run in parallel where independent. Security scans (gitleaks) gate the
 # pipeline so a leaked secret blocks the entire run, not just a single test.
+#
+# Python tooling: uv (https://docs.astral.sh/uv/). `uv sync --frozen`
+# installs the exact versions pinned in forge/uv.lock for reproducibility.
 
 name: forge-ci
 
@@ -42,10 +45,13 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
       - name: Install lint tools
         run: |
           npm install -g markdownlint-cli@0.43.0
-          pip install yamllint==1.35.1
+          uv tool install yamllint==1.35.1
 
       - name: markdownlint
         run: markdownlint --config .markdownlint.yaml '**/*.md' --ignore node_modules --ignore '**/.venv/**' --ignore canonical/_deprecated
@@ -60,27 +66,33 @@ jobs:
     name: forge validate + score + test
     runs-on: ubuntu-latest
     needs: [gitleaks]      # don't waste a runner if secrets leaked
+    defaults:
+      run:
+        working-directory: forge      # uv operates on forge/pyproject.toml
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: '3.11'
-          cache: pip
+          enable-cache: true            # caches ~/.cache/uv between runs
 
-      - name: Install forge CLI + dev deps
-        run: |
-          pip install -e 'forge/[dev]'
+      - name: Set up Python (pinned via .python-version)
+        run: uv python install
+
+      - name: Install dependencies from uv.lock (frozen, reproducible)
+        run: uv sync --frozen --all-extras
 
       - name: forge validate (schema + caller refs)
-        run: forge validate
+        run: uv run forge validate
+        working-directory: ${{ github.workspace }}    # forge needs repo root
 
       - name: forge score (canonical/)
-        run: forge score --path canonical/ --fail-below 80
+        run: uv run --project forge forge score --path canonical/ --fail-below 80
+        working-directory: ${{ github.workspace }}
 
       - name: forge test (pytest)
-        run: forge test --verbose
+        run: uv run pytest tests/ -v
 
       - name: forge sync --all --dry-run (renders every adapter)
         env:
@@ -88,7 +100,8 @@ jobs:
           FORGE_PRIMARY_SITE: ci-site
         run: |
           mkdir -p "$FORGE_BENCH_PATH/apps"
-          forge sync --all --dry-run
+          uv run --project forge forge sync --all --dry-run
+        working-directory: ${{ github.workspace }}
 
       - name: Upload audit log on failure (forensics)
         if: failure()

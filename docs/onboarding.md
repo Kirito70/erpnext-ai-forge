@@ -14,20 +14,22 @@ A **single source of truth** (the `canonical/` tree) that gets rendered into per
 
 ## 1 — Install
 
-```bash
-cd ~/Work/Projects/ai/erpnext-ai-forge
+Prerequisite: **[uv](https://docs.astral.sh/uv/)** ≥ 0.10 (`curl -LsSf https://astral.sh/uv/install.sh | sh`).
 
-# Editable install + dev deps
-python3 -m venv forge/.venv
-source forge/.venv/bin/activate
-pip install -e 'forge/[dev]'
+```bash
+cd ~/Work/Projects/ai/erpnext-ai-forge/forge
+
+# Install Python (pinned in .python-version), create venv, sync from uv.lock
+uv sync --all-extras
 
 # Verify the CLI works
-forge --version
-forge --help
+uv run forge --version
+uv run forge --help
 ```
 
-Set the two env vars `forge sync` needs:
+`uv sync` reads `pyproject.toml` + `uv.lock` and produces an isolated `.venv/` with the exact pinned versions. Re-run after pulling new commits that touched dependencies.
+
+Set the two env vars `forge sync` needs (preferably via `.env`):
 
 ```bash
 export FORGE_BENCH_PATH=/home/tayyab/Work/Projects/erp/novizna-v16/novizna-v16
@@ -35,6 +37,8 @@ export FORGE_PRIMARY_SITE=novizna-v16
 ```
 
 (Or copy `.env.example` to `.env` and fill those in.)
+
+> **Shortcut:** `source forge/.venv/bin/activate` lets you drop the `uv run` prefix and call `forge ...` directly. `uv run` is shown throughout this doc for clarity; the two are equivalent inside the venv.
 
 ---
 

@@ -13,6 +13,27 @@ Section order per release: **Added / Changed / Deprecated / Removed / Fixed / Se
 
 ---
 
+## [0.6.1] — 2026-05-26
+
+### Changed — uv cutover (tooling, no public API change)
+
+- **Project tooling switched from pip to [uv](https://docs.astral.sh/uv/) ≥ 0.10.** uv handles venv creation, Python version pinning, dependency installation, and lockfile management. pip still works as a fallback but isn't documented as the primary path.
+- **`forge/uv.lock` committed** for reproducible installs. CI uses `uv sync --frozen` against the lockfile.
+- **`forge/.python-version` pins Python 3.14.** uv installs the requested version if not present.
+- `README.md` Quick Start now uses `uv sync --all-extras` for install and `uv run --project forge forge ...` for invocation.
+- `docs/onboarding.md` §1 ("Install") replaced with the uv flow + a note that activating `forge/.venv` lets you drop the `uv run` prefix.
+- `.github/workflows/ci.yml`:
+  - `lint` job uses `astral-sh/setup-uv@v3` + `uv tool install yamllint` (replaces `pip install yamllint`).
+  - `forge` job uses `uv sync --frozen --all-extras` (replaces `pip install -e 'forge/[dev]'`) and invokes commands via `uv run`. Cache is enabled via `setup-uv`'s `enable-cache: true`.
+- `.pre-commit-config.yaml` header comment updated to mention `uvx pre-commit install` and note the local `forge` hooks assume the venv is on PATH (use `uv run --project forge forge ...` otherwise).
+
+### Notes
+- 146 tests still pass on Python 3.14.3 under uv-managed venv.
+- The Python code itself is unchanged. `forge test` uses `sys.executable -m pytest`, which resolves to the uv-managed venv's Python correctly under `uv run forge test`.
+- VERSION 0.6.0 → 0.6.1 (PATCH — tooling refinement, content refinement, no public API change).
+
+---
+
 ## [0.6.0] — 2026-05-25
 
 ### Added — Phase 5 (iteration tooling — roadmap complete)

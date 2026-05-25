@@ -27,22 +27,29 @@ A single set of canonical specifications is rendered into per-tool configuration
 
 ## Quick Start
 
+Prerequisite: **[uv](https://docs.astral.sh/uv/)** ≥ 0.10.
+
 ```bash
+# One-time install: creates forge/.venv, syncs from uv.lock
+cd forge && uv sync --all-extras && cd ..
+
 # Render canonical spec into the bench for a specific tool
-forge sync --tool claude-code
+uv run --project forge forge sync --tool claude-code
 
 # Render for all configured tools (staged + atomic swap)
-forge sync --all
+uv run --project forge forge sync --all
 
 # Refresh discovery snapshot
-forge discover
+uv run --project forge forge discover
 
 # Validate schemas + drift
-forge validate
+uv run --project forge forge validate
 
 # Score every artifact for security risk
-forge score --path canonical/
+uv run --project forge forge score --path canonical/
 ```
+
+The `uv run --project forge` prefix can be replaced with `source forge/.venv/bin/activate && forge ...` if you prefer activating the venv.
 
 ## Planning Documents
 

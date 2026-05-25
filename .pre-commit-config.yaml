@@ -1,6 +1,12 @@
 # erpnext-ai-forge — pre-commit hooks (v0.2 Decision 4)
-# Install: pre-commit install
-# Run manually: pre-commit run --all-files
+#
+# Install: `uvx pre-commit install` (or activate forge/.venv first)
+# Run manually: `uvx pre-commit run --all-files`
+#
+# The local `forge` hooks below assume the forge venv is active OR the
+# developer is using `uv run forge ...` indirectly. If `forge` isn't on
+# PATH at commit time, run from inside `forge/.venv/bin/activate` or
+# replace `forge` with `uv run --project forge forge` in the entry lines.
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
