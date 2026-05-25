@@ -1,71 +1,21 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-05-23T00:00:00Z",
-  "note": "Boolean signals only — counts indicate presence of the named hook key in each app's hooks.py. Phase 2 `forge discover` will produce full dispatch dispatch chains.",
+  "generated_at": "2026-05-25T21:25:36.255454+00:00",
+  "generated_by": "forge discover",
   "custom_apps": {
-    "novizna_crm": {
-      "hooks_path": "apps/novizna_crm/novizna_crm/hooks.py",
-      "signals": {
-        "doc_events": true,
-        "scheduler_events": true,
-        "fixtures": false,
-        "overrides": false,
-        "app_or_web_includes": true,
-        "after_install": true
-      }
-    },
-    "novizna_core": {
-      "hooks_path": "apps/novizna_core/novizna_core/hooks.py",
-      "signals": {
-        "doc_events": false,
-        "scheduler_events": false,
-        "fixtures": false,
-        "overrides": true,
-        "app_or_web_includes": false,
-        "after_install": true
-      }
-    },
-    "novizna_pos": {
-      "hooks_path": "apps/novizna_pos/novizna_pos/hooks.py",
-      "signals": {
-        "doc_events": true,
-        "scheduler_events": false,
-        "fixtures": false,
-        "overrides": true,
-        "app_or_web_includes": false,
-        "after_install": true
-      }
-    },
-    "invoice_ninja_integration": {
-      "hooks_path": "apps/invoice_ninja_integration/invoice_ninja_integration/hooks.py",
-      "signals": {
-        "doc_events": true,
-        "scheduler_events": true,
-        "fixtures": false,
-        "overrides": false,
-        "app_or_web_includes": true,
-        "after_install": true
-      }
-    },
-    "noviznaerp_payroll": {
-      "hooks_path": "apps/noviznaerp_payroll/noviznaerp_payroll/hooks.py",
-      "signals": {
-        "doc_events": true,
-        "scheduler_events": true,
-        "fixtures": false,
-        "overrides": true,
-        "app_or_web_includes": true,
-        "after_install": false
-      }
-    },
     "cargo_management": {
       "hooks_path": "apps/cargo_management/cargo_management/hooks.py",
       "signals": {
         "doc_events": true,
         "scheduler_events": false,
         "fixtures": true,
-        "overrides": false,
-        "app_or_web_includes": true,
+        "boot_session": false,
+        "override_doctype_class": false,
+        "override_whitelisted_methods": false,
+        "app_include_js": true,
+        "web_include_js": false,
+        "app_include_css": true,
+        "web_include_css": false,
         "after_install": false
       }
     },
@@ -75,8 +25,13 @@
         "doc_events": true,
         "scheduler_events": false,
         "fixtures": true,
-        "overrides": false,
-        "app_or_web_includes": true,
+        "boot_session": false,
+        "override_doctype_class": false,
+        "override_whitelisted_methods": false,
+        "app_include_js": true,
+        "web_include_js": false,
+        "app_include_css": false,
+        "web_include_css": false,
         "after_install": true
       }
     },
@@ -86,9 +41,94 @@
         "doc_events": false,
         "scheduler_events": true,
         "fixtures": true,
-        "overrides": false,
-        "app_or_web_includes": false,
+        "boot_session": false,
+        "override_doctype_class": false,
+        "override_whitelisted_methods": false,
+        "app_include_js": false,
+        "web_include_js": false,
+        "app_include_css": false,
+        "web_include_css": false,
         "after_install": true
+      }
+    },
+    "invoice_ninja_integration": {
+      "hooks_path": "apps/invoice_ninja_integration/invoice_ninja_integration/hooks.py",
+      "signals": {
+        "doc_events": true,
+        "scheduler_events": true,
+        "fixtures": false,
+        "boot_session": false,
+        "override_doctype_class": false,
+        "override_whitelisted_methods": false,
+        "app_include_js": true,
+        "web_include_js": false,
+        "app_include_css": false,
+        "web_include_css": false,
+        "after_install": true
+      }
+    },
+    "novizna_core": {
+      "hooks_path": "apps/novizna_core/novizna_core/hooks.py",
+      "signals": {
+        "doc_events": false,
+        "scheduler_events": false,
+        "fixtures": false,
+        "boot_session": false,
+        "override_doctype_class": false,
+        "override_whitelisted_methods": true,
+        "app_include_js": false,
+        "web_include_js": false,
+        "app_include_css": false,
+        "web_include_css": false,
+        "after_install": true
+      }
+    },
+    "novizna_crm": {
+      "hooks_path": "apps/novizna_crm/novizna_crm/hooks.py",
+      "signals": {
+        "doc_events": true,
+        "scheduler_events": true,
+        "fixtures": false,
+        "boot_session": false,
+        "override_doctype_class": false,
+        "override_whitelisted_methods": false,
+        "app_include_js": true,
+        "web_include_js": false,
+        "app_include_css": false,
+        "web_include_css": false,
+        "after_install": true
+      }
+    },
+    "novizna_pos": {
+      "hooks_path": "apps/novizna_pos/novizna_pos/hooks.py",
+      "signals": {
+        "doc_events": true,
+        "scheduler_events": false,
+        "fixtures": false,
+        "boot_session": false,
+        "override_doctype_class": false,
+        "override_whitelisted_methods": false,
+        "app_include_js": false,
+        "web_include_js": false,
+        "app_include_css": false,
+        "web_include_css": false,
+        "after_install": true
+      }
+    },
+    "noviznaerp_payroll": {
+      "hooks_path": "apps/noviznaerp_payroll/noviznaerp_payroll/hooks.py",
+      "signals": {
+        "doc_events": true,
+        "scheduler_events": true,
+        "fixtures": false,
+        "boot_session": false,
+        "override_doctype_class": true,
+        "override_whitelisted_methods": true,
+        "app_include_js": true,
+        "web_include_js": false,
+        "app_include_css": false,
+        "web_include_css": false,
+        "after_install": false
       }
     }
   }

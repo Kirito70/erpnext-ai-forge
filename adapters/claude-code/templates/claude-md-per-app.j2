@@ -9,7 +9,7 @@
 **Stack:** {{ app.stack }}
 **Custom DocTypes:** {{ app.doctype_count }}
 **Whitelist APIs:** {{ app.whitelist_api_count }}
-**Purpose:** {{ app.purpose }}
+{% if app.get('purpose') %}**Purpose:** {{ app.get('purpose') }}{% endif %}
 
 ---
 

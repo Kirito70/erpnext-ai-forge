@@ -18,6 +18,9 @@ dependencies = [
     "pydantic>=2.7.0",
     # sqlglot for `mariadb-query` parser fallback (v0.2 Decision B5)
     "sqlglot>=23.0.0",
+    # python-dotenv: auto-load .env at CLI startup so FORGE_BENCH_PATH etc.
+    # don't require manual `export` / `source .env`.
+    "python-dotenv>=1.0.0",
 ]
 
 [project.optional-dependencies]

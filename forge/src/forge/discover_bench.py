@@ -59,6 +59,26 @@ _HOOK_KEYS = (
 # ---------------------------------------------------------------------------
 # Per-app stack detection
 # ---------------------------------------------------------------------------
+def _extract_purpose(app_dir: Path) -> str | None:
+    """Read the app's pyproject.toml `description` field as a one-line purpose.
+
+    Falls back to None if pyproject.toml is missing or unreadable. The
+    per-app CLAUDE.md templates render `Purpose:` only when this is set.
+    """
+    pyproject = app_dir / "pyproject.toml"
+    if not pyproject.is_file():
+        return None
+    try:
+        text = pyproject.read_text(errors="replace")
+    except OSError:
+        return None
+    # Lightweight regex match — avoids dragging tomllib into a hot path.
+    match = re.search(r'^description\s*=\s*"([^"\n]+)"', text, re.MULTILINE)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
 def _detect_stack(app_dir: Path) -> str:
     """Match the Phase 0 heuristic: Frappe-UI Vue3 / Quasar PWA / pure-backend."""
     # Quasar config anywhere under the app (within reason — avoid node_modules)
@@ -270,12 +290,23 @@ def discover_bench(
     else:
         # Resolve `{{ env.FORGE_BENCH_PATH }}` ourselves to avoid dragging in Jinja
         import os
+        env_bench = os.environ.get("FORGE_BENCH_PATH", "")
+        if not env_bench:
+            raise FileNotFoundError(
+                "FORGE_BENCH_PATH is not set. Set it in your shell:\n"
+                "  export FORGE_BENCH_PATH=/path/to/bench\n"
+                "Or copy `.env.example` to `.env` at the repo root and fill it in — "
+                "`.env` is auto-loaded by forge."
+            )
         bench_str = cfg["bench"]["path"].replace(
-            "{{ env.FORGE_BENCH_PATH }}", os.environ.get("FORGE_BENCH_PATH", "")
+            "{{ env.FORGE_BENCH_PATH }}", env_bench
         )
         bench = Path(bench_str)
     if not bench.is_dir() or not (bench / "apps").is_dir():
-        raise FileNotFoundError(f"Bench apps/ not found at {bench}")
+        raise FileNotFoundError(
+            f"Bench apps/ not found at {bench}\n"
+            f"FORGE_BENCH_PATH must point to a Frappe bench root that contains an `apps/` directory."
+        )
 
     upstream = set(cfg.get("upstream_apps", []))
     apps_dir = bench / "apps"
@@ -315,6 +346,7 @@ def discover_bench(
         hook_signals = _parse_hooks_signals(hooks_path)
         ap = _scan_anti_patterns(app_root, app)
 
+        purpose = _extract_purpose(app_root)
         apps_payload.append(
             {
                 "name": app,
@@ -322,6 +354,7 @@ def discover_bench(
                 "stack": stack,
                 "doctype_count": len(doctypes),
                 "whitelist_api_count": api_count,
+                **({"purpose": purpose} if purpose else {}),
             }
         )
         hooks_payload[app] = {

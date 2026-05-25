@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-05-23T00:00:00Z",
-  "note": "novizna_crm 3-layer override system (v0.2 Decision 16). All paths in src_override/ MUST be one-for-one with apps/crm/frontend/src/. src/ is for net-new files. crm_build/ is generated and never edited.",
+  "generated_at": "2026-05-25T21:25:37.604492+00:00",
+  "note": "Automated discovery \u2014 novizna_crm 3-layer override system (v0.2 Decision 16). All paths in src_override/ MUST be one-for-one with apps/crm/frontend/src/.",
   "app": "novizna_crm",
   "frontend_root": "apps/novizna_crm/frontend",
   "layers": {
@@ -35,9 +35,8 @@
     "crm_build": {
       "purpose": "GENERATED workspace, wiped on every yarn dev/yarn build",
       "modifiable": false,
-      "warning": "NEVER edit files here — they will be silently overwritten"
+      "warning": "NEVER edit files here \u2014 they will be silently overwritten"
     }
   },
-  "validation_tool": "yarn check-conflicts (run after upstream crm updates)",
-  "skill_to_author": "canonical/skills/frontend/novizna-crm-override-system.md (Phase 1b)"
+  "validation_tool": "yarn check-conflicts (run after upstream crm updates)"
 }

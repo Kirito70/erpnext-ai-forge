@@ -1,17 +1,52 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-05-23T00:00:00Z",
-  "note": "Phase 0 lists DocType IDs and module paths only. Phase 2 `forge discover` will add field schemas, permissions, custom-vs-fixture classification.",
+  "generated_at": "2026-05-25T21:25:36.255454+00:00",
+  "generated_by": "forge discover",
   "custom_apps": {
-    "novizna_crm": [
-      "crm_import_log",
-      "crm_lead_industry"
+    "cargo_management": [
+      "cargo_packing_list",
+      "cargo_packing_list_line",
+      "cargo_shipment",
+      "cargo_shipment_line",
+      "cargo_shipment_receipt",
+      "cargo_shipment_receipt_line",
+      "cargo_shipment_warehouse",
+      "parcel",
+      "parcel_content",
+      "parcel_selling_settings",
+      "warehouse_receipt",
+      "warehouse_receipt_line"
     ],
-    "novizna_core": [],
-    "novizna_pos": [
-      "branch_warehouse",
-      "cash_variance_entry",
-      "noviznapos_settings"
+    "changemakers": {
+      "_count": 52,
+      "_sample": [
+        "admission_criterion",
+        "awareness_camp_record",
+        "beneficiary",
+        "care_centre",
+        "care_centre_admission",
+        "care_centre_admission_detail",
+        "case",
+        "case_followup",
+        "case_type",
+        "changemakers_settings",
+        "changemakers_user_profile",
+        "chronic_illness_type",
+        "daily_visit_update",
+        "designation",
+        "disability_condition",
+        "district",
+        "education_level",
+        "entitlement_request",
+        "entitlement_type",
+        "family_reintegration"
+      ]
+    },
+    "erpnext_location": [
+      "city",
+      "region",
+      "state",
+      "subregion"
     ],
     "invoice_ninja_integration": [
       "invoice_ninja_company",
@@ -25,47 +60,40 @@
       "invoice_ninja_tax_rate",
       "invoice_ninja_tax_template_mapping"
     ],
+    "novizna_core": [],
+    "novizna_crm": [
+      "crm_import_log",
+      "crm_lead_industry"
+    ],
+    "novizna_pos": [
+      "branch_warehouse",
+      "cash_variance_entry",
+      "noviznapos_settings"
+    ],
     "noviznaerp_payroll": {
       "_count": 73,
       "_sample": [
         "additional_salary_details",
         "advance_policy_setup",
         "attendance_tool",
-        "biometric_device",
-        "biometric_device_logs",
+        "auto_attendance_error_log",
+        "benefit_fund",
+        "benefit_fund_policy",
         "bimonthly_employees",
         "bimonthly_salaries",
+        "biometric_device",
+        "biometric_device_logs",
         "bulk_additional_salary_tool",
+        "department_wise_shift_strength",
+        "dependent_details",
+        "designation_shortlisting_criteria",
         "employee_biometric_attendance",
-        "eobi",
-        "eobi_policy",
-        "full_and_final_account_details",
-        "full_and_final_accounts_setup",
-        "geo_fancing_by_city",
-        "geo_fancing_by_radius",
-        "loan_criteria",
-        "loan_product_emi",
-        "notice_period_policy"
-      ],
-      "_note": "Full list will be produced by `forge discover` (Phase 2)."
-    },
-    "cargo_management": {
-      "_count": 12,
-      "_note": "Full list pending Phase 2 automated discovery."
-    },
-    "changemakers": {
-      "_count": 52,
-      "_note": "Full list pending Phase 2 automated discovery."
-    },
-    "erpnext_location": {
-      "_count": 4,
-      "_note": "Full list pending Phase 2 automated discovery."
+        "employee_details",
+        "employee_document_checklist",
+        "employee_document_table",
+        "employee_rejoin",
+        "employment_experience"
+      ]
     }
-  },
-  "naming_conventions_observed": {
-    "novizna_crm": "crm_<noun>",
-    "invoice_ninja_integration": "invoice_ninja_<noun>",
-    "noviznaerp_payroll": "snake_case domain nouns (no app prefix)",
-    "novizna_pos": "snake_case (no consistent prefix; e.g. branch_warehouse, cash_variance_entry, noviznapos_settings)"
   }
 }

@@ -10,7 +10,7 @@ alwaysApply: false
 **Stack:** {{ app.stack }}
 **Custom DocTypes:** {{ app.doctype_count | default(0) }}
 **Whitelist APIs:** {{ app.whitelist_api_count | default(0) }}
-{% if app.purpose %}**Purpose:** {{ app.purpose }}{% endif %}
+{% if app.get('purpose') %}**Purpose:** {{ app.get('purpose') }}{% endif %}
 
 ---
 

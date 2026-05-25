@@ -1,82 +1,228 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-05-23T00:00:00Z",
-  "scope": "custom apps only (8 apps); upstream apps not scanned per v0.2 Section 8.3",
-  "findings": [
-    {
-      "id": "AP-001",
-      "severity": "HIGH",
-      "pattern": "frappe.db.sql(f\"...\") — SQL injection via f-string interpolation",
-      "occurrences_found": 11,
-      "examples": [
+  "generated_at": "2026-05-25T21:25:36.255454+00:00",
+  "generated_by": "forge discover",
+  "per_app": {
+    "cargo_management": {
+      "sql_fstring": [],
+      "allow_guest": [
+        "apps/cargo_management/cargo_management/parcel_management/doctype/parcel/api/api_17track.py:146",
+        "apps/cargo_management/cargo_management/parcel_management/doctype/parcel/api/easypost_api.py:84"
+      ],
+      "ignore_permissions": [
+        "apps/cargo_management/cargo_management/parcel_management/doctype/parcel/api/api_17track.py:175",
+        "apps/cargo_management/cargo_management/parcel_management/doctype/parcel/api/easypost_api.py:114",
+        "apps/cargo_management/cargo_management/parcel_selling/utils.py:16",
+        "apps/cargo_management/cargo_management/parcel_selling/utils.py:33",
+        "apps/cargo_management/cargo_management/shipment_management/doctype/cargo_shipment_receipt/actions.py:87",
+        "apps/cargo_management/cargo_management/shipment_management/doctype/cargo_shipment_receipt/actions.py:99",
+        "apps/cargo_management/cargo_management/utils.py:46"
+      ],
+      "db_commit_non_test": [
+        "apps/cargo_management/cargo_management/shipment_management/doctype/cargo_shipment_receipt/actions.py:94",
+        "apps/cargo_management/cargo_management/shipment_management/doctype/cargo_shipment_receipt/actions.py:96"
+      ]
+    },
+    "changemakers": {
+      "sql_fstring": [],
+      "allow_guest": [],
+      "ignore_permissions": [
+        "apps/changemakers/changemakers/api/__init__.py:60",
+        "apps/changemakers/changemakers/api/__init__.py:97",
+        "apps/changemakers/changemakers/frappe_changemakers/doctype/changemakers_user_profile/changemakers_user_profile.py:15"
+      ],
+      "db_commit_non_test": [
+        "apps/changemakers/changemakers/config/e2e.py:16",
+        "apps/changemakers/changemakers/frappe_changemakers/doctype/changemakers_user_profile/changemakers_user_profile.py:17",
+        "apps/changemakers/changemakers/install.py:16",
+        "apps/changemakers/changemakers/www/c.py:8"
+      ]
+    },
+    "erpnext_location": {
+      "sql_fstring": [],
+      "allow_guest": [],
+      "ignore_permissions": [
+        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:145",
+        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:245",
+        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:316",
+        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:399",
+        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:94"
+      ],
+      "db_commit_non_test": [
+        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:104",
+        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:149",
+        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:155",
+        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:249",
+        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:257",
+        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:320",
+        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:327",
+        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:407",
+        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:98"
+      ]
+    },
+    "invoice_ninja_integration": {
+      "sql_fstring": [],
+      "allow_guest": [],
+      "ignore_permissions": [
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:1325",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:1623",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:1633",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:1689",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:1700",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:377",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:438",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:448",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:501",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:589",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:597",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:722",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:726",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:801",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:816"
+      ],
+      "db_commit_non_test": [
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:1170",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:1326",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:2661",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:292",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:396",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:450",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:520",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:603",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:650",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:728",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/api.py:835",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/custom_fields.py:64",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/custom_fields.py:79",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/install.py:45",
+        "apps/invoice_ninja_integration/invoice_ninja_integration/invoice_ninja_integration/doctype/invoice_ninja_sync_logs/invoice_ninja_sync_logs.py:199"
+      ]
+    },
+    "novizna_core": {
+      "sql_fstring": [],
+      "allow_guest": [],
+      "ignore_permissions": [
+        "apps/novizna_core/novizna_core/after_install.py:70",
+        "apps/novizna_core/novizna_core/after_install.py:82",
+        "apps/novizna_core/novizna_core/currency_exchange/cache_manager.py:68",
+        "apps/novizna_core/novizna_core/currency_exchange/cache_manager.py:88"
+      ],
+      "db_commit_non_test": [
+        "apps/novizna_core/novizna_core/currency_exchange/cache_manager.py:122"
+      ]
+    },
+    "novizna_crm": {
+      "sql_fstring": [],
+      "allow_guest": [],
+      "ignore_permissions": [
+        "apps/novizna_crm/novizna_crm/api/crm_import.py:105",
+        "apps/novizna_crm/novizna_crm/api/crm_import.py:114",
+        "apps/novizna_crm/novizna_crm/api/crm_import.py:133",
+        "apps/novizna_crm/novizna_crm/api/deals.py:123",
+        "apps/novizna_crm/novizna_crm/api/deals.py:143",
+        "apps/novizna_crm/novizna_crm/api/deals.py:172",
+        "apps/novizna_crm/novizna_crm/api/deals.py:90",
+        "apps/novizna_crm/novizna_crm/api/erpnext_sync.py:52",
+        "apps/novizna_crm/novizna_crm/api/import_leads.py:130",
+        "apps/novizna_crm/novizna_crm/api/import_leads.py:139",
+        "apps/novizna_crm/novizna_crm/api/import_leads.py:183",
+        "apps/novizna_crm/novizna_crm/api/leads.py:139",
+        "apps/novizna_crm/novizna_crm/api/leads.py:150",
+        "apps/novizna_crm/novizna_crm/api/leads.py:196",
+        "apps/novizna_crm/novizna_crm/api/leads.py:209"
+      ],
+      "db_commit_non_test": [
+        "apps/novizna_crm/novizna_crm/api/connector_manager.py:164",
+        "apps/novizna_crm/novizna_crm/api/erpnext_sync.py:55",
+        "apps/novizna_crm/novizna_crm/api/import_leads.py:149",
+        "apps/novizna_crm/novizna_crm/api/universal_import.py:1405",
+        "apps/novizna_crm/novizna_crm/api/universal_import.py:1501",
+        "apps/novizna_crm/novizna_crm/api/universal_import.py:1527",
+        "apps/novizna_crm/novizna_crm/novizna_crm/custom/crm_lead.py:19",
+        "apps/novizna_crm/novizna_crm/patches/migrate_industry.py:27",
+        "apps/novizna_crm/novizna_crm/www/crm.py:24"
+      ]
+    },
+    "novizna_pos": {
+      "sql_fstring": [],
+      "allow_guest": [
+        "apps/novizna_pos/novizna_pos/novizna_pos/api.py:82"
+      ],
+      "ignore_permissions": [
+        "apps/novizna_pos/novizna_pos/novizna_pos/doctype/cash_variance_entry/cash_variance_entry.py:172",
+        "apps/novizna_pos/novizna_pos/novizna_pos/doctype/cash_variance_entry/cash_variance_entry.py:229",
+        "apps/novizna_pos/novizna_pos/novizna_pos/invoice.py:71",
+        "apps/novizna_pos/novizna_pos/pos_hooks/after_install.py:45",
+        "apps/novizna_pos/novizna_pos/pos_hooks/after_install.py:79"
+      ],
+      "db_commit_non_test": [
+        "apps/novizna_pos/novizna_pos/templates/pages/pos/index.py:9"
+      ]
+    },
+    "noviznaerp_payroll": {
+      "sql_fstring": [
         "apps/noviznaerp_payroll/noviznaerp_payroll/custom/loan_custom.py:137",
         "apps/noviznaerp_payroll/noviznaerp_payroll/custom/loan_custom.py:150",
         "apps/noviznaerp_payroll/noviznaerp_payroll/custom/loan_custom.py:240",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/custom/loan_interest_accrual_custom.py:57",
         "apps/noviznaerp_payroll/noviznaerp_payroll/custom/salary_structure_custom.py:11",
         "apps/noviznaerp_payroll/noviznaerp_payroll/custom/salary_structure_custom.py:12",
-        "apps/noviznaerp_payroll/noviznaerp_payroll/overrides/leave_encashment_override.py:119",
-        "apps/noviznaerp_payroll/noviznaerp_payroll/custom/loan_interest_accrual_custom.py:57",
-        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/report/loan_register/loan_register.py:111",
-        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/bulk_additional_salary_tool/bulk_additional_salary_tool.py:51",
         "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/attendance_tool/attendance_tool.py:207",
-        "apps/noviznaerp_payroll/noviznaerp_payroll/overrides/salary_slip_override.py:149"
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/benefit_fund/benefit_fund.py:11",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/benefit_fund/benefit_fund.py:20",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/bulk_additional_salary_tool/bulk_additional_salary_tool.py:51",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/eobi/eobi.py:14",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/eobi/eobi.py:23",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/salary_revise_tool/salary_revise_tool.py:52",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/report/loan_register/loan_register.py:111",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/overrides/leave_encashment_override.py:119"
       ],
-      "recommendation": "Replace with `frappe.db.sql(query, values={...})` parameterized form. Most occurrences interpolate doc IDs and account numbers — fixable with named bindings.",
-      "skill_to_author": "canonical/skills/data/sql-best-practices.md"
-    },
-    {
-      "id": "AP-002",
-      "severity": "MEDIUM",
-      "pattern": "@frappe.whitelist(allow_guest=True) — guest-accessible endpoints",
-      "occurrences_found": 10,
-      "scope_apps": ["noviznaerp_payroll", "cargo_management", "novizna_pos"],
-      "examples": [
+      "allow_guest": [
+        "apps/noviznaerp_payroll/noviznaerp_payroll/templates/pages/careers.py:21",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/templates/pages/careers.py:9",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/templates/pages/job_apply.py:11",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/templates/pages/job_apply.py:25",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/templates/pages/job_detail.py:5",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/www/careers.py:21",
         "apps/noviznaerp_payroll/noviznaerp_payroll/www/careers.py:9",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/www/job_apply.py:22",
         "apps/noviznaerp_payroll/noviznaerp_payroll/www/job_apply.py:8",
-        "apps/noviznaerp_payroll/noviznaerp_payroll/www/job_detail.py:5",
-        "apps/cargo_management/cargo_management/parcel_management/doctype/parcel/api/easypost_api.py:84",
-        "apps/novizna_pos/novizna_pos/novizna_pos/api.py:82"
+        "apps/noviznaerp_payroll/noviznaerp_payroll/www/job_detail.py:5"
       ],
-      "recommendation": "Each guest endpoint must (a) verify webhook signature (cargo_management easypost), (b) rate-limit (noviznaerp_payroll careers), or (c) re-evaluate whether guest access is required (novizna_pos api.py:82 needs review)."
-    },
-    {
-      "id": "AP-003",
-      "severity": "MEDIUM",
-      "pattern": "ignore_permissions=True — frequent permission bypass",
-      "occurrences_found": 99,
-      "recommendation": "Each occurrence should have a justifying comment. Most legitimate uses are inside scheduled tasks or post-installation patches; uses inside user-triggered code paths are suspicious. Phase 2 `forge score` will flag occurrences without a justifying comment within 3 lines."
-    },
-    {
-      "id": "AP-004",
-      "severity": "MEDIUM",
-      "pattern": "frappe.db.commit() — explicit commit inside non-test code",
-      "occurrences_found": 73,
-      "recommendation": "Commits inside `doc_events` hooks break atomicity. Commits inside scheduled tasks are usually safe. Phase 2 audit will categorize each occurrence by call-site type."
-    },
-    {
-      "id": "AP-005",
-      "severity": "HIGH",
-      "pattern": "ignore_csrf=true in common_site_config.json",
-      "location": "sites/common_site_config.json",
-      "recommendation": "CSRF protection is globally disabled across all sites in this bench. Verify this is required (likely set for the Quasar POS PWA which has its own CSRF handling via Frappe session cookie + token header per v0.2 Decision 17). If only the POS needs it, scope it instead of disabling site-wide."
-    },
-    {
-      "id": "AP-006",
-      "severity": "INFO",
-      "pattern": "Naming convention drift across apps",
-      "details": [
-        "novizna_crm uses crm_<noun> prefix (good)",
-        "invoice_ninja_integration uses invoice_ninja_<noun> prefix (good)",
-        "noviznaerp_payroll uses domain nouns with no app prefix (acceptable, but globally ambiguous)",
-        "novizna_pos mixes branch_warehouse / cash_variance_entry / noviznapos_settings — inconsistent prefix usage"
+      "ignore_permissions": [
+        "apps/noviznaerp_payroll/noviznaerp_payroll/custom/attendance_custom.py:40",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/report/income_tax_deductions_breakup/test_income_tax_deductions_breakup.py:100",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/report/income_tax_deductions_breakup/test_income_tax_deductions_breakup.py:148",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/report/income_tax_deductions_breakup/test_income_tax_deductions_breakup.py:29",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/report/income_tax_deductions_breakup/test_income_tax_deductions_breakup.py:307",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/report/income_tax_deductions_breakup/test_income_tax_deductions_breakup.py:44",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/report/income_tax_deductions_breakup/test_income_tax_deductions_breakup.py:57",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/overrides/payroll_entry_override copy.py:789",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/overrides/payroll_entry_override.py:369"
       ],
-      "recommendation": "Adopt a standard in canonical/skills/frappe-core/conventions.md: optional app prefix; if used, used consistently for all DocTypes in that app."
+      "db_commit_non_test": [
+        "apps/noviznaerp_payroll/noviznaerp_payroll/custom/attendance_custom.py:41",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/auto_attendance_error_log/auto_attendance_error_log.py:14",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/benefit_fund/benefit_fund.py:66",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/benefit_fund/benefit_fund.py:72",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/bulk_additional_salary_tool/bulk_additional_salary_tool.py:33",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/bulk_additional_salary_tool/bulk_additional_salary_tool.py:41",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/eobi/eobi.py:64",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/eobi/eobi.py:70",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/leave_encashment_tool/leave_encashment_tool.py:42",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/noviznaerp_payroll/doctype/overtime_approval/overtime_approval.py:188",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/overrides/leave_encashment_override.py:74",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/overrides/payroll_entry_override copy.py:1290",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/overrides/payroll_entry_override copy.py:1362",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/overrides/payroll_entry_override.py:607",
+        "apps/noviznaerp_payroll/noviznaerp_payroll/templates/pages/job_apply.py:166"
+      ]
     }
-  ],
+  },
   "totals": {
-    "high_severity_findings": 2,
-    "medium_severity_findings": 3,
-    "info_findings": 1,
-    "scan_completeness": "initial pass — focused on common patterns; Phase 4 `forge score` will produce per-file scores against the full deduction table"
+    "sql_fstring": 15,
+    "allow_guest": 13,
+    "ignore_permissions": 63,
+    "db_commit_non_test": 56
   }
 }

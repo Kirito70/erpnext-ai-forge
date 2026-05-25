@@ -1,9 +1,5 @@
 """forge CLI — entry point.
 
-Phase 0 skeleton: every command parses its arguments and prints what it would
-do, then exits with code 0. Real implementations land in Phase 2 (sync engine,
-adapter rendering, audit, etc.) and Phase 4 (security scoring enforcement).
-
 See ULTRAPLAN-AI-FRAMEWORK-v0.2.md Section 3.5 for the full CLI contract.
 """
 
@@ -13,6 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 import typer
+from dotenv import load_dotenv
 from rich.console import Console
 
 from forge import __version__
@@ -27,6 +24,31 @@ from forge.commands import (
     test as test_cmd,
     validate as validate_cmd,
 )
+
+
+def _load_env_files() -> None:
+    """Auto-load `.env` from the repo root and the current working directory.
+
+    Repo-root `.env` wins (covers the common case of running forge from any
+    subdirectory of the repo). Cwd `.env` is a fallback for ad-hoc setups.
+    Existing environment variables are NOT overridden — explicit `export`
+    in the shell always takes precedence.
+    """
+    # Walk upward from cwd looking for forge.config.yaml (the repo root marker)
+    current = Path.cwd().resolve()
+    for parent in [current, *current.parents]:
+        if (parent / "forge.config.yaml").is_file():
+            env_path = parent / ".env"
+            if env_path.is_file():
+                load_dotenv(env_path, override=False)
+            break
+    # Fallback: cwd/.env if cwd isn't inside a forge repo
+    cwd_env = current / ".env"
+    if cwd_env.is_file():
+        load_dotenv(cwd_env, override=False)
+
+
+_load_env_files()
 
 app = typer.Typer(
     name="forge",
