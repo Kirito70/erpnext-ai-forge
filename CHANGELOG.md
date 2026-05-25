@@ -13,6 +13,49 @@ Section order per release: **Added / Changed / Deprecated / Removed / Fixed / Se
 
 ---
 
+## [0.6.0] — 2026-05-25
+
+### Added — Phase 5 (iteration tooling — roadmap complete)
+
+- **`forge stats`** (`forge/src/forge/stats.py`) — audit-log metrics dashboard:
+  - Parses every `audit/<YYYY>/<MM>/forge-audit.jsonl`
+  - Counts actions, tool/agent invocations, sync outcomes (live / blocked / justified / warned / dry_run / error)
+  - Security-score distribution from any entry carrying `per_file_scores` (min/max/mean/median + auto-accept/warn-band/below-block counts)
+  - Drift incidents + architect escalations
+  - Recent activity (last 10 entries, chronological)
+  - Markdown output by default; `--json` for piping
+  - `--since 7d|2h|30m|<ISO>` filter
+- **`forge deprecate`** (`forge/src/forge/deprecate.py`) — real implementation:
+  - Sets `status: deprecated` on the artifact's frontmatter (atomic temp+rename)
+  - Appends the deprecated id to the replacement artifact's `supersedes:` list (idempotent)
+  - Moves the file to `canonical/_deprecated/<original-relative-path>`
+  - Prints a suggested CHANGELOG line in scoped Conventional Commits format
+  - The `_deprecated/` tree is automatically excluded from `load_agents/skills/...` (underscore-prefix glob exclusion), so `forge sync` stops rendering immediately
+- **`docs/onboarding.md`** — 11-step walkthrough for first-time developers: install, repo tour, basic loop, edit a skill, security-gate workflow, deprecation, audit/metrics, adding a new adapter, commit style. Concrete commands at every step.
+- **3 new ADRs in `ARCHITECTURE.md`:**
+  - ADR-005: Aggregate Strategy + Per-Tool Char Budgets (Phase 3)
+  - ADR-006: Security Gate Scores Canonical Sources, Not Staging (Phase 4)
+  - ADR-007: Deprecation Lifecycle (Phase 5)
+- **24 new tests** (13 stats + 11 deprecate). 146 total, 100% passing.
+  - `test_first_deprecation_cycle_completes_cleanly` exercises the full lifecycle (mark → move → supersedes set → manual purge → clean state with historical trace preserved). **This satisfies the v0.2 §10 Phase 5 exit criterion.**
+
+### Changed
+- `forge/src/forge/cli.py` — `stats` command wired up; `deprecate` command replaced its "not yet implemented" skeleton with the real implementation
+- ARCHITECTURE.md §9 "Out of Scope (Phase 0)" updated — every Phase 0-deferred item is now implemented; the v0.2 roadmap is complete
+- VERSION 0.5.0 → 0.6.0 (MINOR — `forge stats` + `forge deprecate` are new public surface)
+- PROJECT-STATUS.md reflects all 5 phases done; iteration work going forward is calibration cadence, not roadmap-driven
+
+### Notes on the roadmap milestone
+The v0.2 ULTRAPLAN roadmap had 5 phases (0 through 4 plus 5 "iteration"). All 5 are complete as of this tag. Going forward:
+- Skill calibration after first 10 real-bench tasks (per [`security-scoring.yaml`](../canonical/policies/security-scoring.yaml) `calibration:` block)
+- Periodic `/audit-skills` runs (quarterly per [`governance.md`](../canonical/policies/governance.md) §5)
+- 3-month AI Forge convention checkpoint (next: 2026-08-23 per ADR-001)
+- Adapter additions when new vibe-coding tools emerge
+
+The framework is feature-complete per the original plan. Future MINOR bumps will reflect content (skills, agents) or new tools, not new framework capabilities.
+
+---
+
 ## [0.5.0] — 2026-05-25
 
 ### Added — Phase 4 (security gates + audit hardening + CI)

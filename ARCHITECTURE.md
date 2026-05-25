@@ -291,13 +291,91 @@ Any file write under `apps/{frappe,erpnext,crm,hrms,lending,lms,education,helpde
 
 ---
 
-## 9. Out of Scope (Phase 0)
+### ADR-005 — Aggregate Strategy + Per-Tool Char Budgets (Phase 3)
 
-The following are explicitly **not** part of Phase 0 and are tracked in the roadmap (`PROJECT-STATUS.md` §10):
+**Status:** Accepted
+**Date:** 2026-05-24
+**Context:** Phase 3 added six non-Claude adapters (Cursor, OpenCode, Cline, Copilot, Codex, Antigravity). None of them have a subagent / Task-tool equivalent. Per v0.2 §4.0 the spec called for inlining specialists into the architect's rule file with foundational skills inlined and on-demand skills as a TOC, enforced by a per-tool char budget.
 
-- Canonical agent/skill/command/tool content (Phase 1a/1b)
-- Adapter rendering code (Phase 2)
-- Per-tool adapter templates (Phase 2)
-- Multi-tool rollout (Phase 3)
-- Security gates + audit enforcement (Phase 4)
-- Iteration metrics dashboard (Phase 5)
+**Decision:** Introduce two new render strategies alongside the per-artifact strategies that Claude Code uses:
+
+| Strategy | Behavior | Used by |
+|----------|----------|---------|
+| `aggregate` | Render the full canonical set (agents + commands + skills + tools) into ONE output file via a single template. Template iterates over the lists and renders persona summaries + skill TOC + tool table + command recipes. | Cursor (`forge-main.mdc`), OpenCode (`AGENTS.md`), Cline (`00-forge-main.md`), Copilot (`copilot-instructions.md`), Codex (`AGENTS.codex.md`), Antigravity (`system.md`) |
+| `aggregate_per_app` | Render ONE output per custom app, with each app's discovery facts passed as context. Used for tools that scope context by directory (Cursor `globs:`, Copilot `applyTo:`). | Cursor, Cline, Copilot |
+
+The renderer iterates `adapter_cfg["artifacts"]` and dispatches by `strategy:` key. Existing per-artifact strategies (`one_file_per_agent`, `one_file_per_command`, `one_file_per_skill_in_domain_dir`) continue to work for Claude Code.
+
+Per-tool char budgets (advisory in Phase 3; could become hard-enforced in a future phase):
+
+| Tool | `max_total_chars` per file |
+|------|---------------------------:|
+| Claude Code | unlimited (Task spawning keeps contexts fresh) |
+| Cursor | 40,000 |
+| Cline | 35,000 |
+| Copilot | 30,000 |
+| OpenCode / Codex | 20,000 |
+| Antigravity | 15,000 (provisional — re-scope when actual config surface is confirmed) |
+
+**Consequences:**
+- Aggregate templates inline specialist personas as **summary tables**, not full bodies. Full agent bodies stay at `canonical/agents/<id>.md` and the templates direct the model to ask the developer to expand if detail is needed.
+- Foundational skills are TOC-only on the non-Claude tools (inlining them all blew the budget — Cursor's `forge-main.mdc` was 183KB in the first draft).
+- Tools' canonical contracts surface in every adapter (so behavior is consistent), but each tool's actual integration mechanism (MCP, Cursor MCP, none) lives outside `forge sync`.
+- A new tool joining the framework needs only an `adapter.yaml` declaring its capability profile + output paths + which strategies to use + Jinja templates. No renderer changes.
+
+### ADR-006 — Security Gate Scores Canonical Sources, Not Staging (Phase 4)
+
+**Status:** Accepted
+**Date:** 2026-05-25
+**Context:** Phase 4 wires `_security_gate()` into `forge sync` to block before any bench file is touched. The natural-feeling approach was to score the rendered staging output (i.e. the files about to be swapped into the bench). That produced false positives.
+
+**Decision:** Score the **canonical sources** contributing to each render, not the staged rendered output.
+
+**Why:**
+- Skills legitimately discuss the deduction patterns by name. `security/review-checklist.md` mentions `curl ... | sh` to teach the rule. Scoring staging fires D-CURL-SHELL on that text inside `.forge-staging/<tool>/.claude/skills/security/review-checklist.md`.
+- The scorer already has `skip_if_path_matches: (canonical|docs)` for exactly this reason. But staging paths don't include `canonical/`.
+- Rendering is template substitution — it never introduces new anti-patterns. If the canonical source is clean, the rendered output is clean. Scoring canonical sources is sufficient AND eliminates the false-positive class entirely.
+
+`_security_gate(rendered: list[RenderedArtifact])` walks every distinct `source_path` from the rendered set, runs `score_file()`, and aggregates findings. Block/warn thresholds come from `forge.config.yaml` `security:`.
+
+**Consequences:**
+- The gate runs the same scoring rules as `forge score --path canonical/` — single source of truth for scoring behavior.
+- Tests writing poisoned files to a fake repo had to be careful about path collisions: a file named `_outside-canonical.py` had "canonical" in its path and tripped the skip rule for D-CURL-SHELL. Document this caveat in the test.
+- Adapters can never sneak past the gate by emitting templates that introduce CRITICAL patterns at render time — those patterns would be in the canonical source.
+
+### ADR-007 — Deprecation Lifecycle (Phase 5)
+
+**Status:** Accepted
+**Date:** 2026-05-25
+**Context:** v0.2 governance §3 mandates a deprecation flow: mark `status: deprecated`, move to `canonical/_deprecated/`, retain for one MINOR cycle before removal. The first deprecation cycle is the Phase 5 exit criterion.
+
+**Decision:** Implement `forge deprecate <kind> <name> [--superseded-by <name>]` as a transactional helper that:
+
+1. Loads the artifact's frontmatter and sets `status: deprecated` (atomic temp+rename write).
+2. If a replacement is named, finds the replacement artifact, loads its frontmatter, and appends `<name>` to its `supersedes:` list (idempotent — does nothing if already present).
+3. Moves the deprecated file from `canonical/<kind>s/<...>` to `canonical/_deprecated/<kind>s/<...>` preserving the relative subpath.
+4. Prints a suggested CHANGELOG line in scoped Conventional Commits format.
+
+The `_deprecated/` tree is NOT picked up by `load_agents`, `load_skills`, etc. — those functions glob under `canonical/<subdir>/` and the underscore prefix excludes it. `forge sync` therefore stops rendering deprecated artifacts immediately; the v0.2 plan's "render with [DEPRECATED] banner for one MINOR cycle" is a future enhancement, deferred until we actually have an artifact to deprecate and a reason to keep rendering it.
+
+Manual purge after one MINOR cycle: `rm -rf canonical/_deprecated/<...>` and append a Removed entry to CHANGELOG. Automation can come later if the volume demands it.
+
+**Consequences:**
+- Frontmatter mutation reuses `python-frontmatter`'s `dumps()` round-trip. Comments above frontmatter are preserved by python-frontmatter; comments inside the YAML block are NOT preserved (this is a python-frontmatter limitation). No canonical file currently has in-frontmatter comments, so this is fine.
+- Deprecation is a write to `canonical/`, so the pre-commit hook's `forge score --staged` runs against the modified file. As long as the deprecated artifact was clean before, setting `status: deprecated` doesn't change its score.
+- `forge stats` can read `audit/<YYYY>/<MM>/forge-audit.jsonl` for deprecation-action entries (`forge deprecate` currently doesn't emit one — could be added).
+
+---
+
+## 9. Out of Scope (initial Phase 0)
+
+The following were explicitly **not** part of Phase 0 and have since been implemented. Status as of v0.6.0:
+
+- ✅ Canonical agent/skill/command/tool content (Phase 1a v0.2.0 + Phase 1b v0.3.0)
+- ✅ Adapter rendering code (Phase 2 v0.3.0)
+- ✅ Per-tool adapter templates (Phase 2 v0.3.0 + Phase 3 v0.4.0)
+- ✅ Multi-tool rollout (Phase 3 v0.4.0 — 7 adapters)
+- ✅ Security gates + audit enforcement (Phase 4 v0.5.0)
+- ✅ Iteration metrics dashboard (Phase 5 v0.6.0 — `forge stats`)
+
+The v0.2 roadmap is complete. Future work is iteration-driven: skill calibration, new adapters as new tools emerge, recurring `/audit-skills` cadence, periodic AI Forge convention checkpoint (next: 2026-08-23 per ADR-001).

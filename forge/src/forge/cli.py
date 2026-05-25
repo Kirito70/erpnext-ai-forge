@@ -22,6 +22,7 @@ from forge.commands import (
     discover as discover_cmd,
     render as render_cmd,
     score as score_cmd,
+    stats as stats_cmd,
     sync as sync_cmd,
     test as test_cmd,
     validate as validate_cmd,
@@ -200,6 +201,26 @@ def score(
 
 
 # ---------------------------------------------------------------------------
+# stats
+# ---------------------------------------------------------------------------
+@app.command()
+def stats(
+    since: Optional[str] = typer.Option(
+        None,
+        "--since",
+        help="ISO timestamp or duration ('1h', '7d') — restrict to entries since.",
+    ),
+    as_json: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit the report as JSON instead of Markdown.",
+    ),
+) -> None:
+    """Audit-log metrics: sync outcomes, score distribution, drift, escalations."""
+    stats_cmd.run(since=since, as_json=as_json)
+
+
+# ---------------------------------------------------------------------------
 # test
 # ---------------------------------------------------------------------------
 @app.command()
@@ -252,13 +273,39 @@ def new(
 
 @app.command()
 def deprecate(
-    kind: str = typer.Argument(...),
-    name: str = typer.Argument(...),
-    superseded_by: Optional[str] = typer.Option(None, "--superseded-by"),
+    kind: str = typer.Argument(..., help="Artifact kind: agent | command | skill | tool | policy"),
+    name: str = typer.Argument(..., help="Artifact id (file basename without .md/.yaml)"),
+    superseded_by: Optional[str] = typer.Option(
+        None,
+        "--superseded-by",
+        help="If supplied, sets `supersedes:` on the replacement artifact.",
+    ),
 ) -> None:
-    """Mark an artifact deprecated; move to canonical/_deprecated/ after one MINOR."""
-    console.print(f"[yellow]not yet implemented[/yellow] — would deprecate {kind}/{name}")
-    raise typer.Exit(code=0)
+    """Mark an artifact deprecated and move it to canonical/_deprecated/.
+
+    Per governance.md §3, deprecated artifacts are retained for one MINOR
+    release cycle before removal. `forge sync` continues to render them
+    with a [DEPRECATED] banner during that window.
+    """
+    from forge.deprecate import deprecate as run_deprecate
+    from forge.loader import find_repo_root as _find
+
+    repo_root = _find()
+    try:
+        result = run_deprecate(repo_root, kind, name, superseded_by=superseded_by)
+    except (FileNotFoundError, ValueError) as exc:
+        console.print(f"[red]✗[/red] {exc}")
+        raise typer.Exit(code=1)
+
+    console.print(f"[green]✓[/green] deprecated {result.artifact_kind}/{result.artifact_id}")
+    console.print(f"  moved: {result.source_path.relative_to(repo_root)}")
+    console.print(f"     →   {result.new_path.relative_to(repo_root)}")
+    if result.superseded_by_path:
+        console.print(
+            f"  supersedes: set on {result.superseded_by_path.relative_to(repo_root)}"
+        )
+    console.print(f"\n[cyan]Suggested CHANGELOG line:[/cyan]")
+    console.print(f"  {result.changelog_line}")
 
 
 @app.command()
