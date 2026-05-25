@@ -1,8 +1,8 @@
 # erpnext-ai-forge — Project Status
 
 **Last Updated:** 2026-05-25
-**Version:** 0.5.0
-**Active Phase:** Phase 4 complete (sync gate + audit hardening + CI) → Phase 5 (iteration metrics) next
+**Version:** 0.6.0
+**Active Phase:** **All 5 phases complete.** Future work: calibration cadence + new adapters as tools emerge.
 
 ---
 
