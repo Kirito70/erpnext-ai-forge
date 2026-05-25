@@ -158,11 +158,14 @@ app.add_typer(audit_app, name="audit")
 @audit_app.command("tail")
 def audit_tail(
     n: int = typer.Option(50, "-n", "--lines", help="Number of recent entries."),
-    agent: Optional[str] = typer.Option(None, "--filter-agent", help="Filter by agent name."),
-    since: Optional[str] = typer.Option(None, "--since", help="ISO timestamp or duration (e.g. 1h)."),
+    agent: Optional[str] = typer.Option(None, "--filter-agent", help="Substring match on tool_or_agent + action."),
+    since: Optional[str] = typer.Option(None, "--since", help="ISO timestamp; entries older are skipped."),
+    action: Optional[str] = typer.Option(None, "--action", help="Prefix match on action (e.g. 'sync.', 'discovery.')."),
+    grep: Optional[str] = typer.Option(None, "--grep", help="Regex search across raw JSONL lines."),
+    as_json: bool = typer.Option(False, "--json", help="Emit raw JSONL on stdout for piping."),
 ) -> None:
-    """Tail the audit JSONL log."""
-    audit_cmd.tail(n=n, agent=agent, since=since)
+    """Tail the audit JSONL log with optional filters."""
+    audit_cmd.tail(n=n, agent=agent, since=since, action=action, grep=grep, as_json=as_json)
 
 
 @audit_app.command("backup")

@@ -1,5 +1,8 @@
-# erpnext-ai-forge — CI pipeline (placeholder; Phase 4 fills in real jobs)
-# Triggers: push to main, all PRs
+# erpnext-ai-forge — CI pipeline
+# Triggers: push to main, all PRs.
+#
+# Jobs run in parallel where independent. Security scans (gitleaks) gate the
+# pipeline so a leaked secret blocks the entire run, not just a single test.
 
 name: forge-ci
 
@@ -9,9 +12,54 @@ on:
   pull_request:
 
 jobs:
-  validate:
-    name: forge validate + score + tests
+  # ---------------------------------------------------------------------------
+  # 1. Secrets scan — runs first; pipeline aborts if anything matches
+  # ---------------------------------------------------------------------------
+  gitleaks:
+    name: gitleaks (secrets scan)
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # full history for diff scanning
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # 2. Lint — Markdown + YAML formatting and structure
+  # ---------------------------------------------------------------------------
+  lint:
+    name: markdownlint + yamllint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install lint tools
+        run: |
+          npm install -g markdownlint-cli@0.43.0
+          pip install yamllint==1.35.1
+
+      - name: markdownlint
+        run: markdownlint --config .markdownlint.yaml '**/*.md' --ignore node_modules --ignore '**/.venv/**' --ignore canonical/_deprecated
+
+      - name: yamllint
+        run: yamllint -c .yamllint.yaml .
+
+  # ---------------------------------------------------------------------------
+  # 3. forge validate + score + tests
+  # ---------------------------------------------------------------------------
+  forge:
+    name: forge validate + score + test
+    runs-on: ubuntu-latest
+    needs: [gitleaks]      # don't waste a runner if secrets leaked
     steps:
       - uses: actions/checkout@v4
 
@@ -21,21 +69,31 @@ jobs:
           python-version: '3.11'
           cache: pip
 
-      - name: Install forge CLI
+      - name: Install forge CLI + dev deps
         run: |
-          pip install -e forge/
+          pip install -e 'forge/[dev]'
 
-      - name: forge validate
+      - name: forge validate (schema + caller refs)
         run: forge validate
 
       - name: forge score (canonical/)
         run: forge score --path canonical/ --fail-below 80
 
-      - name: forge test (pytest + golden fixtures)
-        run: forge test
+      - name: forge test (pytest)
+        run: forge test --verbose
 
-      # Phase 4 will add:
-      # - gitleaks scan
-      # - markdownlint
-      # - yamllint
-      # - upload audit log artifact for forensics
+      - name: forge sync --all --dry-run (renders every adapter)
+        env:
+          FORGE_BENCH_PATH: ${{ github.workspace }}/.ci-fake-bench
+          FORGE_PRIMARY_SITE: ci-site
+        run: |
+          mkdir -p "$FORGE_BENCH_PATH/apps"
+          forge sync --all --dry-run
+
+      - name: Upload audit log on failure (forensics)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-audit-${{ github.run_id }}
+          path: audit/
+          retention-days: 14

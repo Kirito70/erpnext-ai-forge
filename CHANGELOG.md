@@ -13,6 +13,44 @@ Section order per release: **Added / Changed / Deprecated / Removed / Fixed / Se
 
 ---
 
+## [0.5.0] — 2026-05-25
+
+### Added — Phase 4 (security gates + audit hardening + CI)
+
+- **Pre-sync security gate** in `forge/src/forge/sync.py`. Every `forge sync` now scores the canonical sources contributing to the render before any bench file is touched:
+  - Score `< 80` (`block_floor`) → sync aborts; rejection logged to audit JSONL as `sync.blocked_by_security_gate` with `findings` + `per_file_scores`.
+  - Score `80–94` without `--justify` → sync aborts with a `sync.warned_without_justify` audit entry; developer must re-run with `--justify "<one-line reason>"`.
+  - Score `80–94` with `--justify` → sync proceeds; `sync.justified_accept` audit entry records the reason text and per-file scores.
+  - Gate scores canonical sources (not staged rendered output) — templates never introduce new anti-patterns; scoring sources eliminates false positives from skill content that legitimately discusses deduction patterns by name.
+- **Audit viewer hardening** (`forge audit tail`):
+  - `--action <prefix>` filter (e.g. `--action sync.` to see all sync entries)
+  - `--grep <regex>` filter across raw JSONL
+  - `--json` flag emits raw JSONL on stdout for piping into `jq`
+- **`docs/incident-response.md`** — 7 numbered recovery procedures: security-gate block, drift, suspected secret leak, multi-tool sync abort, settings.json clobber, audit corruption, CI-only failure. Each with a verification step.
+- **Real CI workflow** at `.github/workflows/ci.yml` — three jobs:
+  1. `gitleaks` (secrets scan, gates the rest)
+  2. `lint` (markdownlint + yamllint in parallel)
+  3. `forge` — installs forge, runs `validate` + `score --fail-below 80` + `test` + `sync --all --dry-run`; uploads `audit/` as artifact on failure for forensics
+- **4 new exit-criterion tests** in `forge/tests/test_security_gate.py`:
+  - Poisoned `.py` file outside `canonical/` scores below `block_floor`
+  - Synthetic blocked render (multiple findings, gate blocks)
+  - Audit JSONL records `sync.blocked_by_security_gate` entry with findings detail
+  - 80–94 warning band requires `--justify`; with justification, warning is downgraded
+
+122 tests total, 100% passing.
+
+### Changed
+- `forge/src/forge/sync.py` imports `Finding` and `score_file` from `forge.scoring`
+- `forge audit tail` API signature gained `action`, `grep`, `as_json` parameters (backwards-compatible — existing callers continue working)
+- `VERSION` 0.4.0 → 0.5.0 (MINOR — new sync gate semantics)
+- `PROJECT-STATUS.md` reflects Phase 4 completion; only Phase 5 (iteration metrics) remains
+
+### Security
+- The Phase 4 exit criterion from v0.2 §10 is satisfied: an intentionally poisoned canonical source carrying a CRITICAL deduction is now blocked at sync time before any bench file is touched, and the rejection is recorded in the audit JSONL with finding-level detail.
+- All 80–94 score artifacts now require typed justification per [Decision 11](../../erp/novizna-v16/novizna-v16/ULTRAPLAN-AI-FRAMEWORK-v0.2.md#section-11--decision-log). Justifications are logged to audit JSONL alongside the per-file scores so a future review can reconstruct why a not-fully-clean artifact shipped.
+
+---
+
 ## [0.4.0] — 2026-05-24
 
 ### Added — Phase 3 (per-tool adapter rollout)

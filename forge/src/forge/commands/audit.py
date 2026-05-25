@@ -13,9 +13,18 @@ from forge.loader import find_repo_root
 console = Console()
 
 
-def tail(n: int, agent: Optional[str], since: Optional[str]) -> None:
+def tail(
+    n: int,
+    agent: Optional[str],
+    since: Optional[str],
+    action: Optional[str] = None,
+    grep: Optional[str] = None,
+    as_json: bool = False,
+) -> None:
     repo_root = find_repo_root()
-    audit_tail(repo_root, n=n, agent=agent, since=since)
+    audit_tail(
+        repo_root, n=n, agent=agent, since=since, action=action, grep=grep, as_json=as_json,
+    )
 
 
 def backup() -> None:

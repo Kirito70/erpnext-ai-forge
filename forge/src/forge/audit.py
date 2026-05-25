@@ -68,18 +68,34 @@ def tail(
     n: int = 50,
     agent: str | None = None,
     since: str | None = None,
+    action: str | None = None,
+    grep: str | None = None,
+    as_json: bool = False,
 ) -> int:
     """Stream the last N audit entries to the console with optional filters.
 
-    Returns process exit code."""
+    Filters:
+      - `agent`: substring match against tool_or_agent + action
+      - `action`: exact-prefix match against the action field (e.g. "sync.")
+      - `since`: ISO timestamp; entries older than this are skipped
+      - `grep`: substring match across the JSON line as a whole
+      - `as_json`: print raw JSONL (one entry per line) for piping
+    """
+    import re as _re
+
+    grep_re = _re.compile(grep) if grep else None
     entries: list[dict[str, Any]] = []
     for f in _iter_audit_files(repo_root):
         for line in reversed(f.read_text().splitlines()):
+            if grep_re and not grep_re.search(line):
+                continue
             try:
                 e = json.loads(line)
             except json.JSONDecodeError:
                 continue
             if agent and agent not in str(e.get("tool_or_agent", "") + e.get("action", "")):
+                continue
+            if action and not str(e.get("action", "")).startswith(action):
                 continue
             if since and e.get("ts", "") < since:
                 continue
@@ -90,7 +106,15 @@ def tail(
             break
 
     if not entries:
+        if as_json:
+            return 0  # silent — nothing to pipe
         console.print("[yellow]No audit entries found.[/yellow]")
+        return 0
+
+    if as_json:
+        # Emit chronological JSONL on stdout for piping into jq, etc.
+        for e in reversed(entries):
+            print(json.dumps(e, sort_keys=True))
         return 0
 
     table = Table(title=f"Audit log — last {len(entries)} entries", show_lines=False)
@@ -98,13 +122,16 @@ def tail(
     table.add_column("Action", style="green")
     table.add_column("Tool/Agent", style="magenta")
     table.add_column("Detail")
-    for e in reversed(entries):  # chronological order
+    for e in reversed(entries):
         ts = e.get("ts", "")[:19]
-        action = e.get("action", "")
+        action_val = e.get("action", "")
         ta = e.get("tool_or_agent", e.get("tool", ""))
-        detail_keys = [k for k in e if k not in {"ts", "action", "tool_or_agent", "tool", "session_id", "host", "user"}]
+        detail_keys = [
+            k for k in e
+            if k not in {"ts", "action", "tool_or_agent", "tool", "session_id", "host", "user"}
+        ]
         detail = ", ".join(f"{k}={str(e[k])[:40]}" for k in detail_keys[:3])
-        table.add_row(ts, action, str(ta), detail)
+        table.add_row(ts, action_val, str(ta), detail)
     console.print(table)
     return 0
 

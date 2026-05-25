@@ -26,6 +26,7 @@ from forge.manifest import (
     write_manifest,
 )
 from forge.render import RenderedArtifact, render
+from forge.scoring import Finding, score_file
 from forge.settings_merge import (
     ScalarConflict,
     merge_settings_json,
@@ -90,11 +91,86 @@ def _bench_root_from(r: RenderedArtifact) -> Path:
 
 def _validate_staging(tool_staging: Path) -> tuple[bool, str | None]:
     """Lightweight validation: every staged file is non-empty and parseable
-    as text. Phase 4 will add schema validation here."""
+    as text. Security scoring is a separate gate (see _security_gate)."""
     for path in tool_staging.rglob("*"):
         if path.is_file() and path.stat().st_size == 0:
             return False, f"empty staged file: {path}"
     return True, None
+
+
+@dataclass
+class GateOutcome:
+    blocked: bool                  # True if any file scored below block_floor
+    warned: bool                   # True if any file scored in 80-94 band
+    findings: list[Finding]        # flattened list across all staged files
+    per_file_scores: dict[str, int]
+    block_floor: int
+    warn_floor: int
+
+    @property
+    def message(self) -> str:
+        if self.blocked:
+            return f"Blocked: {len(self.findings)} finding(s); lowest score below {self.block_floor}"
+        if self.warned:
+            return f"Warning: {len(self.findings)} finding(s) in {self.warn_floor}-{self.block_floor - 1} band"
+        return "All staged files pass security gate"
+
+
+def _security_gate(
+    repo_root: Path,
+    rendered: list[RenderedArtifact],
+    forge_cfg: dict,
+    justify: str | None,
+) -> GateOutcome:
+    """Score every CANONICAL source contributing to this render. Block if
+    anything < block_floor; warn if anything in [warn_floor, block_floor)
+    without a justification.
+
+    We score canonical sources (not staged rendered output) because rendering
+    is template substitution — it never introduces new anti-patterns. Scoring
+    staging would produce false positives from skill content that legitimately
+    discusses the deduction patterns by name (e.g. "curl | sh" inside
+    security/review-checklist.md).
+    """
+    security_cfg = forge_cfg.get("security", {})
+    block_floor = int(security_cfg.get("block_threshold", 80))
+    warn_floor = int(security_cfg.get("warn_threshold", 80))
+    auto_accept = int(security_cfg.get("auto_accept_threshold", 95))
+
+    findings: list[Finding] = []
+    per_file_scores: dict[str, int] = {}
+    blocked = False
+    warned = False
+
+    # Score each unique canonical source path that contributed to a rendered
+    # artifact. Some rendered files have no canonical source (e.g. aggregate
+    # outputs whose source_path is the canonical/ dir itself); skip those.
+    sources_scored: set[Path] = set()
+    for r in rendered:
+        src = r.source_path
+        if not src.is_file() or src in sources_scored:
+            continue
+        sources_scored.add(src)
+        result = score_file(src, repo_root)
+        rel = str(src.relative_to(repo_root)) if src.is_relative_to(repo_root) else str(src)
+        per_file_scores[rel] = result.final
+        findings.extend(result.findings)
+        if result.final < block_floor:
+            blocked = True
+        elif result.final < auto_accept:
+            warned = True
+
+    if warned and justify:
+        warned = False
+
+    return GateOutcome(
+        blocked=blocked,
+        warned=warned,
+        findings=findings,
+        per_file_scores=per_file_scores,
+        block_floor=block_floor,
+        warn_floor=warn_floor,
+    )
 
 
 def _swap_into_bench(tool_staging: Path, bench_root: Path) -> list[Path]:
@@ -144,6 +220,72 @@ def sync_tool(
             result.success = False
             result.error = err
             return result
+
+        # Security gate (Phase 4a): score every canonical source contributing
+        # to this render. Blocks on score < block_floor (default 80). Warns on
+        # 80-94 unless --justify was provided; warnings logged to audit either way.
+        gate = _security_gate(repo_root, rendered, forge_cfg, justify)
+        if gate.blocked:
+            result.success = False
+            result.error = gate.message
+            audit_log(
+                repo_root,
+                {
+                    "action": "sync.blocked_by_security_gate",
+                    "tool": tool,
+                    "block_floor": gate.block_floor,
+                    "findings_count": len(gate.findings),
+                    "findings": [
+                        {
+                            "id": f.deduction_id,
+                            "severity": f.severity,
+                            "location": f.location,
+                            "deduction": f.deduction,
+                        }
+                        for f in gate.findings[:50]  # cap detail to keep entries reasonable
+                    ],
+                    "per_file_scores": gate.per_file_scores,
+                    "justify": justify,
+                },
+            )
+            console.print(f"[red]✗[/red] {tool}: {gate.message}")
+            for f in gate.findings[:10]:
+                console.print(f"  [{f.severity}] {f.deduction_id} at {f.location}")
+            return result
+
+        if gate.warned:
+            # 80-94 band without justification — fail closed (Decision 11).
+            result.success = False
+            result.error = (
+                f"{gate.message}. Pass --justify '<reason>' to proceed; "
+                "the reason will be logged to audit JSONL."
+            )
+            audit_log(
+                repo_root,
+                {
+                    "action": "sync.warned_without_justify",
+                    "tool": tool,
+                    "warn_floor": gate.warn_floor,
+                    "findings_count": len(gate.findings),
+                    "per_file_scores": gate.per_file_scores,
+                },
+            )
+            console.print(f"[yellow]![/yellow] {tool}: {gate.message}")
+            console.print(f"  Re-run with --justify '<one-line reason>' to proceed.")
+            return result
+
+        if justify:
+            # Successful sync with a justification — record it so future audits
+            # can see why a not-fully-clean artifact shipped.
+            audit_log(
+                repo_root,
+                {
+                    "action": "sync.justified_accept",
+                    "tool": tool,
+                    "justify": justify,
+                    "per_file_scores": gate.per_file_scores,
+                },
+            )
 
         if dry_run:
             audit_log(
