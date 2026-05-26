@@ -13,6 +13,39 @@ Section order per release: **Added / Changed / Deprecated / Removed / Fixed / Se
 
 ---
 
+## [0.6.3] — 2026-05-27
+
+### Changed — architect plan-before-act workflow
+
+`canonical/agents/architect.md` bumped v1.0.0 → v1.1.0. The architect now thinks before acting on non-trivial tasks: it consults specialists in **advisory mode** to inform a structured **PLAN** *before* dispatching them for implementation. Trivial tasks bypass planning to keep simple skill edits fast.
+
+**New workflow steps inserted between Classify Complexity (§2) and Delegate (§3):**
+
+- **§2.5 Planning Consultation** — advisory-mode specialist calls (≤ 150 words per response, no implementation code). Specialists return risks, dependencies, skill clusters they'd load, and a one-line approach. Slim prompt — does NOT load the specialist's full body.
+- **§2.6 Draft the PLAN** — architect synthesizes advisory responses into a structured document: Problem Statement → Approach → Risks (per specialist) → Dependencies / execution order → Acceptance Criteria → Revision-loop budget → Phase Gates (Complex / Cross-cutting only).
+
+**Gating rule** (added to the Complexity table):
+- **Trivial** → skip §2.5 + §2.6, delegate from TASK BRIEF alone
+- **Standard / Complex** → planning consultation required
+- **Cross-cutting** → planning consultation mandatory + phase gates
+
+**Delegation handoff** (§3) now references the PLAN as the authoritative document for non-trivial tasks; TASK BRIEF alone still suffices for trivial ones.
+
+**New example** added showing Trivial complexity bypassing the planning steps, alongside the existing Standard-complexity example which now walks through the full plan flow.
+
+### Rationale
+
+Front-loading specialist input cuts downstream revision loops — the most expensive part of the workflow. The cost is one extra short consultation round per non-trivial task; the savings are CRITICAL/HIGH findings caught at plan time rather than after implementation. The advisory-mode prompt is deliberately slim (≤ 150 words, no code) so the cost stays bounded — full specialist bodies and skill loading happen only at the actual delegation step.
+
+### Tests / scoring
+- 146 tests still passing.
+- `architect.md` scores 100/100 after the update.
+
+### Version
+- VERSION 0.6.2 → 0.6.3 (PATCH — agent content refinement, no schema or contract change).
+
+---
+
 ## [0.6.2] — 2026-05-26
 
 ### Changed — OpenCode adapter feature parity with Claude Code
