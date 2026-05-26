@@ -19,7 +19,7 @@ capabilities:
   slash_commands: true          # native — .opencode/commands/<id>.md
   skills: true                  # native — .opencode/skills/<domain>/<id>.md
   custom_tools: true            # via opencode.json tool list + reference docs
-  per_app_files: false          # bench-root AGENTS.md remains single host
+  per_app_files: true          # bench-root AGENTS.md remains single host
 
 output_paths:
   bench_root: "{{ env.FORGE_BENCH_PATH }}"
