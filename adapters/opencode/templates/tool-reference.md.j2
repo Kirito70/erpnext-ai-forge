@@ -1,0 +1,32 @@
+{#-
+  Renders a canonical tool spec into a human-readable reference doc at
+  .opencode/tools/<id>.md. Mirrors Claude Code's tool-reference template.
+  Actual tool wiring (allow-lists, MCP, etc.) lives in opencode.json, which
+  is managed separately from forge sync.
+-#}
+<!-- AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT -->
+# Tool: {{ artifact.id }}
+
+**Wraps:** `{{ artifact.wraps }}`
+**Purpose:** {{ artifact.purpose }}
+**Requires confirmation:** {{ "yes — type the site name (" + bench.primary_site + ")" if artifact.requires_confirmation else "no" }}
+**Audit severity:** {{ artifact.audit_severity }}
+
+## Inputs
+{% for name, spec in artifact.inputs.items() -%}
+- `{{ name }}` ({{ spec.get('type', 'any') }}{% if spec.get('required') %}, required{% endif %}){% if spec.get('description') %} — {{ spec.get('description') }}{% endif %}
+{% endfor %}
+
+## Safety Checks
+{% for check in artifact.safety_checks -%}
+- **{{ check.get('id', '?') }}** ({{ check.get('action', '?') }}): {{ check.get('description', '') }}
+{% endfor %}
+
+## Allowed Callers
+{% for caller in artifact.allowed_callers -%}
+- `{{ caller }}`
+{% endfor %}
+
+---
+<sub>Synced from `canonical/tools/{{ artifact.id }}.yaml` v{{ artifact.version }}
+({{ artifact.source_commit | truncate(7, true, "") }}) at {{ forge.rendered_at }}.</sub>

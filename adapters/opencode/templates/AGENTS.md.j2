@@ -1,11 +1,23 @@
 <!-- AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT (re-run `forge sync --tool opencode`) -->
 # AGENTS — Novizna v16 ERPNext/Frappe Bench
 
-OpenCode reads this file to bootstrap its understanding of the project. The architect orchestrates; switch to a specialist persona when the task type matches.
+OpenCode reads this file to bootstrap. The framework's agents, commands, skills, and tools are loaded individually from `.opencode/` — this file is the **index**.
 
 ---
 
-## Bench Constraints
+## Where everything lives
+
+| Kind | Location | Count |
+|------|----------|------:|
+| Agents | `.opencode/agents/<id>.md` | {{ agents | length }} |
+| Slash commands | `.opencode/commands/<id>.md` | {{ commands | length }} |
+| Skills | `.opencode/skills/<domain>/<id>.md` | {{ skills | length }} |
+| Tool references | `.opencode/tools/<id>.md` | {{ tools | length }} |
+| Manifest (provenance) | `.opencode/.forge-manifest.json` | — |
+
+---
+
+## Bench Constraints (apply everywhere)
 
 - **Never edit** `apps/{frappe,erpnext,crm,hrms,lending,lms,education,helpdesk,gameplan,drive,press}/` — upstream, read-only.
 - Custom work lives in `apps/{novizna_crm,novizna_core,novizna_pos,invoice_ninja_integration,noviznaerp_payroll,cargo_management,changemakers,erpnext_location}/`.
@@ -17,52 +29,32 @@ OpenCode reads this file to bootstrap its understanding of the project. The arch
 
 ---
 
-## Architect Workflow
+## Architect Workflow (always run first)
 
-1. Pre-flight stale-reference check (request must reference DocTypes / apps / paths present in `discovery/data/*.json`).
-2. Draft a TASK BRIEF: goal, constraints, acceptance criteria, specialists, tools.
-3. Switch persona to relevant specialist.
-4. Run peer review (Backend → Security + QA; Frontend → QA; Integrations → Security + QA). **Two-loop max** then escalate.
-5. Acceptance: 0 CRITICAL, 0 HIGH (or justified), final score ≥ 95.
-6. Closing documentation: per-app `CLAUDE.md`, `CHANGELOG.md`, ADRs if needed.
+The `architect` agent at `.opencode/agents/architect.md` orchestrates every task:
+
+1. Pre-flight stale-reference check against `discovery/data/*.json`
+2. Draft TASK BRIEF: goal, constraints, acceptance criteria, specialists, tools
+3. Switch persona to relevant specialist (load from `.opencode/agents/<specialist>.md`)
+4. Run peer review (Backend → Security + QA; Frontend → QA; Integrations → Security + QA). **Two-loop max** then escalate
+5. Acceptance: 0 CRITICAL, 0 HIGH (or justified), final score ≥ 95
+6. Closing documentation: per-app `CLAUDE.md` (or app-specific notes), `CHANGELOG.md`, ADRs
 
 ---
 
-## Specialist Personas
+## Agents (load on demand)
 
-| Persona | When to switch |
-|---------|----------------|
+| Persona | When to switch | File |
+|---------|----------------|------|
 {% for agent in agents if agent.id != 'architect' -%}
-| `{{ agent.id }}` | {{ agent.trigger | truncate(140) }} |
-{% endfor %}
-
-Full role + tools + review pairings live at `canonical/agents/<id>.md`. Ask the user to expand if detail is needed.
-
----
-
-## Skills — Table of Contents
-
-Skill bodies are NOT inlined here. Ask the user to expand a specific skill when relevant.
-
-### Foundational
-| Skill | Domain |
-|-------|--------|
-{% for skill in skills if skill.foundational -%}
-| `{{ skill.id }}` | {{ skill.domain }} |
-{% endfor %}
-
-### On-Demand
-| Skill | Domain |
-|-------|--------|
-{% for skill in skills if not skill.foundational -%}
-| `{{ skill.id }}` | {{ skill.domain }} |
+| `{{ agent.id }}` | {{ agent.trigger | truncate(120) }} | `.opencode/agents/{{ agent.id }}.md` |
 {% endfor %}
 
 ---
 
 ## Slash Commands
 
-OpenCode reads slash commands from `.opencode/commands/`:
+Available as `/<id>` in the OpenCode prompt. Full definition at `.opencode/commands/<id>.md`.
 
 {% for c in commands -%}
 - `/{{ c.id }}` — {{ c.description | truncate(120) }}
@@ -70,21 +62,47 @@ OpenCode reads slash commands from `.opencode/commands/`:
 
 ---
 
+## Skills
+
+Skills are loaded on-demand by OpenCode's skill-discovery mechanism. Full bodies under `.opencode/skills/<domain>/<id>.md`.
+
+### Foundational (auto-load for in-scope agents)
+| Skill | Domain | File |
+|-------|--------|------|
+{% for skill in skills if skill.foundational -%}
+| `{{ skill.id }}` | {{ skill.domain }} | `.opencode/skills/{{ skill.domain }}/{{ skill.id }}.md` |
+{% endfor %}
+
+### On-Demand
+| Skill | Domain | File |
+|-------|--------|------|
+{% for skill in skills if not skill.foundational -%}
+| `{{ skill.id }}` | {{ skill.domain }} | `.opencode/skills/{{ skill.domain }}/{{ skill.id }}.md` |
+{% endfor %}
+
+---
+
 ## Tools (canonical contract)
+
+Tool reference docs at `.opencode/tools/<id>.md`. Actual wiring lives in `opencode.json` separately.
 
 | Tool | Purpose | Confirm |
 |------|---------|:-------:|
 {% for t in tools -%}
-| `{{ t.id }}` | {{ t.purpose | truncate(100) }} | {{ '✓' if t.requires_confirmation else '' }} |
+| `{{ t.id }}` | {{ t.purpose | truncate(80) }} | {{ '✓' if t.requires_confirmation else '' }} |
 {% endfor %}
 
 ---
 
 ## Discovery References
 
-- `discovery/INVENTORY.md`
-- `discovery/data/{apps,hooks,doctype,api-surface,override-map,integrations-map,anti-pattern-findings,site-config-keys}.json`
+- `discovery/INVENTORY.md` — human-authored bench summary
+- `discovery/data/*.json` — per-app machine-readable facts:
+  - `apps-index.json`, `hooks-index.json`, `doctype-index.json`, `api-surface.json`
+  - `override-map.json`, `integrations-map.json`
+  - `anti-pattern-findings.json` (AP-001 through AP-006)
+  - `site-config-keys.json` (key names only — never values)
 
 ---
 
-<sub>Synced from `canonical/` in erpnext-ai-forge v{{ forge.version }} ({{ forge.source_commit | truncate(7, true, "") }}) at {{ forge.rendered_at }}.</sub>
+<sub>Synced from `canonical/` in erpnext-ai-forge v{{ forge.version }} ({{ forge.source_commit | truncate(7, true, "") }}) at {{ forge.rendered_at }}. Re-run `forge sync --tool opencode` to refresh.</sub>

@@ -1,0 +1,22 @@
+{#-
+  Renders a canonical agent into OpenCode's per-agent format at
+  .opencode/agents/<id>.md. Mirrors Claude Code's agent template since
+  OpenCode supports the same subagent dispatch model.
+-#}
+<!-- AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT -->
+---
+name: {{ artifact.id }}
+description: {{ artifact.trigger | tojson }}
+{% if artifact.tools -%}
+tools: {{ artifact.tools | join(", ") }}
+{%- endif %}
+{% if artifact.model -%}
+model: {{ artifact.model }}
+{%- endif %}
+---
+
+{{ artifact.body }}
+
+---
+<sub>Synced from `canonical/agents/{{ artifact.id }}.md` v{{ artifact.version }}
+({{ artifact.source_commit | truncate(7, true, "") }}) at {{ forge.rendered_at }}.</sub>

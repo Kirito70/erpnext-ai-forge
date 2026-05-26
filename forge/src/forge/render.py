@@ -281,9 +281,15 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
     tools_cfg = adapter_cfg.get("artifacts", {}).get("tools")
     if tools_cfg and tools_cfg.get("template_doc"):
         tmpl = env.get_template(tools_cfg["template_doc"])
-        tools_doc_dir = (
-            resolve_path(output_paths_cfg.get("bench_claude_root", "")) / "tools"
-        )
+        # Prefer the adapter-declared `tools_dir`; fall back to the Claude Code
+        # legacy default (`bench_claude_root/tools`) for backwards compatibility.
+        tools_dir_template = output_paths_cfg.get("tools_dir")
+        if tools_dir_template:
+            tools_doc_dir = resolve_path(tools_dir_template)
+        else:
+            tools_doc_dir = (
+                resolve_path(output_paths_cfg.get("bench_claude_root", "")) / "tools"
+            )
         for tool_spec in load_tools(repo_root):
             content = tmpl.render(
                 artifact=_tool_to_template_dict(tool_spec),

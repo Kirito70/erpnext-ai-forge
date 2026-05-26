@@ -1,47 +1,92 @@
 # OpenCode adapter
 # Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §3 + §4.0
-# OpenCode supports AGENTS.md aggregation + per-slash-command files.
+#
+# OpenCode is the second subagent-capable target alongside Claude Code. It
+# supports agents, slash commands, skills, and tools as first-class artifacts
+# read from `.opencode/<kind>/`. This adapter renders the canonical layer
+# into that native shape — one file per artifact, just like Claude Code — so
+# the AI has the same fine-grained context, not a single monolithic AGENTS.md.
+#
+# AGENTS.md at the bench root remains as a brief index/bootstrap pointing
+# at the .opencode/ tree.
 
 tool: opencode
-adapter_version: 0.1.0
+adapter_version: 0.2.0
 
 capabilities:
-  agents: true                  # AGENTS.md is the host file
-  subagents: false              # no Task tool equivalent — personas via switch
-  slash_commands: true          # /cmd via .opencode/commands/
-  skills: false                 # rendered as TOC in AGENTS.md
-  custom_tools: true            # via opencode.json tool list (out of scope for sync)
-  per_app_files: false          # OpenCode reads one AGENTS.md at the bench root
+  agents: true                  # native — .opencode/agents/<id>.md
+  subagents: true               # OpenCode supports agent-as-persona switching
+  slash_commands: true          # native — .opencode/commands/<id>.md
+  skills: true                  # native — .opencode/skills/<domain>/<id>.md
+  custom_tools: true            # via opencode.json tool list + reference docs
+  per_app_files: false          # bench-root AGENTS.md remains single host
 
 output_paths:
   bench_root: "{{ env.FORGE_BENCH_PATH }}"
   agents_md: "{{ output_paths.bench_root }}/AGENTS.md"
   opencode_root: "{{ output_paths.bench_root }}/.opencode"
+  agents_dir: "{{ output_paths.opencode_root }}/agents"
   commands_dir: "{{ output_paths.opencode_root }}/commands"
+  skills_dir: "{{ output_paths.opencode_root }}/skills"
+  tools_dir: "{{ output_paths.opencode_root }}/tools"
 
 limits:
-  max_total_chars: 20000        # OpenCode/Codex per v0.2 §4.0
+  max_total_chars: null         # no monolithic cap; per-file render keeps each file small
 
 artifacts:
-  # Single AGENTS.md at bench root with architect + specialist personas + skill TOC.
-  forge_agents:
+  # Bench-root AGENTS.md — now a slim INDEX pointing at the .opencode/ tree
+  # rather than the v0.1.0 aggregate that inlined everything. OpenCode reads
+  # AGENTS.md first; the index tells it where to find detail.
+  forge_agents_index:
     strategy: aggregate
     template: AGENTS.md.j2
     output: "{{ output_paths.agents_md }}"
 
-  # One slash-command file per canonical command — OpenCode reads these natively.
-  # Key name `commands` matches the render.py iterator that handles one-file-per-command.
+  # One file per agent → .opencode/agents/<id>.md
+  agents:
+    strategy: one_file_per_agent
+    template: agent.md.j2
+    output: "{{ output_paths.agents_dir }}/{{ artifact.id }}.md"
+
+  # One file per command → .opencode/commands/<id>.md
   commands:
     strategy: one_file_per_command
     template: command.md.j2
     output: "{{ output_paths.commands_dir }}/{{ artifact.id }}.md"
 
+  # One file per skill → .opencode/skills/<domain>/<id>.md
+  skills:
+    strategy: one_file_per_skill_in_domain_dir
+    template: skill.md.j2
+    output: "{{ output_paths.skills_dir }}/{{ artifact.domain }}/{{ artifact.id }}.md"
+
+  # Tool reference docs → .opencode/tools/<id>.md
+  # (Actual tool wiring lives in opencode.json — generated separately.)
+  tools:
+    strategy: settings_permissions_plus_doc
+    template_doc: tool-reference.md.j2
+    template_settings: null        # OpenCode has no settings.json equivalent yet
+
 context_loading:
-  specialists_inlined: true
-  foundational_skills_inlined: false   # too large for OpenCode's char budget
-  on_demand_skills_strategy: toc_with_expand_instruction
+  specialists_inlined: false      # spawned via OpenCode's agent system (.opencode/agents/)
+  foundational_skills_inlined: false
+  on_demand_skills_strategy: native_skill_discovery
+  budget_enforcement: not_applicable   # no single-file budget
 
 manifest:
   enabled: true
   filename: .forge-manifest.json
   schema_version: 1
+
+expected_outputs:
+  - "{{ output_paths.agents_md }}"
+  - "{{ output_paths.agents_dir }}/architect.md"
+  - "{{ output_paths.agents_dir }}/backend-specialist.md"
+  # ... 8 agents total
+  - "{{ output_paths.commands_dir }}/scaffold-doctype.md"
+  # ... 17 commands total
+  - "{{ output_paths.skills_dir }}/frappe-core/conventions.md"
+  - "{{ output_paths.skills_dir }}/frontend/novizna-crm-override-system.md"
+  # ... 30 skills total across 10 domains
+  - "{{ output_paths.tools_dir }}/bench-migrate.md"
+  # ... 14 tools total

@@ -1,0 +1,26 @@
+{#-
+  Renders a canonical skill into OpenCode's per-skill format at
+  .opencode/skills/<domain>/<id>.md.
+-#}
+<!-- AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT -->
+---
+name: {{ artifact.id }}
+description: {{ artifact.trigger | tojson }}
+{% if artifact.foundational -%}
+foundational: true
+{%- endif %}
+{% if artifact.scope_agents -%}
+scope:
+{% for a in artifact.scope_agents -%}
+  - {{ a }}
+{% endfor -%}
+{%- endif %}
+version: "{{ artifact.version }}"
+domain: {{ artifact.domain }}
+---
+
+{{ artifact.body }}
+
+---
+<sub>Synced from `canonical/skills/{{ artifact.domain }}/{{ artifact.id }}.md` v{{ artifact.version }}
+({{ artifact.source_commit | truncate(7, true, "") }}) at {{ forge.rendered_at }}.</sub>

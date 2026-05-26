@@ -13,6 +13,52 @@ Section order per release: **Added / Changed / Deprecated / Removed / Fixed / Se
 
 ---
 
+## [0.6.2] — 2026-05-26
+
+### Changed — OpenCode adapter feature parity with Claude Code
+
+The OpenCode adapter now renders agents, commands, skills, and tools as **first-class per-artifact files** under `.opencode/`, matching Claude Code's `.claude/` layout. The previous v0.1.0 monolithic `AGENTS.md` aggregate is replaced by a slim index that points at the per-artifact tree.
+
+**New OpenCode output shape** (70 files total — same count as Claude Code):
+
+```
+<bench>/
+  AGENTS.md                          # slim index (was: full aggregate)
+  .opencode/
+    agents/<id>.md                   # 8 files
+    commands/<id>.md                 # 17 files
+    skills/<domain>/<id>.md          # 30 files across 10 domain subdirs
+    tools/<id>.md                    # 14 reference docs
+    .forge-manifest.json
+```
+
+**adapters/opencode/adapter.yaml** updated:
+- Bumped `adapter_version: 0.2.0`
+- `capabilities`: `subagents: true`, `skills: true` (were both false in v0.1.0)
+- New `output_paths`: `agents_dir`, `skills_dir`, `tools_dir`
+- New `artifacts` entries: `agents` (`one_file_per_agent`), `skills` (`one_file_per_skill_in_domain_dir`), `tools` (`settings_permissions_plus_doc`)
+- `limits.max_total_chars: null` — per-file rendering eliminates the single-file budget concern
+- `context_loading.specialists_inlined: false` + `on_demand_skills_strategy: native_skill_discovery` — OpenCode loads agents/skills on demand the same way Claude Code does
+
+**adapters/opencode/templates/** — 3 new + 1 rewritten:
+- `agent.md.j2` (new) — frontmatter + body per agent, mirroring claude-code/agent.md.j2
+- `skill.md.j2` (new) — frontmatter + body per skill
+- `tool-reference.md.j2` (new) — reference doc per tool
+- `AGENTS.md.j2` (rewritten) — was a 7.6 KB monolithic aggregate; now a 10 KB index with tables pointing at every `.opencode/<kind>/<id>.md` file
+
+### Changed — renderer
+- `forge/src/forge/render.py` no longer hardcodes the tools-doc output directory to `bench_claude_root/tools`. Adapters can now declare their own `tools_dir` via `output_paths.tools_dir`. The Claude Code default still applies when an adapter doesn't override.
+
+### Tests
+- `test_opencode_renders_agents_md_plus_17_commands` replaced by `test_opencode_renders_full_artifact_set` (asserts 8 + 17 + 30 + 14 + 1) and `test_opencode_writes_to_dot_opencode_tree` (asserts each artifact kind lands under its `.opencode/<kind>/` directory).
+- `test_adapter_char_budget_documented[opencode-20000]` parametrize entry removed — OpenCode no longer has a single-file budget.
+- 146 tests passing.
+
+### Version
+- VERSION 0.6.1 → 0.6.2 (PATCH — adapter feature parity, no breaking changes; existing canonical content renders unchanged into the new shape).
+
+---
+
 ## [0.6.1] — 2026-05-26
 
 ### Changed — uv cutover (tooling, no public API change)

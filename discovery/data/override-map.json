@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-05-25T21:25:37.604492+00:00",
+  "generated_at": "2026-05-26T06:58:31.789690+00:00",
   "note": "Automated discovery \u2014 novizna_crm 3-layer override system (v0.2 Decision 16). All paths in src_override/ MUST be one-for-one with apps/crm/frontend/src/.",
   "app": "novizna_crm",
   "frontend_root": "apps/novizna_crm/frontend",

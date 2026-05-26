@@ -43,16 +43,41 @@ def test_cursor_renders_main_plus_per_app(repo_root):
 
 
 # ---------------------------------------------------------------------------
-# OpenCode
+# OpenCode — v0.6.2: first-class agents/commands/skills/tools (like Claude Code)
 # ---------------------------------------------------------------------------
-def test_opencode_renders_agents_md_plus_17_commands(repo_root):
+def test_opencode_renders_full_artifact_set(repo_root):
+    """OpenCode now mirrors Claude Code's per-artifact layout: one file per
+    agent, command, skill, and tool under .opencode/<kind>/."""
     rendered = render(repo_root, "opencode")
     summary = render_summary(rendered)
-    assert summary.get("aggregate") == 1
+    # Same counts as Claude Code (8 agents + 17 commands + 30 skills + 14 tools)
+    # plus a single AGENTS.md index aggregate.
+    assert summary.get("agent") == 8
     assert summary.get("command") == 17
-    agents_md = next(r for r in rendered if r.artifact_id == "aggregate/forge_agents")
-    assert len(agents_md.content) < 20_000, "AGENTS.md exceeds 20k budget"
+    assert summary.get("skill") == 30
+    assert summary.get("tool") == 14
+    assert summary.get("aggregate") == 1   # AGENTS.md index only
+    # AGENTS.md is the bench-root index
+    agents_md = next(r for r in rendered if r.artifact_id == "aggregate/forge_agents_index")
     assert agents_md.output_path.name == "AGENTS.md"
+    # Index is small (just pointers, not full bodies)
+    assert len(agents_md.content) < 20_000, "AGENTS.md index exceeds 20k"
+
+
+def test_opencode_writes_to_dot_opencode_tree(repo_root):
+    """Per-artifact outputs land under .opencode/{agents,commands,skills,tools}/."""
+    rendered = render(repo_root, "opencode")
+    paths_by_kind: dict[str, list[str]] = {}
+    for r in rendered:
+        paths_by_kind.setdefault(r.artifact_kind, []).append(str(r.output_path))
+    # Every agent lives under .opencode/agents/
+    assert all("/.opencode/agents/" in p for p in paths_by_kind["agent"])
+    # Every command lives under .opencode/commands/
+    assert all("/.opencode/commands/" in p for p in paths_by_kind["command"])
+    # Every skill lives under .opencode/skills/<domain>/
+    assert all("/.opencode/skills/" in p for p in paths_by_kind["skill"])
+    # Every tool reference lives under .opencode/tools/
+    assert all("/.opencode/tools/" in p for p in paths_by_kind["tool"])
 
 
 # ---------------------------------------------------------------------------
@@ -134,7 +159,9 @@ def test_adapter_yaml_has_required_keys(repo_root, tool):
     "tool,expected_limit",
     [
         ("cursor", 40000),
-        ("opencode", 20000),
+        # opencode no longer has a single-file budget — it renders per-artifact
+        # like Claude Code (see v0.6.2 adapter expansion). Skipped here; the
+        # adapter.yaml carries max_total_chars: null.
         ("cline", 35000),
         ("copilot", 30000),
         ("codex", 20000),
