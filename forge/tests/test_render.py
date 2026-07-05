@@ -36,8 +36,12 @@ def test_rendered_agent_has_frontmatter(repo_root):
     rendered = render(repo_root, "claude-code")
     architect = next(r for r in rendered if r.artifact_id == "architect")
     content = architect.content
+    # Frontmatter MUST be the very first thing in the file — Claude Code only
+    # registers a subagent when line 1 is the opening `---`. A banner comment
+    # above it silently breaks agent loading, so the provenance banner lives
+    # below the frontmatter, not above it.
+    assert content.startswith("---"), "agent frontmatter must start on line 1"
     assert "AUTO-GENERATED FROM erpnext-ai-forge" in content
-    assert "---" in content
     assert "name: architect" in content
     assert "description:" in content
 
@@ -45,6 +49,7 @@ def test_rendered_agent_has_frontmatter(repo_root):
 def test_rendered_command_has_description(repo_root):
     rendered = render(repo_root, "claude-code")
     scaffold = next(r for r in rendered if r.artifact_id == "scaffold-doctype")
+    assert scaffold.content.startswith("---"), "command frontmatter must start on line 1"
     assert "description:" in scaffold.content
     assert "Triggers agents:" in scaffold.content
 
@@ -56,6 +61,7 @@ def test_rendered_skill_carries_domain(repo_root):
         if r.artifact_kind == "skill" and r.artifact_id == "novizna-crm-override-system"
     )
     # Skill should be written under .claude/skills/frontend/
+    assert skill.content.startswith("---"), "skill frontmatter must start on line 1"
     assert "skills/frontend" in str(skill.output_path)
     assert "novizna-crm-override-system" in skill.content
 
