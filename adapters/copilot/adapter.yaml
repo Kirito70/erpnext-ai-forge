@@ -23,6 +23,15 @@ limits:
   max_total_chars: 30000        # Copilot per v0.2 §4.0
 
 artifacts:
+  # Bench-root AGENTS-TICKETING.md — the full vault/ticketing + brain contract,
+  # rendered from the SHARED template so all seven tools ship the same text.
+  # Kept out of the root instruction file on purpose: root files are read every
+  # turn, this one is read only when actually working a ticket.
+  ticketing_doc:
+    strategy: aggregate
+    template: ticketing-and-memory.md.j2
+    output: "{{ output_paths.bench_root }}/AGENTS-TICKETING.md"
+
   # Main instructions file — Copilot Chat reads this for every repo interaction.
   copilot_instructions:
     strategy: aggregate

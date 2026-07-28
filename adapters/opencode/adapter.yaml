@@ -34,6 +34,15 @@ limits:
   max_total_chars: null         # no monolithic cap; per-file render keeps each file small
 
 artifacts:
+  # Bench-root AGENTS-TICKETING.md — the full vault/ticketing + brain contract,
+  # rendered from the SHARED template so all seven tools ship the same text.
+  # Kept out of the root instruction file on purpose: root files are read every
+  # turn, this one is read only when actually working a ticket.
+  ticketing_doc:
+    strategy: aggregate
+    template: ticketing-and-memory.md.j2
+    output: "{{ output_paths.bench_root }}/AGENTS-TICKETING.md"
+
   # Bench-root AGENTS.md — now a slim INDEX pointing at the .opencode/ tree
   # rather than the v0.1.0 aggregate that inlined everything. OpenCode reads
   # AGENTS.md first; the index tells it where to find detail.

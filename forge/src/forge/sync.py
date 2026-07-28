@@ -18,7 +18,7 @@ from pathlib import Path
 from rich.console import Console
 
 from forge.audit import audit_log
-from forge.loader import find_repo_root, load_forge_config
+from forge.loader import find_repo_root, load_adapter_config, load_forge_config
 from forge.manifest import (
     ManifestEntry,
     build_manifest,
@@ -190,6 +190,35 @@ def _swap_into_bench(tool_staging: Path, bench_root: Path) -> list[Path]:
     return written
 
 
+def _warn_oversized_aggregates(
+    repo_root: Path, tool: str, rendered: list[RenderedArtifact]
+) -> None:
+    """Warn when an aggregate output exceeds the adapter's ``max_total_chars``.
+
+    Root instruction files (CLAUDE.md, AGENTS.md, copilot-instructions.md, ...)
+    are read on every turn and compete with the actual task for context, so each
+    adapter declares a budget. The budget used to be documentation only — this
+    surfaces it at sync time.
+
+    Advisory, never blocking: the fix is editorial (move the detail into a
+    linked doc, as ``AGENTS-TICKETING.md`` does, and leave a pointer behind),
+    and that is not a decision to make mid-sync.
+    """
+    limit = (load_adapter_config(repo_root, tool).get("limits") or {}).get("max_total_chars")
+    if not limit:
+        return
+    for art in rendered:
+        if art.artifact_kind != "aggregate":
+            continue
+        size = len(art.content)
+        if size > limit:
+            console.print(
+                f"[yellow]![/yellow] {tool}: {art.output_path.name} is {size:,} chars, "
+                f"over the {limit:,} budget — move detail into a linked doc and "
+                f"leave a pointer."
+            )
+
+
 def sync_tool(
     repo_root: Path,
     tool: str,
@@ -213,6 +242,7 @@ def sync_tool(
 
         staging_root = bench_root / forge_cfg["sync"].get("staging_dir", ".forge-staging")
         rendered = render(repo_root, tool)
+        _warn_oversized_aggregates(repo_root, tool, rendered)
         tool_staging = _stage_artifacts(rendered, staging_root, tool)
 
         ok, err = _validate_staging(tool_staging)

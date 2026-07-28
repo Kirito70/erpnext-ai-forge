@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
+from jinja2 import ChoiceLoader, Environment, FileSystemLoader, StrictUndefined, select_autoescape
 
 from forge import __version__ as forge_version
 from forge.loader import (
@@ -61,10 +61,20 @@ def _resolve(template_str: str, ctx: dict[str, Any]) -> str:
     return env.from_string(template_str).render(**ctx)
 
 
-def _build_jinja_env(adapter_dir: Path) -> Environment:
+def _build_jinja_env(adapter_dir: Path, repo_root: Path) -> Environment:
+    """Jinja env for one adapter, with `adapters/_shared/templates` as a fallback.
+
+    Adapter-local templates win, so an adapter can still override a shared
+    partial by name. The shared dir exists so cross-cutting blocks (the vault
+    ticketing contract, for one) are authored once instead of drifting across
+    seven root templates.
+    """
     templates_dir = adapter_dir / "templates"
+    shared_dir = repo_root / "adapters" / "_shared" / "templates"
     return Environment(
-        loader=FileSystemLoader(str(templates_dir)),
+        loader=ChoiceLoader(
+            [FileSystemLoader(str(templates_dir)), FileSystemLoader(str(shared_dir))]
+        ),
         autoescape=select_autoescape(disabled_extensions=("md", "yaml", "yml", "j2", "json")),
         keep_trailing_newline=True,
         undefined=StrictUndefined,  # fail loudly on missing template variables
@@ -155,7 +165,7 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
     forge_ctx = _build_forge_context(repo_root, forge_cfg)
     discovery = load_discovery(repo_root)
     adapter_dir = repo_root / "adapters" / tool
-    env = _build_jinja_env(adapter_dir)
+    env = _build_jinja_env(adapter_dir, repo_root)
 
     # Resolve adapter output paths. Each adapter declares its own paths;
     # claude-code uses `bench_claude_root`, cursor uses `rules_dir`, etc.
