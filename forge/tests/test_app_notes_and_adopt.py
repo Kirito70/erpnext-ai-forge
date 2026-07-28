@@ -191,3 +191,36 @@ def test_adoption_strips_generated_scaffolding():
 def test_adoption_is_idempotent_on_already_clean_notes():
     body = "## Real Notes\n\n- something a human wrote\n"
     assert _strip_generated_scaffolding(body) == body
+
+
+# ---------------------------------------------------------------------------
+# unresolved output paths (the bench-root CLAUDE.md corruption)
+# ---------------------------------------------------------------------------
+def test_unrendered_output_path_raises_instead_of_writing_to_bench_root(tmp_path):
+    from forge.sync import _stage_artifacts
+
+    # Exactly the shape that used to slip through: an `output:` pointing at a
+    # nested dict entry, passed through unresolved. Staging dropped every
+    # directory component and the swap wrote it to the bench root.
+    bad = _artifact(Path("{{ output_paths.bench_root }}/apps/x/CLAUDE.md"), "content\n")
+
+    with pytest.raises(ValueError, match="never rendered"):
+        _stage_artifacts([bad], tmp_path, "claude-code")
+
+
+def test_brace_placeholder_output_path_raises(tmp_path):
+    from forge.sync import _stage_artifacts
+
+    bad = _artifact(Path("/bench/apps/{app}/CLAUDE.md"), "content\n")
+
+    with pytest.raises(ValueError, match="unsubstituted placeholder"):
+        _stage_artifacts([bad], tmp_path, "claude-code")
+
+
+def test_relative_output_path_raises(tmp_path):
+    from forge.sync import _stage_artifacts
+
+    bad = _artifact(Path("apps/x/CLAUDE.md"), "content\n")
+
+    with pytest.raises(ValueError, match="not absolute"):
+        _stage_artifacts([bad], tmp_path, "claude-code")

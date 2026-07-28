@@ -11,6 +11,7 @@ Per v0.2 Part B item 7:
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -62,18 +63,57 @@ def _stage_artifacts(
     tool_staging.mkdir(parents=True)
 
     for r in rendered:
+        _assert_resolved_output_path(r)
         # Recreate the bench-relative structure inside staging
         # by computing the relative path from the bench root.
         try:
             bench_relative = r.output_path.relative_to(_bench_root_from(r))
-        except (ValueError, RuntimeError):
-            bench_relative = Path(r.output_path.name)
+        except (ValueError, RuntimeError) as exc:
+            # Previously this fell back to `Path(r.output_path.name)`, which
+            # drops every directory component and stages the file at the tool
+            # root — from where the swap writes it to the BENCH root. That is
+            # how per-app content once landed on the bench-root CLAUDE.md.
+            # A path we cannot place is a bug in adapter.yaml, not something to
+            # guess at.
+            raise ValueError(
+                f"{r.tool}: cannot place output {r.output_path} for artifact "
+                f"'{r.artifact_id}' relative to the bench root. Check the "
+                f"`output:` entry in adapters/{r.tool}/adapter.yaml."
+            ) from exc
 
         staged_path = tool_staging / bench_relative
         staged_path.parent.mkdir(parents=True, exist_ok=True)
         staged_path.write_text(r.content)
 
     return tool_staging
+
+
+def _assert_resolved_output_path(r: RenderedArtifact) -> None:
+    """Reject an output path that still carries an unrendered template.
+
+    `{{ output_paths.bench_root }}/apps/{app}/CLAUDE.md` looks like a path and
+    behaves like one right up to the point where it silently writes somewhere
+    nobody intended. Two ways adapter.yaml produces one: pointing `output:` at a
+    nested dict entry (which the renderer passes through unresolved), and using
+    `{app}` where Jinja wants `{{ app }}`.
+    """
+    raw = str(r.output_path)
+    if "{{" in raw or "}}" in raw:
+        raise ValueError(
+            f"{r.tool}: output path for '{r.artifact_id}' was never rendered: {raw!r}. "
+            f"An `output:` in adapters/{r.tool}/adapter.yaml points at a value the "
+            f"renderer cannot resolve — usually a nested dict entry."
+        )
+    if re.search(r"\{[A-Za-z_][A-Za-z0-9_]*\}", raw):
+        raise ValueError(
+            f"{r.tool}: output path for '{r.artifact_id}' contains an unsubstituted "
+            f"placeholder: {raw!r}. Use `{{{{ app }}}}` (Jinja), not `{{app}}`."
+        )
+    if not r.output_path.is_absolute():
+        raise ValueError(
+            f"{r.tool}: output path for '{r.artifact_id}' is not absolute: {raw!r}. "
+            f"Is FORGE_BENCH_PATH set?"
+        )
 
 
 def _bench_root_from(r: RenderedArtifact) -> Path:
