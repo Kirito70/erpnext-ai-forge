@@ -168,9 +168,16 @@ def sync(
         "--justify",
         help="One-line justification when a 80–94 score artifact is being synced.",
     ),
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="Write into apps whose git remote is not ours without asking. "
+        "Without it, an unattended run skips them.",
+    ),
 ) -> None:
     """Render and sync canonical artifacts into the bench (transactional per file)."""
-    sync_cmd.run(tool=tool, all_tools=all_tools, dry_run=dry_run, justify=justify)
+    sync_cmd.run(tool=tool, all_tools=all_tools, dry_run=dry_run, justify=justify, assume_yes=yes)
 
 
 # ---------------------------------------------------------------------------

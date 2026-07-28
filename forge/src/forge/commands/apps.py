@@ -22,13 +22,13 @@ from __future__ import annotations
 
 import os
 import re
-import subprocess
 from pathlib import Path
 
 from rich.console import Console
 from rich.table import Table
 
 from forge.loader import find_repo_root, load_discovery, load_forge_config
+from forge.repo import git_remote as _git_remote, is_foreign, remote_owner as _owner_of
 
 console = Console()
 
@@ -45,40 +45,6 @@ def _bench_root(repo_root: Path) -> Path:
     )
 
 
-def _git_remote(app_dir: Path) -> str | None:
-    """The app's push remote, or None when it is not a git repo at all."""
-    if not (app_dir / ".git").exists():
-        return None
-    try:
-        out = subprocess.run(
-            ["git", "-C", str(app_dir), "remote"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        remotes = out.stdout.split()
-        if not remotes:
-            return None
-        # `origin` when present, else whatever the single remote is called —
-        # several apps in this bench use `upstream` as their only remote.
-        name = "origin" if "origin" in remotes else remotes[0]
-        url = subprocess.run(
-            ["git", "-C", str(app_dir), "remote", "get-url", name],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        return url.stdout.strip() or None
-    except (subprocess.SubprocessError, OSError):
-        return None
-
-
-def _owner_of(remote: str | None) -> str | None:
-    """Extract the org/user from a git remote URL, SSH or HTTPS."""
-    if not remote:
-        return None
-    match = re.search(r"[:/]([^/:]+)/[^/]+?(?:\.git)?/?$", remote)
-    return match.group(1) if match else None
 
 
 def _read_managed(repo_root: Path) -> list[str]:
@@ -129,13 +95,17 @@ def run_list(repo_root: Path | None = None) -> int:
     bench_root = _bench_root(repo_root)
     apps = sorted(set(_discovered_apps(repo_root)) | set(managed))
 
-    # Whatever orgs our managed apps live in are "ours"; an unmanaged app from
-    # a different org is the third-party case this list exists to keep out.
-    our_owners = {
-        owner
-        for app in managed
-        if (owner := _owner_of(_git_remote(bench_root / "apps" / app)))
-    }
+    # `bench.owned_remotes` is the authority on which orgs are ours; falling
+    # back to the orgs our managed apps live in keeps this useful on a bench
+    # that has not declared the key yet.
+    cfg = load_forge_config(repo_root)
+    our_owners = set((cfg.get("bench") or {}).get("owned_remotes") or [])
+    if not our_owners:
+        our_owners = {
+            owner
+            for app in managed
+            if (owner := _owner_of(_git_remote(bench_root / "apps" / app)))
+        }
 
     table = Table(title="Per-app instruction files", title_justify="left")
     table.add_column("app")
@@ -151,9 +121,14 @@ def run_list(repo_root: Path | None = None) -> int:
         has_notes = (repo_root / "canonical" / "apps" / f"{app}.md").is_file()
         on_disk = (app_dir / "CLAUDE.md").is_file()
 
-        if is_managed:
+        foreign = is_foreign(owner, our_owners)
+        if is_managed and foreign:
+            # Configured to write, but into a repo that is not ours — sync will
+            # stop and ask before creating anything here.
+            status = "[red]managed (FOREIGN)[/red]"
+        elif is_managed:
             status = "[green]managed[/green]"
-        elif owner and our_owners and owner not in our_owners:
+        elif foreign:
             status = "[yellow]skipped (third-party)[/yellow]"
         else:
             status = "[dim]skipped[/dim]"

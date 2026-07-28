@@ -367,9 +367,12 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
     if per_app_cfg.get("apps"):
         tmpl = env.get_template("claude-md-per-app.j2")
         app_notes = load_app_notes(repo_root)
-        for app_name in per_app_cfg["apps"]:
-            if managed is not None and app_name not in managed:
-                continue
+        # `managed_apps` is authoritative when set; the adapter's own `apps:`
+        # list then only says "this adapter does per-app files at all". Keeping
+        # the adapter list as the source would mean `forge apps add` silently
+        # did nothing for claude-code until someone also edited adapter.yaml.
+        app_list = sorted(managed) if managed is not None else list(per_app_cfg["apps"])
+        for app_name in app_list:
             app_data = discovery.app(app_name)
             if not app_data:
                 continue

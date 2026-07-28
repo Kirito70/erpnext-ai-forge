@@ -67,6 +67,12 @@ Run `forge sync` for the current tool, a specific tool, or all enabled tools.
   ```
 
   Removing without `--prune` only stops future writes; the file stays on disk.
+- **Writing into a repo we do not own needs a typed yes.** Before creating files, sync
+  reads each target app's `git remote` and compares the owner against
+  `bench.owned_remotes`. A mismatch stops the run and asks. Declining is the default, and
+  an unattended run (CI, a pipe, a hook) declines automatically — pass `--yes` to override.
+  This catches the case `managed_apps` alone cannot: an app added to the list without
+  anyone checking whose repository it actually is.
 - **A hand-edited generated file is never overwritten.** Sync compares each output against
   the sha256 recorded in `.forge-manifest.json`, skips anything a human changed, and names
   it. `forge adopt --apply` folds those edits back into `canonical/apps/<app>.md`.

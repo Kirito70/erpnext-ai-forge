@@ -13,10 +13,12 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from rich.console import Console
+from rich.prompt import Confirm
 
 from forge.audit import audit_log
 from forge.loader import find_repo_root, load_adapter_config, load_forge_config
@@ -28,6 +30,7 @@ from forge.manifest import (
     write_manifest,
 )
 from forge.render import RenderedArtifact, render
+from forge.repo import is_foreign, owner_of_app
 from forge.scoring import Finding, score_file
 from forge.settings_merge import (
     ScalarConflict,
@@ -283,6 +286,79 @@ def detect_hand_edits(
     return edited
 
 
+def _app_of_output(path: Path) -> str | None:
+    """`<bench>/apps/<app>/<file>` → `<app>`; anything else → None."""
+    parts = path.parts
+    if "apps" in parts:
+        idx = len(parts) - 1 - parts[::-1].index("apps")
+        if idx + 2 < len(parts):
+            return parts[idx + 1]
+    return None
+
+
+def foreign_app_targets(
+    rendered: list[RenderedArtifact], bench_root: Path, forge_cfg: dict
+) -> dict[str, str]:
+    """{app: owner} for per-app outputs whose repo belongs to someone else.
+
+    managed_apps says where forge is *configured* to write; this says where it
+    would actually land. The two disagree the moment an app is added to the
+    list without checking whose repo it is, which is exactly the mistake worth
+    catching before files appear in a third party's working tree.
+    """
+    owned = set((forge_cfg.get("bench") or {}).get("owned_remotes") or [])
+    if not owned:
+        return {}
+
+    foreign: dict[str, str] = {}
+    seen: set[str] = set()
+    for art in rendered:
+        app = _app_of_output(art.output_path)
+        if not app or app in seen:
+            continue
+        seen.add(app)
+        owner = owner_of_app(bench_root, app)
+        if is_foreign(owner, owned):
+            foreign[app] = owner or "unknown"
+    return foreign
+
+
+def _confirm_foreign_writes(foreign: dict[str, str], assume_yes: bool) -> set[str]:
+    """Ask before writing into repos we do not own. Returns apps to SKIP.
+
+    Declining is the default on purpose, including when nothing can answer
+    (CI, a pipe, `forge sync` from a hook): an unattended run must not create
+    files in another organisation's repository because nobody was watching.
+    """
+    console.print(
+        f"\n[yellow]![/yellow] {len(foreign)} app(s) are managed but their git remote "
+        f"belongs to someone else:"
+    )
+    for app, owner in sorted(foreign.items()):
+        console.print(f"    [bold]{app}[/bold] → owner [bold]{owner}[/bold]")
+    console.print(
+        "    Writing here puts a generated file in a repo you do not own.\n"
+        "    Drop it with [cyan]forge apps remove <app> --prune[/cyan], or add the owner "
+        "to [cyan]bench.owned_remotes[/cyan] if it really is yours."
+    )
+
+    if assume_yes:
+        console.print("    [dim]--yes given; writing anyway.[/dim]")
+        return set()
+
+    if not sys.stdin.isatty():
+        console.print(
+            "    [yellow]Not a terminal — skipping all of them.[/yellow] "
+            "Pass [cyan]--yes[/cyan] to write unattended."
+        )
+        return set(foreign)
+
+    if Confirm.ask("    Create files in these repos anyway?", default=False):
+        return set()
+    console.print("    [dim]Skipped.[/dim]")
+    return set(foreign)
+
+
 def _warn_oversized_aggregates(
     repo_root: Path, tool: str, rendered: list[RenderedArtifact]
 ) -> None:
@@ -317,6 +393,7 @@ def sync_tool(
     tool: str,
     dry_run: bool = False,
     justify: str | None = None,
+    assume_yes: bool = False,
 ) -> SyncResult:
     """Sync a single tool. Renders, stages, validates, swaps."""
     result = SyncResult(tool=tool)
@@ -426,6 +503,15 @@ def sync_tool(
             )
             return result
 
+        # Ownership guard: never create files in a repo belonging to another
+        # organisation without someone saying yes to it.
+        foreign = foreign_app_targets(rendered, bench_root, forge_cfg)
+        skip_apps = _confirm_foreign_writes(foreign, assume_yes) if foreign else set()
+        if skip_apps:
+            rendered = [
+                r for r in rendered if _app_of_output(r.output_path) not in skip_apps
+            ]
+
         # Hand-edit guard: never overwrite a file someone edited in place.
         hand_edited = detect_hand_edits(rendered, bench_root)
         if hand_edited:
@@ -448,8 +534,13 @@ def sync_tool(
                 },
             )
 
+        protected = set(hand_edited)
+        for staged in list(tool_staging.rglob("*")):
+            if staged.is_file() and _app_of_output(staged) in skip_apps:
+                staged.unlink()
+
         # Live swap
-        written = _swap_into_bench(tool_staging, bench_root, protected=set(hand_edited))
+        written = _swap_into_bench(tool_staging, bench_root, protected=protected)
         result.files_written = written
 
         # settings.json merge — only the claude-code adapter touches it
@@ -525,6 +616,7 @@ def sync_all(
     tools: list[str],
     dry_run: bool = False,
     justify: str | None = None,
+    assume_yes: bool = False,
 ) -> list[SyncResult]:
     """Multi-tool sync. Per Part B item 7: render + validate every tool first;
     only swap if all pass. On any failure: abort the whole run."""
@@ -532,7 +624,7 @@ def sync_all(
     staged_results: list[SyncResult] = []
     for tool in tools:
         # Force dry_run during the first pass to populate staging without swapping
-        r = sync_tool(repo_root, tool, dry_run=True, justify=justify)
+        r = sync_tool(repo_root, tool, dry_run=True, justify=justify, assume_yes=True)
         staged_results.append(r)
         if not r.success:
             console.print(
@@ -546,7 +638,9 @@ def sync_all(
     # Phase 2: all staged successfully → swap each tool
     final_results: list[SyncResult] = []
     for tool in tools:
-        final_results.append(sync_tool(repo_root, tool, dry_run=False, justify=justify))
+        final_results.append(
+            sync_tool(repo_root, tool, dry_run=False, justify=justify, assume_yes=assume_yes)
+        )
     return final_results
 
 
@@ -558,6 +652,7 @@ def run_sync(
     all_tools: bool,
     dry_run: bool,
     justify: str | None,
+    assume_yes: bool = False,
 ) -> int:
     """CLI entry. Returns process exit code."""
     repo_root = find_repo_root()
@@ -575,6 +670,6 @@ def run_sync(
         console.print("[yellow]No tools enabled in forge.config.yaml[/yellow]")
         return 0
 
-    results = sync_all(repo_root, tools, dry_run=dry_run, justify=justify)
+    results = sync_all(repo_root, tools, dry_run=dry_run, justify=justify, assume_yes=assume_yes)
     failed = [r for r in results if not r.success]
     return 1 if failed else 0
