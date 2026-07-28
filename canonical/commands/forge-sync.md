@@ -55,6 +55,21 @@ Run `forge sync` for the current tool, a specific tool, or all enabled tools.
 - Sync is transactional across adapters when `--all` is used ([Part B item 7](../../../../erp/novizna-v16/novizna-v16/ULTRAPLAN-AI-FRAMEWORK-v0.2.md))
 - `.forge-manifest.json` is written into every bench output directory recording source commit, version, render timestamp
 - `.claude/settings.json.forge-backup` is created on every sync that touches Claude settings (per Part B item 6)
+- **Per-app files are opt-in.** Sync writes `apps/<app>/CLAUDE.md` only for apps in
+  `bench.managed_apps` (forge.config.yaml). Everything else — third-party apps installed
+  in this bench but owned by another team — is skipped, because a generated file there is
+  an unwanted diff in someone else's repo. Inspect and edit the list with:
+
+  ```bash
+  forge apps                                  # managed vs skipped, with each app's remote owner
+  forge apps add <app>                        # start managing (then write canonical/apps/<app>.md)
+  forge apps remove <app> --prune             # stop managing AND delete files already written
+  ```
+
+  Removing without `--prune` only stops future writes; the file stays on disk.
+- **A hand-edited generated file is never overwritten.** Sync compares each output against
+  the sha256 recorded in `.forge-manifest.json`, skips anything a human changed, and names
+  it. `forge adopt --apply` folds those edits back into `canonical/apps/<app>.md`.
 
 ## Tools Touched
 

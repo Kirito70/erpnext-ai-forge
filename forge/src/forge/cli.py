@@ -15,6 +15,7 @@ from rich.console import Console
 from forge import __version__
 from forge.commands import (
     adopt as adopt_cmd,
+    apps as apps_cmd,
     audit as audit_cmd,
     commit as commit_cmd,
     discover as discover_cmd,
@@ -196,6 +197,45 @@ def audit_tail(
 def audit_backup() -> None:
     """Create a monthly tar+gpg backup of the audit log (per Decision 14)."""
     audit_cmd.backup()
+
+
+# ---------------------------------------------------------------------------
+# apps
+# ---------------------------------------------------------------------------
+apps_app = typer.Typer(
+    help="Choose which apps forge writes per-app instruction files into.",
+    no_args_is_help=False,
+    invoke_without_command=True,
+)
+app.add_typer(apps_app, name="apps")
+
+
+@apps_app.callback()
+def apps_default(ctx: typer.Context) -> None:
+    """List every app, whether forge manages it, and the remote it points at."""
+    if ctx.invoked_subcommand is None:
+        raise typer.Exit(apps_cmd.run_list())
+
+
+@apps_app.command("add")
+def apps_add(
+    names: list[str] = typer.Argument(..., help="App name(s) to start managing."),
+) -> None:
+    """Start writing per-app instruction files into these apps."""
+    raise typer.Exit(apps_cmd.run_add(names))
+
+
+@apps_app.command("remove")
+def apps_remove(
+    names: list[str] = typer.Argument(..., help="App name(s) to stop managing."),
+    prune: bool = typer.Option(
+        False,
+        "--prune",
+        help="Also delete files already written into those apps.",
+    ),
+) -> None:
+    """Stop writing per-app files into these apps (third-party repos, usually)."""
+    raise typer.Exit(apps_cmd.run_remove(names, prune=prune))
 
 
 # ---------------------------------------------------------------------------
