@@ -142,6 +142,27 @@ def load_skills(repo_root: Path) -> list[CanonicalArtifact]:
     return out
 
 
+def load_app_notes(repo_root: Path) -> dict[str, CanonicalArtifact]:
+    """Load ``canonical/apps/<app>.md`` — hand-authored per-app knowledge.
+
+    Keyed by app name so a template can look up its own notes. This is the
+    editable half of a per-app instruction file: the generator supplies the
+    facts it can derive from discovery, and everything a human knows about the
+    app that no scanner can infer lives here.
+
+    An app with no file simply renders without a notes section — a missing
+    entry is normal, not an error.
+    """
+    apps_dir = repo_root / "canonical" / "apps"
+    if not apps_dir.is_dir():
+        return {}
+    return {
+        p.stem: _parse_markdown_artifact(p, "app-notes", repo_root)
+        for p in sorted(apps_dir.glob("*.md"))
+        if not p.name.startswith("_")
+    }
+
+
 def load_policies(repo_root: Path) -> list[CanonicalArtifact]:
     """Load canonical/policies/*.md (the yaml one — security-scoring — is loaded
     separately via load_security_scoring_yaml)."""

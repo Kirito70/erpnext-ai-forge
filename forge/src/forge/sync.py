@@ -22,6 +22,7 @@ from forge.loader import find_repo_root, load_adapter_config, load_forge_config
 from forge.manifest import (
     ManifestEntry,
     build_manifest,
+    read_manifest,
     sha256_text,
     write_manifest,
 )
@@ -173,21 +174,73 @@ def _security_gate(
     )
 
 
-def _swap_into_bench(tool_staging: Path, bench_root: Path) -> list[Path]:
+def _swap_into_bench(
+    tool_staging: Path, bench_root: Path, protected: set[Path] | None = None
+) -> list[Path]:
     """Per-file atomic copy: temp file → fsync → rename. Returns list of files
-    written. Caller has already validated staging."""
+    written. Caller has already validated staging.
+
+    Paths in ``protected`` are skipped — they carry hand edits forge has not
+    adopted yet, and overwriting them would destroy the only copy.
+    """
+    protected = protected or set()
     written: list[Path] = []
     for staged_path in tool_staging.rglob("*"):
         if not staged_path.is_file():
             continue
         rel = staged_path.relative_to(tool_staging)
         target = bench_root / rel
+        if target in protected:
+            continue
         target.parent.mkdir(parents=True, exist_ok=True)
         tmp = target.with_suffix(target.suffix + ".tmp")
         tmp.write_text(staged_path.read_text())
         tmp.replace(target)
         written.append(target)
     return written
+
+
+def detect_hand_edits(
+    rendered: list[RenderedArtifact], bench_root: Path
+) -> dict[Path, str]:
+    """Return {output_path: current_sha256} for files a human changed since sync.
+
+    A file counts as hand-edited when it exists on disk, a manifest records what
+    forge last wrote there, and the two hashes disagree. Anything forge has no
+    record of is NOT hand-edited — it is unmanaged, and the first sync adopts it
+    (which is how the eight per-app files come under management without being
+    reported as conflicts).
+
+    The point is that generated-file ownership must not mean "your edits vanish
+    on the next sync". Someone fixing a wrong instruction in the file actually in
+    front of them is doing the right thing; forge's job is to notice and route
+    that edit back to canonical, not to punish it.
+    """
+    edited: dict[Path, str] = {}
+    manifest_cache: dict[Path, dict[str, str]] = {}
+
+    for art in rendered:
+        target = art.output_path
+        if not target.is_file():
+            continue
+
+        out_dir = target.parent
+        if out_dir not in manifest_cache:
+            manifest = read_manifest(out_dir)
+            manifest_cache[out_dir] = (
+                {e.path: e.sha256 for e in manifest.outputs} if manifest else {}
+            )
+        recorded = manifest_cache[out_dir].get(target.name)
+        if not recorded:
+            continue  # never generated here, or a pre-v2 manifest — adopt it
+
+        current = sha256_text(target.read_text())
+        if current != recorded and current != sha256_text(art.content):
+            # Differs from what we wrote AND from what we are about to write:
+            # a genuine human edit, not a no-op re-render.
+            edited[target] = current
+
+    return edited
 
 
 def _warn_oversized_aggregates(
@@ -333,8 +386,30 @@ def sync_tool(
             )
             return result
 
+        # Hand-edit guard: never overwrite a file someone edited in place.
+        hand_edited = detect_hand_edits(rendered, bench_root)
+        if hand_edited:
+            console.print(
+                f"[yellow]![/yellow] {tool}: {len(hand_edited)} file(s) hand-edited "
+                f"since the last sync — left untouched:"
+            )
+            for path in sorted(hand_edited):
+                console.print(f"    {path}")
+            console.print(
+                "    Run [cyan]forge adopt[/cyan] to fold those edits back into "
+                "canonical/, then sync again."
+            )
+            audit_log(
+                repo_root,
+                {
+                    "action": "sync.hand_edits_preserved",
+                    "tool": tool,
+                    "files": [str(p) for p in sorted(hand_edited)],
+                },
+            )
+
         # Live swap
-        written = _swap_into_bench(tool_staging, bench_root)
+        written = _swap_into_bench(tool_staging, bench_root, protected=set(hand_edited))
         result.files_written = written
 
         # settings.json merge — only the claude-code adapter touches it
@@ -358,6 +433,17 @@ def sync_tool(
                 )
                 for r in relevant
             ]
+            # `outputs` is what makes the next sync able to tell a hand edit
+            # from an untouched file — keyed by filename within this dir.
+            outputs = [
+                ManifestEntry(
+                    path=r.output_path.name,
+                    version=r.source_version,
+                    sha256=sha256_text(r.content),
+                )
+                for r in relevant
+                if r.output_path not in hand_edited
+            ]
             if entries:
                 manifest = build_manifest(
                     source_repo="erpnext-ai-forge",
@@ -365,6 +451,7 @@ def sync_tool(
                     adapter_name=tool,
                     adapter_version="0.1.0",
                     entries=entries,
+                    outputs=outputs,
                 )
                 write_manifest(out_dir, manifest)
 

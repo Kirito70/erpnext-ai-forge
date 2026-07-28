@@ -11,22 +11,15 @@
 - `apps/{{ app.name }}/**/*`
 
 ## App-Specific Rules
-{% if app.name == "novizna_crm" -%}
-- DocType naming: `crm_<noun>` prefix.
-- Frontend 3-layer override: `src_override/` mirrors `apps/crm/frontend/src/` one-for-one. Never edit `crm_build/` or upstream.
-- Vendor connectors in `connectors/`; orchestration in `api/`.
-{%- elif app.name == "novizna_pos" -%}
-- TypeScript strict; Pinia stores own shared state; all API calls go through `src/boot/axios.ts`.
-- Auth = Frappe session cookie + `X-Frappe-CSRF-Token` header on non-GET. No JWT.
-{%- elif app.name == "noviznaerp_payroll" -%}
-- 73 DocTypes — bare nouns. Prefer app-prefixed names for new DocTypes.
-- **Known anti-pattern:** 11 occurrences of `frappe.db.sql(f"...")` (AP-001). Do not add more.
-{%- elif app.name == "invoice_ninja_integration" -%}
-- DocType naming: `invoice_ninja_<noun>` prefix.
-{%- elif app.name == "cargo_management" -%}
-- EasyPost + 17Track webhook receivers — every guest handler must verify signature first.
+
+{% if app_notes -%}
+Full context for this app — architecture, invariants, gotchas — is generated to
+`apps/{{ app.name }}/CLAUDE.md` from `canonical/apps/{{ app.name }}.md`. **Read it before
+editing this app.** It is the single source; this file deliberately does not carry a
+second, drifting copy of the same rules.
 {%- else -%}
-- Follow Frappe conventions; see `apps/{{ app.name }}/CLAUDE.md` if present.
+No `canonical/apps/{{ app.name }}.md` yet — follow Frappe conventions and the bench-root
+instruction file until one exists.
 {%- endif %}
 
 ---

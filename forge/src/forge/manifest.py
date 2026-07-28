@@ -17,7 +17,12 @@ from typing import Any
 from forge import __version__ as forge_version
 
 
-MANIFEST_SCHEMA_VERSION = 1
+# v2 adds `outputs`: the sha256 of each file forge actually WROTE, keyed by its
+# bench-relative path. `source_files` records what forge read; only `outputs`
+# can answer "has a human edited this since we generated it?". A v1 manifest is
+# read as None, so the first v2 sync sees "no record" and adopts rather than
+# reporting every file as hand-edited.
+MANIFEST_SCHEMA_VERSION = 2
 MANIFEST_FILENAME = ".forge-manifest.json"
 
 
@@ -34,6 +39,7 @@ class Manifest:
     source_repo: str
     source_commit: str
     source_files: list[ManifestEntry]
+    outputs: list[ManifestEntry]
     adapter_name: str
     adapter_version: str
     rendered_at: str
@@ -45,6 +51,7 @@ class Manifest:
             "source_repo": self.source_repo,
             "source_commit": self.source_commit,
             "source_files": [asdict(e) for e in self.source_files],
+            "outputs": [asdict(e) for e in self.outputs],
             "adapter": {
                 "name": self.adapter_name,
                 "version": self.adapter_version,
@@ -65,12 +72,14 @@ def build_manifest(
     adapter_name: str,
     adapter_version: str,
     entries: list[ManifestEntry],
+    outputs: list[ManifestEntry] | None = None,
 ) -> Manifest:
     return Manifest(
         schema_version=MANIFEST_SCHEMA_VERSION,
         source_repo=source_repo,
         source_commit=source_commit,
         source_files=entries,
+        outputs=outputs or [],
         adapter_name=adapter_name,
         adapter_version=adapter_version,
         rendered_at=datetime.now(timezone.utc).isoformat(),
@@ -101,6 +110,7 @@ def read_manifest(directory: Path) -> Manifest | None:
         source_repo=data["source_repo"],
         source_commit=data["source_commit"],
         source_files=[ManifestEntry(**e) for e in data.get("source_files", [])],
+        outputs=[ManifestEntry(**e) for e in data.get("outputs", [])],
         adapter_name=data["adapter"]["name"],
         adapter_version=data["adapter"]["version"],
         rendered_at=data["rendered_at"],

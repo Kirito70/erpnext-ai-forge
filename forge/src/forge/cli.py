@@ -14,6 +14,7 @@ from rich.console import Console
 
 from forge import __version__
 from forge.commands import (
+    adopt as adopt_cmd,
     audit as audit_cmd,
     commit as commit_cmd,
     discover as discover_cmd,
@@ -195,6 +196,35 @@ def audit_tail(
 def audit_backup() -> None:
     """Create a monthly tar+gpg backup of the audit log (per Decision 14)."""
     audit_cmd.backup()
+
+
+# ---------------------------------------------------------------------------
+# adopt
+# ---------------------------------------------------------------------------
+@app.command()
+def adopt(
+    tool: str = typer.Option(
+        "claude-code",
+        "--tool",
+        help="Adapter whose outputs to inspect for hand edits.",
+    ),
+    app_name: Optional[str] = typer.Option(
+        None,
+        "--app",
+        help="Limit adoption to one app (e.g. --app novizna_pos).",
+    ),
+    apply: bool = typer.Option(
+        False,
+        "--apply",
+        help="Write the changes. Without this, adopt only reports what it would do.",
+    ),
+) -> None:
+    """Fold hand edits in generated files back into canonical/apps/<app>.md.
+
+    `forge sync` refuses to overwrite a file someone edited by hand; this is how
+    that edit gets back into the source of truth so the next sync keeps it.
+    """
+    raise typer.Exit(adopt_cmd.run(tool=tool, app=app_name, apply=apply))
 
 
 # ---------------------------------------------------------------------------

@@ -25,6 +25,7 @@ from forge import __version__ as forge_version
 from forge.loader import (
     load_adapter_config,
     load_agents,
+    load_app_notes,
     load_commands,
     load_discovery,
     load_forge_config,
@@ -351,12 +352,15 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
     per_app_cfg = output_paths_cfg.get("per_app_claude_md", {})
     if per_app_cfg.get("apps"):
         tmpl = env.get_template("claude-md-per-app.j2")
+        app_notes = load_app_notes(repo_root)
         for app_name in per_app_cfg["apps"]:
             app_data = discovery.app(app_name)
             if not app_data:
                 continue
+            notes = app_notes.get(app_name)
             content = tmpl.render(
                 app=app_data,
+                app_notes=notes.body.strip() if notes else "",
                 forge={
                     "version": forge_ctx.version,
                     "source_commit": forge_ctx.source_commit,
@@ -387,10 +391,19 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
     # `agents`, `commands`, `skills`, `tools`, `policies`, plus `forge`, `bench`,
     # and `discovery` (for per-app contexts).
     artifacts_cfg = adapter_cfg.get("artifacts", {})
+    # `root_claude_md` and `per_app_claude_md` have dedicated blocks above,
+    # driven by `output_paths`. Without this exclusion the generic loops render
+    # them a SECOND time to the same path — harmless for content (identical),
+    # but it writes two manifest `outputs` rows for one file, and the duplicate
+    # row defeats hand-edit detection.
+    DEDICATED = {"root_claude_md", "per_app_claude_md"}
+
     aggregate_entries = [
         (kind, spec)
         for kind, spec in artifacts_cfg.items()
-        if isinstance(spec, dict) and spec.get("strategy") == "aggregate"
+        if isinstance(spec, dict)
+        and spec.get("strategy") == "aggregate"
+        and kind not in DEDICATED
     ]
     if aggregate_entries:
         all_agents = [_artifact_to_template_dict(a) for a in load_agents(repo_root)]
@@ -433,15 +446,20 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
     per_app_aggregates = [
         (kind, spec)
         for kind, spec in artifacts_cfg.items()
-        if isinstance(spec, dict) and spec.get("strategy") == "aggregate_per_app"
+        if isinstance(spec, dict)
+        and spec.get("strategy") == "aggregate_per_app"
+        and kind not in DEDICATED
     ]
     if per_app_aggregates:
+        app_notes = load_app_notes(repo_root)
         for kind, spec in per_app_aggregates:
             tmpl = env.get_template(spec["template"])
             for app_data in discovery.apps.get("custom_apps", []):
                 app_name = app_data["name"]
+                notes = app_notes.get(app_name)
                 content = tmpl.render(
                     app=app_data,
+                    app_notes=notes.body.strip() if notes else "",
                     forge={
                         "version": forge_ctx.version,
                         "source_commit": forge_ctx.source_commit,
