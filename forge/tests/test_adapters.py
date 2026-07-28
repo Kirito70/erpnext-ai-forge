@@ -24,14 +24,22 @@ def fake_bench_env(tmp_path, monkeypatch):
     yield
 
 
+
+def _managed_app_count(repo_root) -> int:
+    """How many apps forge is allowed to write per-app files into."""
+    from forge.loader import load_forge_config
+
+    return len(load_forge_config(repo_root)["bench"]["managed_apps"])
+
+
 # ---------------------------------------------------------------------------
 # Cursor
 # ---------------------------------------------------------------------------
 def test_cursor_renders_main_plus_per_app(repo_root):
     rendered = render(repo_root, "cursor")
     summary = render_summary(rendered)
-    # 1 forge-main.mdc + 8 per-app .mdc files + the shared AGENTS-TICKETING.md
-    assert summary.get("aggregate") == 10
+    # 1 forge-main.mdc + one .mdc per managed app + the shared AGENTS-TICKETING.md
+    assert summary.get("aggregate") == 2 + _managed_app_count(repo_root)
     main = next(r for r in rendered if r.artifact_id == "aggregate/forge_main")
     # Must respect the 40k char budget
     assert len(main.content) < 40_000, f"forge-main.mdc {len(main.content)} chars exceeds 40k budget"
@@ -86,8 +94,8 @@ def test_opencode_writes_to_dot_opencode_tree(repo_root):
 def test_cline_renders_main_plus_per_app(repo_root):
     rendered = render(repo_root, "cline")
     summary = render_summary(rendered)
-    # 1 main + 8 per-app + the shared AGENTS-TICKETING.md
-    assert summary.get("aggregate") == 10
+    # 1 main + one per managed app + the shared AGENTS-TICKETING.md
+    assert summary.get("aggregate") == 2 + _managed_app_count(repo_root)
     main = next(r for r in rendered if r.artifact_id == "aggregate/forge_main")
     assert len(main.content) < 35_000, "00-forge-main.md exceeds 35k budget"
     assert main.output_path.name == "00-forge-main.md"
@@ -101,8 +109,8 @@ def test_cline_renders_main_plus_per_app(repo_root):
 def test_copilot_renders_main_plus_per_app(repo_root):
     rendered = render(repo_root, "copilot")
     summary = render_summary(rendered)
-    # 1 main + 8 per-app + the shared AGENTS-TICKETING.md
-    assert summary.get("aggregate") == 10
+    # 1 main + one per managed app + the shared AGENTS-TICKETING.md
+    assert summary.get("aggregate") == 2 + _managed_app_count(repo_root)
     main = next(r for r in rendered if r.artifact_id == "aggregate/copilot_instructions")
     assert len(main.content) < 30_000, "copilot-instructions.md exceeds 30k budget"
     assert main.output_path.name == "copilot-instructions.md"

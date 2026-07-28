@@ -22,6 +22,9 @@ output_paths:
 
   root_claude_md: "{{ output_paths.bench_root }}/CLAUDE.md"   # cross-cutting only (Decision 19)
   per_app_claude_md:
+    # Kept in sync with `bench.managed_apps` in forge.config.yaml, which is the
+    # authority — apps owned by another team are excluded there and the
+    # renderer skips them regardless of what this list says.
     # `{{ app }}` — NOT `{app}`. This string is rendered through Jinja with the
     # app name bound to `app`; a bare `{app}` is left literal, which collapsed
     # all eight per-app files into one directory called `{app}`.
@@ -30,10 +33,7 @@ output_paths:
       - novizna_crm
       - novizna_core
       - novizna_pos
-      - invoice_ninja_integration
       - noviznaerp_payroll
-      - cargo_management
-      - changemakers
       - erpnext_location
 
   agents_dir: "{{ output_paths.bench_claude_root }}/agents"
@@ -156,4 +156,4 @@ expected_outputs:
   - "{{ output_paths.skills_dir }}/**/*.md"           # populated by Phase 1b
   - "{{ output_paths.settings_json }}"
   - "{{ output_paths.settings_backup }}"
-  - "{{ output_paths.per_app_claude_md.base }}"        # per Decision 19 — 8 files
+  - "{{ output_paths.per_app_claude_md.base }}"        # per Decision 19 — one per managed app

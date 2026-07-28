@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from forge.loader import load_forge_config
 from forge.render import render, render_summary
 
 
@@ -73,7 +74,9 @@ def test_rendered_per_app_includes_all_custom_apps(repo_root):
     assert "novizna_crm" in app_names
     assert "novizna_pos" in app_names
     assert "noviznaerp_payroll" in app_names
-    assert len(app_names) == 8
+    # One per managed app — apps owned by another team are excluded, so this
+    # tracks `bench.managed_apps` rather than "every custom app in the bench".
+    assert app_names == set(load_forge_config(repo_root)["bench"]["managed_apps"])
 
 
 def test_rendered_root_claude_md_has_cross_cutting_only(repo_root):

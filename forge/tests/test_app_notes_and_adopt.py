@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from forge.commands.adopt import _strip_generated_scaffolding
-from forge.loader import load_app_notes
+from forge.loader import load_app_notes, load_forge_config
 from forge.manifest import ManifestEntry, build_manifest, read_manifest, sha256_text, write_manifest
 from forge.render import RenderedArtifact, render
 from forge.sync import detect_hand_edits
@@ -26,18 +26,28 @@ def repo_root() -> Path:
 # canonical/apps/<app>.md
 # ---------------------------------------------------------------------------
 def test_every_managed_app_has_canonical_notes(repo_root):
+    # `bench.managed_apps` is the authority on which apps forge writes into;
+    # each of them needs notes, or it renders a contentless stub.
+    managed = set(load_forge_config(repo_root)["bench"]["managed_apps"])
     notes = load_app_notes(repo_root)
-    managed = {
-        "novizna_crm",
-        "novizna_core",
-        "novizna_pos",
-        "invoice_ninja_integration",
-        "noviznaerp_payroll",
-        "cargo_management",
-        "changemakers",
-        "erpnext_location",
-    }
+
     assert managed <= set(notes), f"missing app notes for {managed - set(notes)}"
+
+
+def test_unmanaged_apps_get_no_per_app_file(repo_root, monkeypatch, tmp_path):
+    # Apps owned by another team must not receive a generated CLAUDE.md — that
+    # is an unwanted diff in a repo we do not control.
+    monkeypatch.setenv("FORGE_BENCH_PATH", str(tmp_path))
+    monkeypatch.setenv("FORGE_PRIMARY_SITE", "test-site")
+    (tmp_path / "apps").mkdir()
+
+    managed = set(load_forge_config(repo_root)["bench"]["managed_apps"])
+    for tool in ["claude-code", "cursor", "cline", "copilot"]:
+        for r in render(repo_root, tool):
+            parts = r.output_path.parts
+            if "apps" in parts:
+                app = parts[parts.index("apps") + 1]
+                assert app in managed, f"{tool} would write into unmanaged app {app}"
 
 
 def test_app_notes_are_rendered_into_the_per_app_file(repo_root, monkeypatch, tmp_path):

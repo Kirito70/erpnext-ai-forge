@@ -82,6 +82,19 @@ def _build_jinja_env(adapter_dir: Path, repo_root: Path) -> Environment:
     )
 
 
+def _managed_apps(forge_cfg: dict[str, Any]) -> set[str] | None:
+    """Apps forge may write per-app files into, or None for "no restriction".
+
+    Discovery finds every custom app in the bench, but an app whose upstream
+    belongs to another team should not receive a generated CLAUDE.md — that is
+    an unwanted diff in a repo we do not own. Opt-in by name, declared once in
+    forge.config.yaml so every adapter honours the same list.
+    """
+    managed = (forge_cfg.get("bench") or {}).get("managed_apps")
+    return set(managed) if managed else None
+
+
+
 def _build_forge_context(repo_root: Path, forge_cfg: dict[str, Any]) -> ForgeContext:
     bench_path_str = _resolve(forge_cfg["bench"]["path"], {"env": dict(os.environ)})
     primary_site = _resolve(forge_cfg["bench"]["primary_site"], {"env": dict(os.environ)})
@@ -350,10 +363,13 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
 
     # --- Per-app CLAUDE.md ---
     per_app_cfg = output_paths_cfg.get("per_app_claude_md", {})
+    managed = _managed_apps(forge_cfg)
     if per_app_cfg.get("apps"):
         tmpl = env.get_template("claude-md-per-app.j2")
         app_notes = load_app_notes(repo_root)
         for app_name in per_app_cfg["apps"]:
+            if managed is not None and app_name not in managed:
+                continue
             app_data = discovery.app(app_name)
             if not app_data:
                 continue
@@ -456,6 +472,8 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
             tmpl = env.get_template(spec["template"])
             for app_data in discovery.apps.get("custom_apps", []):
                 app_name = app_data["name"]
+                if managed is not None and app_name not in managed:
+                    continue
                 notes = app_notes.get(app_name)
                 content = tmpl.render(
                     app=app_data,

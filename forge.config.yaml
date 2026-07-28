@@ -12,6 +12,22 @@ bench:
   path: "{{ env.FORGE_BENCH_PATH }}"
   primary_site: "{{ env.FORGE_PRIMARY_SITE }}"
 
+  # Apps forge may write per-app instruction files into.
+  #
+  # Discovery finds every custom app in the bench, but "custom to this bench"
+  # is not the same as "ours to commit to". An app whose upstream is owned by
+  # another team takes our generated CLAUDE.md as an unwanted diff in someone
+  # else's repo, so per-app rendering is opt-in by name rather than opt-out.
+  #
+  # Removing a name here stops future syncs writing to that app; it does NOT
+  # delete a file already written. Remove that by hand.
+  managed_apps:
+    - novizna_crm
+    - novizna_core
+    - novizna_pos
+    - noviznaerp_payroll
+    - erpnext_location
+
 # Tools managed by `forge sync --all` (all 7 adapters enabled — Phase 3 complete)
 enabled_tools:
   - claude-code        # Phase 1a/1b — primary target (subagent-capable)
