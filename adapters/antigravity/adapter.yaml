@@ -7,6 +7,15 @@ tool: antigravity
 adapter_version: 0.1.0
 
 capabilities:
+  hooks: true
+  hook_events:
+    # Stop ONLY. Antigravity's post-edit payload carries no file path, so a
+    # per-file hook would have nothing to lint — it would fire, find no target,
+    # and exit 0, which looks exactly like a passing gate.
+    session_stop:
+      native: "Stop"
+      matcher: ""
+
   agents: false                 # unknown — assume implicit
   subagents: false              # assumed no
   slash_commands: false         # assumed no
@@ -18,11 +27,18 @@ output_paths:
   bench_root: "{{ env.FORGE_BENCH_PATH }}"
   antigravity_root: "{{ output_paths.bench_root }}/.antigravity"
   system_md: "{{ output_paths.antigravity_root }}/system.md"
+  agents_root: "{{ output_paths.bench_root }}/.agents"
+  hooks_json: "{{ output_paths.agents_root }}/hooks.json"
 
 limits:
   max_total_chars: 15000        # Antigravity per v0.2 §4.0 (provisional)
 
 artifacts:
+  hook_wiring:
+    strategy: hook_wiring
+    template: hooks.json.j2
+    output: "{{ output_paths.hooks_json }}"
+
   # Bench-root AGENTS-TICKETING.md — the full vault/ticketing + brain contract,
   # rendered from the SHARED template so all seven tools ship the same text.
   # Kept out of the root instruction file on purpose: root files are read every
@@ -31,6 +47,16 @@ artifacts:
     strategy: aggregate
     template: ticketing-and-memory.md.j2
     output: "{{ output_paths.bench_root }}/AGENTS-TICKETING.md"
+
+  harness_doc:
+    strategy: aggregate
+    template: harness-and-gates.md.j2
+    output: "{{ output_paths.bench_root }}/AGENTS-HARNESS.md"
+
+  operating_manual_doc:
+    strategy: aggregate
+    template: operating-manual.md.j2
+    output: "{{ output_paths.bench_root }}/AGENTS-OPERATING-MANUAL.md"
 
   # Single minimal system prompt with architect + Backend + Security only.
   # Per Decision 6, we trim the persona list aggressively given the unconfirmed

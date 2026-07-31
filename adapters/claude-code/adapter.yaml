@@ -14,6 +14,18 @@ capabilities:
   skills: true
   custom_tools: true            # via MCP / Bash allow-list
   per_app_files: true           # supports nested CLAUDE.md per app
+  hooks: true                   # native PostToolUse / Stop hooks
+
+  # Maps forge-neutral event names to this tool's vocabulary. canonical/ never
+  # says "PostToolUse" — the moment it does, the canonical layer has quietly
+  # become Claude-specific, and this repo exists to prevent exactly that.
+  hook_events:
+    file_edit:
+      native: PostToolUse
+      matcher: "Write|Edit|MultiEdit|NotebookEdit"
+    session_stop:
+      native: Stop
+      matcher: ""
 
 # Where rendered artifacts land in the bench.
 output_paths:
@@ -40,6 +52,11 @@ output_paths:
   commands_dir: "{{ output_paths.bench_claude_root }}/commands"
   skills_dir: "{{ output_paths.bench_claude_root }}/skills"
   settings_json: "{{ output_paths.bench_claude_root }}/settings.json"
+
+  # Shell, not Markdown. `bench_root` is pre-seeded from the TARGET root, so
+  # this follows the target automatically — the forge repo gets its own
+  # scripts/harness/, the bench gets the bench's.
+  harness_dir: "{{ output_paths.bench_root }}/scripts/harness"
   settings_backup: "{{ output_paths.bench_claude_root }}/settings.json.forge-backup"
 
 # Mapping rules: which canonical artifacts render where, using which templates.
@@ -52,6 +69,16 @@ artifacts:
     strategy: aggregate
     template: ticketing-and-memory.md.j2
     output: "{{ output_paths.bench_root }}/AGENTS-TICKETING.md"
+
+  harness_doc:
+    strategy: aggregate
+    template: harness-and-gates.md.j2
+    output: "{{ output_paths.bench_root }}/AGENTS-HARNESS.md"
+
+  operating_manual_doc:
+    strategy: aggregate
+    template: operating-manual.md.j2
+    output: "{{ output_paths.bench_root }}/AGENTS-OPERATING-MANUAL.md"
 
   agents:
     strategy: one_file_per_agent
@@ -91,6 +118,31 @@ artifacts:
     template_doc: tool-reference.md.j2
     output_settings_merge_into: "{{ output_paths.settings_json }}"
     output_doc: "{{ output_paths.bench_claude_root }}/tools/{{ artifact.id }}.md"
+
+  # The verification harness. Exactly ONE enabled adapter per target may declare
+  # `harness_scripts` — all seven writing the same scripts/harness/ would race,
+  # and each would strip the others' manifest rows. `forge validate` enforces it.
+  # Seeded once, then owned by the agents that write rows into them.
+  # Only this adapter renders them: they are tool-neutral files, and
+  # seven adapters seeding the same three paths would race.
+  ledger:
+    strategy: ledger_scaffold
+    template: ledger.md.j2
+    output: "{{ output_paths.bench_root }}/docs/harness/LEDGER-{{ phase.id }}.md"
+
+  harness_scripts:
+    strategy: harness_scripts
+    source: canonical/harness/scripts/*.sh.j2
+    output_dir: "{{ output_paths.harness_dir }}"
+
+  hook_wiring:
+    strategy: hook_wiring
+    template: settings-hooks.json.j2
+    output: "{{ output_paths.settings_json }}"
+    # NOT swapped like a normal artifact. settings.json is human-owned — it
+    # carries permissions and hooks forge did not write — so it is merged, with
+    # a .forge-backup taken first. See _merge_settings_fragments in sync.py.
+    artifact_kind: settings-fragment
 
   root_claude_md:
     strategy: aggregate

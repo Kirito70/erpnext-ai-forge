@@ -1,0 +1,117 @@
+# Gate commands — DATA, not shell.
+#
+# The harness scripts are identical for every target; only this table differs.
+# That is the whole reason a Frappe bench and a Python CLI can share one
+# `gates.sh`: the shell never asks which stack it is on, it just runs the rows
+# it was rendered with. If a difference ever cannot be expressed here and needs
+# an `if [ "$PROFILE" = ... ]` inside a script, the abstraction is wrong — say
+# so rather than pushing it through.
+#
+# `verify_status` is the honest part. UNVERIFIED means nobody has run this
+# command against the real target yet. `forge validate` lists every one of them
+# on every run, so the debt stays visible instead of rotting in a comment.
+# Flip to VERIFIED only after running it and seeing it pass.
+
+id: harness-gates
+kind: harness-gates
+version: 1.0.0
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-07-30
+
+stacks:
+  # -------------------------------------------------------------------------
+  # The Novizna v16 ERPNext/Frappe bench.
+  # -------------------------------------------------------------------------
+  frappe:
+    description: "Frappe/ERPNext bench — Python apps plus Vue/Quasar frontends."
+
+    # Per-file, on every edit. Must be fast: this runs inside a PostToolUse hook.
+    file_lint:
+      - id: python-lint
+        match: "*.py"
+        cmd: "ruff check --fix {file}"
+        verify_status: UNVERIFIED
+        note: >-
+          No linter convention exists anywhere in canonical/ or adapters/ — zero
+          references to ruff, eslint, prettier or black. Frappe upstream ships a
+          ruff config via pre-commit, but THIS bench has not declared one.
+          Confirm before trusting: `ls apps/novizna_crm/pyproject.toml .ruff.toml`
+      - id: frontend-lint
+        match: "*.js,*.ts,*.vue"
+        cmd: "yarn --cwd {app_dir} lint --fix {file}"
+        verify_status: UNVERIFIED
+        note: "Confirm yarn vs npm per frontend, and that a `lint` script exists."
+
+    # Whole-target, advisory. Never blocks — cross-file breakage is normal
+    # mid-refactor, and blocking on it makes people work around the hook.
+    typecheck: []
+
+    # Cheap enough to run when a session ends.
+    quick:
+      - id: python-lint-all
+        cmd: "ruff check apps"
+        verify_status: UNVERIFIED
+
+    # The real Definition of Done. Minutes, not seconds — run by the
+    # orchestrator during /ticket-review, never from a Stop hook.
+    full:
+      - id: frappe-tests
+        cmd: "bench --site {site} run-tests --app {app} --coverage"
+        timeout_seconds: 1800
+        verify_status: DOCUMENTED
+        note: >-
+          Documented in canonical/skills/testing/frappe-unittest.md:184. Still
+          confirm the v16 argument spelling, that --coverage is supported, and
+          that FORGE_PRIMARY_SITE is the site tests should run against — the
+          bench has four.
+      - id: coverage-floor
+        cmd: "coverage report --fail-under=80"
+        verify_status: DOCUMENTED
+        note: "Same source; the project-wide floor is 80% on new code."
+      - id: frontend-build
+        cmd: "yarn --cwd {app_dir} build"
+        timeout_seconds: 900
+        verify_status: DOCUMENTED
+        note: "Wrapped by canonical/tools/frontend-build.yaml."
+
+  # -------------------------------------------------------------------------
+  # The forge repo itself. Simpler, and that simplicity lives here as fewer
+  # rows — not as a second set of scripts.
+  # -------------------------------------------------------------------------
+  python_cli:
+    description: "erpnext-ai-forge — a Typer CLI plus Jinja templates."
+
+    file_lint:
+      - id: python-lint
+        match: "*.py"
+        cmd: "uv run --project forge ruff check --fix {file}"
+        verify_status: VERIFIED
+
+    typecheck:
+      - id: mypy
+        cmd: "uv run --project forge mypy forge/src/forge"
+        timeout_seconds: 120
+        verify_status: VERIFIED
+
+    quick:
+      - id: ruff
+        cmd: "uv run --project forge ruff check forge/src"
+        verify_status: VERIFIED
+      - id: mypy
+        cmd: "uv run --project forge mypy forge/src/forge"
+        verify_status: VERIFIED
+      - id: forge-validate
+        cmd: "uv run --project forge forge validate --no-check-drift"
+        verify_status: VERIFIED
+        note: >-
+          --no-check-drift matters: validate's default reads the BENCH, and a
+          hook in this repo must not depend on a bench being present.
+
+    full:
+      - id: pytest
+        cmd: "uv run --project forge pytest forge/tests -q"
+        timeout_seconds: 600
+        verify_status: VERIFIED
+      - id: forge-score
+        cmd: "uv run --project forge forge score --path canonical/ --fail-below 80"
+        verify_status: VERIFIED

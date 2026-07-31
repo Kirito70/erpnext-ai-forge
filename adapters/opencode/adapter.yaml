@@ -14,6 +14,15 @@ tool: opencode
 adapter_version: 0.2.0
 
 capabilities:
+  hooks: true
+  hook_events:
+    file_edit:
+      native: "tool.execute.after"
+      matcher: "write|edit|patch|multiedit"
+    # No session_stop: opencode's plugin API has no end-of-session event, so
+    # the Stop gate is instruction-level here (AGENTS-HARNESS.md). Claiming one
+    # that does not fire would be worse than admitting the gap.
+
   agents: true                  # native — .opencode/agents/<id>.md
   subagents: true               # OpenCode supports agent-as-persona switching
   slash_commands: true          # native — .opencode/commands/<id>.md
@@ -29,11 +38,21 @@ output_paths:
   commands_dir: "{{ output_paths.opencode_root }}/commands"
   skills_dir: "{{ output_paths.opencode_root }}/skills"
   tools_dir: "{{ output_paths.opencode_root }}/tools"
+  plugin_dir: "{{ output_paths.opencode_root }}/plugin"
+  harness_plugin: "{{ output_paths.plugin_dir }}/harness.js"
 
 limits:
   max_total_chars: null         # no monolithic cap; per-file render keeps each file small
 
 artifacts:
+  # opencode has no native hook config; it loads a plugin module instead. The
+  # plugin calls the SAME scripts/harness/* the other tools call — it is another
+  # way of firing the harness, not a second harness.
+  hook_wiring:
+    strategy: hook_wiring
+    template: harness-plugin.js.j2
+    output: "{{ output_paths.harness_plugin }}"
+
   # Bench-root AGENTS-TICKETING.md — the full vault/ticketing + brain contract,
   # rendered from the SHARED template so all seven tools ship the same text.
   # Kept out of the root instruction file on purpose: root files are read every
@@ -42,6 +61,16 @@ artifacts:
     strategy: aggregate
     template: ticketing-and-memory.md.j2
     output: "{{ output_paths.bench_root }}/AGENTS-TICKETING.md"
+
+  harness_doc:
+    strategy: aggregate
+    template: harness-and-gates.md.j2
+    output: "{{ output_paths.bench_root }}/AGENTS-HARNESS.md"
+
+  operating_manual_doc:
+    strategy: aggregate
+    template: operating-manual.md.j2
+    output: "{{ output_paths.bench_root }}/AGENTS-OPERATING-MANUAL.md"
 
   # Bench-root AGENTS.md — now a slim INDEX pointing at the .opencode/ tree
   # rather than the v0.1.0 aggregate that inlined everything. OpenCode reads

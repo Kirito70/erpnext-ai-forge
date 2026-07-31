@@ -29,6 +29,16 @@ artifacts:
     template: ticketing-and-memory.md.j2
     output: "{{ output_paths.bench_root }}/AGENTS-TICKETING.md"
 
+  harness_doc:
+    strategy: aggregate
+    template: harness-and-gates.md.j2
+    output: "{{ output_paths.bench_root }}/AGENTS-HARNESS.md"
+
+  operating_manual_doc:
+    strategy: aggregate
+    template: operating-manual.md.j2
+    output: "{{ output_paths.bench_root }}/AGENTS-OPERATING-MANUAL.md"
+
   forge_main:
     strategy: aggregate
     template: 00-forge-main.md.j2
