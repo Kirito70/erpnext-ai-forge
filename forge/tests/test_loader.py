@@ -37,6 +37,9 @@ def test_load_agents(repo_root):
         "security-reviewer",
         "qa-test-engineer",
         "devops-deployment",
+        "ticket-refiner",
+        "code-reviewer",
+        "frappe-framework-reviewer",
     }
 
 
@@ -49,16 +52,16 @@ def test_architect_is_foundational(repo_root):
     assert architect.body.strip()  # body is non-empty
 
 
-def test_load_commands_returns_17(repo_root):
+def test_load_commands_returns_21(repo_root):
     commands = load_commands(repo_root)
-    assert len(commands) == 17
+    assert len(commands) == 21  # +write-ticket, +refine-ticket, +ticket-review, +gap-ticket
     expected_subset = {"scaffold-doctype", "review-security", "forge-sync"}
     assert expected_subset <= {c.id for c in commands}
 
 
-def test_load_skills_returns_30(repo_root):
+def test_load_skills_returns_31(repo_root):
     skills = load_skills(repo_root)
-    assert len(skills) == 30
+    assert len(skills) == 31  # +meta/ticket-authoring-guide
     # Every skill has a domain inferred from parent dir
     domains = {s.domain for s in skills}
     assert "frappe-core" in domains
@@ -69,7 +72,12 @@ def test_load_skills_returns_30(repo_root):
 def test_load_policies(repo_root):
     policies = load_policies(repo_root)
     ids = {p.id for p in policies}
-    assert ids == {"review-protocol", "escalation-rules", "governance"}
+    assert ids == {
+        "review-protocol", "escalation-rules", "governance",
+        # Moved out of adapters/_shared/templates/ so they get versioning,
+        # scoring, validation and deprecation like every other artifact.
+        "ticketing-contract", "operating-manual", "definition-of-done",
+    }
 
 
 def test_load_security_scoring_yaml(repo_root):

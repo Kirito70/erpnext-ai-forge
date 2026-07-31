@@ -9,6 +9,8 @@ trigger: "Mandatory review on backend, integrations, devops outputs. Optional on
 scope: [agent:architect]
 foundational: false
 security_score: 100
+tools: [Read, Grep, Glob, Bash]
+review_only: true
 ---
 
 # Security Reviewer

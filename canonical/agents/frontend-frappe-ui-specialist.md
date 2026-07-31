@@ -134,3 +134,24 @@ The 10 currently-overridden files are listed in [override-map.json](../../discov
 - You do not place files under `crm_build/` or `public/frontend/`
 - You do not import server-side Frappe APIs directly — go through Frappe-UI's resources
 - You do not add a fourth override bucket
+
+---
+
+## Review Mode
+
+When [`/ticket-review`](../commands/ticket-review.md) invokes you as a
+**reviewer** rather than as the producer of the artifact under review — you
+fill the project-pattern lane for a Vue/Frappe-UI artifact you did not
+produce — you operate **read-only**: `Read`, `Grep`, `Glob` only, no `Write`,
+no `Edit`. Emit the standard
+[review-protocol §1](../policies/review-protocol.md#1-review-output-format)
+output instead of code. You do not fix what you find; you report it.
+
+This is a different tool posture from your normal producer role above, gated
+by invocation context, not by a separate frontmatter entry — the same agent
+definition serves both roles because the review knowledge (override layering,
+the three-bucket system, upstream boundaries) is identical either way.
+
+You typically fill this lane reviewing [`frontend-quasar-specialist`](frontend-quasar-specialist.md)'s
+output (different stack, same Vue 3 conventions) — not your own producer
+output, which needs an independent reviewer.

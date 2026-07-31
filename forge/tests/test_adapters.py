@@ -39,7 +39,7 @@ def test_cursor_renders_main_plus_per_app(repo_root):
     rendered = render(repo_root, "cursor")
     summary = render_summary(rendered)
     # 1 forge-main.mdc + one .mdc per managed app + the shared AGENTS-TICKETING.md
-    assert summary.get("aggregate") == 2 + _managed_app_count(repo_root)
+    assert summary.get("aggregate") == 4 + _managed_app_count(repo_root)
     main = next(r for r in rendered if r.artifact_id == "aggregate/forge_main")
     # Must respect the 40k char budget
     assert len(main.content) < 40_000, f"forge-main.mdc {len(main.content)} chars exceeds 40k budget"
@@ -60,11 +60,11 @@ def test_opencode_renders_full_artifact_set(repo_root):
     summary = render_summary(rendered)
     # Same counts as Claude Code (8 agents + 17 commands + 30 skills + 14 tools)
     # plus a single AGENTS.md index aggregate.
-    assert summary.get("agent") == 8
-    assert summary.get("command") == 17
-    assert summary.get("skill") == 30
+    assert summary.get("agent") == 11
+    assert summary.get("command") == 21
+    assert summary.get("skill") == 31
     assert summary.get("tool") == 14
-    assert summary.get("aggregate") == 2   # AGENTS.md index + AGENTS-TICKETING.md
+    assert summary.get("aggregate") == 4   # AGENTS.md index + the three shared bench-root docs
     # AGENTS.md is the bench-root index
     agents_md = next(r for r in rendered if r.artifact_id == "aggregate/forge_agents_index")
     assert agents_md.output_path.name == "AGENTS.md"
@@ -95,7 +95,7 @@ def test_cline_renders_main_plus_per_app(repo_root):
     rendered = render(repo_root, "cline")
     summary = render_summary(rendered)
     # 1 main + one per managed app + the shared AGENTS-TICKETING.md
-    assert summary.get("aggregate") == 2 + _managed_app_count(repo_root)
+    assert summary.get("aggregate") == 4 + _managed_app_count(repo_root)
     main = next(r for r in rendered if r.artifact_id == "aggregate/forge_main")
     assert len(main.content) < 35_000, "00-forge-main.md exceeds 35k budget"
     assert main.output_path.name == "00-forge-main.md"
@@ -110,7 +110,7 @@ def test_copilot_renders_main_plus_per_app(repo_root):
     rendered = render(repo_root, "copilot")
     summary = render_summary(rendered)
     # 1 main + one per managed app + the shared AGENTS-TICKETING.md
-    assert summary.get("aggregate") == 2 + _managed_app_count(repo_root)
+    assert summary.get("aggregate") == 4 + _managed_app_count(repo_root)
     main = next(r for r in rendered if r.artifact_id == "aggregate/copilot_instructions")
     assert len(main.content) < 30_000, "copilot-instructions.md exceeds 30k budget"
     assert main.output_path.name == "copilot-instructions.md"
@@ -126,8 +126,9 @@ def test_copilot_renders_main_plus_per_app(repo_root):
 # ---------------------------------------------------------------------------
 def test_codex_renders_single_aggregate(repo_root):
     rendered = render(repo_root, "codex")
-    # The root instruction file plus the shared AGENTS-TICKETING.md it points at.
-    assert len(rendered) == 2
+    # Root instruction file + the three shared docs it points at
+    # (AGENTS-TICKETING.md, AGENTS-HARNESS.md, AGENTS-OPERATING-MANUAL.md).
+    assert len(rendered) == 4
     out = next(r for r in rendered if r.output_path.name == "AGENTS.codex.md")
     assert len(out.content) < 20_000, "AGENTS.codex.md exceeds 20k budget"
 
@@ -137,8 +138,9 @@ def test_codex_renders_single_aggregate(repo_root):
 # ---------------------------------------------------------------------------
 def test_antigravity_renders_minimal_aggregate(repo_root):
     rendered = render(repo_root, "antigravity")
-    # The root instruction file plus the shared AGENTS-TICKETING.md it points at.
-    assert len(rendered) == 2
+    # Root instruction file + the three shared docs + .agents/hooks.json, which
+    # is antigravity's native Stop-hook wiring.
+    assert len(rendered) == 5
     out = next(r for r in rendered if r.output_path.name == "system.md")
     # Minimal target: respect 15k budget
     assert len(out.content) < 15_000, "system.md exceeds 15k budget"

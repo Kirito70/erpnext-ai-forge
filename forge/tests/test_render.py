@@ -26,9 +26,9 @@ def test_render_claude_code_produces_artifacts(repo_root):
     rendered = render(repo_root, "claude-code")
     summary = render_summary(rendered)
 
-    assert summary.get("agent") == 8
-    assert summary.get("command") == 17
-    assert summary.get("skill") == 30
+    assert summary.get("agent") == 11
+    assert summary.get("command") == 21
+    assert summary.get("skill") == 31
     assert summary.get("tool") == 14
     assert summary.get("aggregate") >= 1  # root CLAUDE.md + per-app CLAUDE.md files
 
