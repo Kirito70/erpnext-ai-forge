@@ -54,6 +54,11 @@ discovery/data/*.private.json
 # Staging dir used by `forge sync --all`
 .forge-staging/
 
+# Pre-merge snapshot of settings.json, taken fresh before every settings merge
+# (see forge/src/forge/settings_merge.py). Recreated on every sync that
+# touches settings.json, so tracking it would be permanent commit noise.
+*.forge-backup
+
 # Throwaway bench CI and `forge diff` render against. Today it holds only the
 # ignored staging dir, so git happens not to see it — that stops being true the
 # moment a sync writes a real file there.

@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# AUTO-GENERATED FROM erpnext-ai-forge 0.1.0 — DO NOT EDIT
+# Source: canonical/harness/scripts/hook-posttooluse.sh.j2
+# Target: self (python_cli)
+#
+# Reads a hook payload on stdin, extracts the edited file path, lints it.
+# Exit 2 = blocking: the tool feeds our stderr back to the model.
+
+set -euo pipefail
+# shellcheck source=/dev/null
+. "$(dirname -- "${BASH_SOURCE[0]}")/common.sh"
+
+INPUT="$(cat || true)"
+[ -n "$INPUT" ] || exit 0
+
+# Find a python to parse the payload with. `python3` on Windows may be the
+# Store stub, which exits 9009 without reading stdin — so probe by running it,
+# not by checking that the name resolves.
+PY=""
+for candidate in python3 python py; do
+  if command -v "$candidate" >/dev/null 2>&1 \
+     && "$candidate" -c 'print(1)' >/dev/null 2>&1; then
+    PY="$candidate"
+    break
+  fi
+done
+[ -n "$PY" ] || exit 0   # no interpreter: stay silent rather than block on noise
+
+# Parse to NEWLINE-SEPARATED values and read them with `IFS= read -r`.
+#
+# Deliberately NOT evaluating the parser's output as shell. Hook stdin is
+# model-controlled text, so evaluating anything derived from it is arbitrary
+# code execution in the developer's shell on every single edit. The
+# D-SHELL-EVAL-SUBSHELL deduction exists to keep that from creeping back in —
+# and it fires on a comment that merely spells the construct out, which is why
+# this note describes it in words instead.
+#
+# Tools disagree on the payload shape, so accept every spelling seen in the
+# wild rather than assuming one.
+PARSED="$(printf '%s' "$INPUT" | "$PY" -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    print(); print(); raise SystemExit(0)
+ti = d.get("tool_input") or d.get("toolInput") or d.get("params") or {}
+path = ""
+for k in ("file_path", "filePath", "notebook_path", "notebookPath", "path", "absolute_path"):
+    v = ti.get(k) or d.get(k)
+    if v:
+        path = str(v); break
+print(path)
+print(d.get("session_id") or d.get("sessionId") or "")
+' 2>/dev/null || printf '\n\n')"
+
+FILE=""
+SESSION=""
+{
+  IFS= read -r FILE || true
+  IFS= read -r SESSION || true
+} <<EOF
+$PARSED
+EOF
+
+[ -n "$FILE" ] || exit 0
+[ -f "$FILE" ] || exit 0
+
+export FORGE_SESSION_ID="${SESSION:-nosession}"
+
+# Mark the session dirty so the Stop gate knows there is something to check.
+# A read-only or docs-only session never gets marked and so ends instantly.
+mark_dirty
+
+HARNESS="$(dirname -- "${BASH_SOURCE[0]}")"
+
+# The sentinel set in common.sh would make the child scripts exit 0 immediately,
+# so clear it for them: this process is the hook, they are the work.
+unset FORGE_HARNESS_ACTIVE
+
+status=0
+"$HARNESS/check-file.sh" "$FILE" || status=$?
+
+# Advisory, and deliberately not allowed to change the exit code.
+"$HARNESS/typecheck.sh" || true
+
+if [ "$status" -ne 0 ]; then
+  exit 2   # blocking: stderr is returned to the model
+fi
+exit 0

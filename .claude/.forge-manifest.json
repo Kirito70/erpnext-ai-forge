@@ -1,0 +1,20 @@
+{
+  "adapter": {
+    "name": "claude-code",
+    "version": "0.1.0"
+  },
+  "outputs": [],
+  "rendered_at": "2026-07-31T22:53:18.229392+00:00",
+  "rendered_by": "forge 0.1.0",
+  "schema_version": 2,
+  "source_commit": "46344089a11969d4e9a33c5d9b3e1528f01c8989",
+  "source_files": [
+    {
+      "adapter": "claude-code",
+      "path": "canonical/harness/harness.yaml",
+      "sha256": "48f2a9dcd4bec0d4cd2585bd8b969a98f594db2e5f64b69e8f8ce8ebcd6066b3",
+      "version": "1.0.0"
+    }
+  ],
+  "source_repo": "erpnext-ai-forge"
+}

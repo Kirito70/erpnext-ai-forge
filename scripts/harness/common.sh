@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# AUTO-GENERATED FROM erpnext-ai-forge 0.1.0 — DO NOT EDIT
+# Source: canonical/harness/scripts/common.sh.j2
+# Target: self (python_cli)
+#
+# Sourced, not executed. Every function here is stack-agnostic; the commands
+# they run are inlined into the calling script at render time.
+
+set -euo pipefail
+
+# The repo this harness governs. Resolved from the script's own location so it
+# is correct no matter where the agent's cwd happens to be — hooks fire with an
+# unpredictable cwd, and a relative guess silently lints the wrong tree.
+HARNESS_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$HARNESS_DIR/../.." && pwd)"
+export REPO_ROOT
+
+# Re-entrancy guard. `check-file` runs a formatter that WRITES to the file it
+# was called about, which in some tools re-triggers the same edit hook. Without
+# this the second invocation edits again and the loop does not terminate.
+# Also read by `forge sync --target self`, which refuses to rewrite scripts
+# while one of them is executing.
+if [ -n "${FORGE_HARNESS_ACTIVE:-}" ]; then
+  exit 0
+fi
+export FORGE_HARNESS_ACTIVE=1
+
+# Cap on echoed output. A hook's stdout goes into the model's context; an
+# unbounded lint dump costs more than the failure it reports.
+HARNESS_MAX_LINES="${HARNESS_MAX_LINES:-40}"
+
+cap() {
+  local n="${1:-$HARNESS_MAX_LINES}"
+  awk -v max="$n" '
+    { lines[NR] = $0 }
+    END {
+      start = (NR > max) ? NR - max + 1 : 1
+      if (start > 1) print "… " (start - 1) " earlier line(s) omitted"
+      for (i = start; i <= NR; i++) print lines[i]
+    }'
+}
+
+# Timeout wrapper. A hook that hangs is worse than one that fails: the agent
+# waits forever with no signal. Falls back to running bare where no timeout
+# binary exists (macOS without coreutils) rather than refusing to run.
+run_to() {
+  local secs="$1"; shift
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$secs" "$@"
+  elif command -v gtimeout >/dev/null 2>&1; then
+    gtimeout "$secs" "$@"
+  else
+    "$@"
+  fi
+}
+
+# --- session dirty marker --------------------------------------------------
+# The Stop gate is the expensive one. A session that only read files, or only
+# touched docs, should pay nothing to end. So an edit hook marks the session
+# dirty and the Stop hook exits immediately when the marker is absent.
+#
+# Keyed by repo path AND session id: two agents in two checkouts must not share
+# a marker, or one clearing it lets the other end on red.
+_marker_path() {
+  local key
+  key="$(printf '%s' "$REPO_ROOT" | cksum | tr -d ' \t' )"
+  printf '%s/forge-harness-%s-%s.dirty' \
+    "${TMPDIR:-/tmp}" "$key" "${FORGE_SESSION_ID:-nosession}"
+}
+
+mark_dirty()  { : > "$(_marker_path)"; }
+is_dirty()    { [ -f "$(_marker_path)" ]; }
+clear_dirty() { rm -f "$(_marker_path)"; }
+
+# --- path helpers ----------------------------------------------------------
+# `apps/<app>/…` -> the app directory. Frontend tooling has to run from inside
+# the app that owns the file; running `yarn lint` from the bench root either
+# fails or, worse, lints a different app.
+# Prints nothing when the path is not under apps/, which callers treat as
+# "no app context".
+_app_dir_of() {
+  local path="$1" rel
+  case "$path" in
+    /*) rel="${path#"$REPO_ROOT"/}" ;;
+    *)  rel="$path" ;;
+  esac
+  case "$rel" in
+    apps/*/*) printf '%s/apps/%s' "$REPO_ROOT" "$(printf '%s' "${rel#apps/}" | cut -d/ -f1)" ;;
+    *)        printf '' ;;
+  esac
+}
+
+# `apps/<app>/…` -> the app name, for gates that take --app.
+_app_of() {
+  local d
+  d="$(_app_dir_of "$1")"
+  [ -n "$d" ] && basename "$d" || printf ''
+}
+
+# --- reporting -------------------------------------------------------------
+# Hook stdout is read by a model, not a person. State the file, the command,
+# and what to do — never just "failed".
+fail_block() {
+  local what="$1"
+  printf '\n[harness] %s\n' "$what" >&2
+  printf '[harness] Fix this before continuing. The edit is not accepted yet.\n' >&2
+}
+
+note() { printf '[harness] %s\n' "$1" >&2; }
