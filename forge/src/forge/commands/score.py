@@ -26,7 +26,9 @@ def _staged_files(repo_root: Path) -> list[Path]:
     paths: list[Path] = []
     for line in result.stdout.splitlines():
         candidate = repo_root / line
-        if candidate.is_file() and candidate.suffix in {".md", ".yaml", ".yml", ".py", ".j2"}:
+        if candidate.is_file() and candidate.suffix in {
+            ".md", ".yaml", ".yml", ".py", ".j2", ".sh", ".bash",
+        }:
             paths.append(candidate)
     return paths
 

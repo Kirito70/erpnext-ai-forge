@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -31,6 +31,39 @@ class ManifestEntry:
     path: str        # relative to the canonical repo root
     version: str
     sha256: str
+    mode: int | None = None
+    """POSIX permission bits forge wrote, when it pinned them (harness scripts).
+
+    Optional and defaulted on purpose. Adding it does NOT bump
+    MANIFEST_SCHEMA_VERSION: `read_manifest` returns None on a version
+    mismatch, and `detect_hand_edits` reads "no manifest record" as "unmanaged,
+    adopt it" — so a bump would make every file in the bench look unmanaged and
+    silently discard one full round of hand-edit protection. An optional field
+    parses old manifests unchanged, which is the whole point.
+    """
+    adapter: str | None = None
+    """Which adapter rendered this row.
+
+    Several adapters legitimately write into the same directory — all seven
+    emit bench-root `AGENTS-TICKETING.md`. Without per-row ownership a merge
+    cannot tell "another adapter still owns this" from "I used to render this
+    and no longer do", so it could neither preserve the first nor retire the
+    second. See `merge_manifest`.
+    """
+
+    def to_dict(self) -> dict[str, Any]:
+        # Omit optional fields when unset so manifests for the existing
+        # Markdown/JSON artifacts stay byte-identical to previous versions.
+        d: dict[str, Any] = {
+            "path": self.path,
+            "version": self.version,
+            "sha256": self.sha256,
+        }
+        if self.mode is not None:
+            d["mode"] = self.mode
+        if self.adapter is not None:
+            d["adapter"] = self.adapter
+        return d
 
 
 @dataclass
@@ -50,8 +83,8 @@ class Manifest:
             "schema_version": self.schema_version,
             "source_repo": self.source_repo,
             "source_commit": self.source_commit,
-            "source_files": [asdict(e) for e in self.source_files],
-            "outputs": [asdict(e) for e in self.outputs],
+            "source_files": [e.to_dict() for e in self.source_files],
+            "outputs": [e.to_dict() for e in self.outputs],
             "adapter": {
                 "name": self.adapter_name,
                 "version": self.adapter_version,
@@ -95,6 +128,50 @@ def write_manifest(directory: Path, manifest: Manifest) -> Path:
     tmp.write_text(json.dumps(manifest.to_dict(), indent=2, sort_keys=True) + "\n")
     tmp.replace(target)
     return target
+
+
+def merge_manifest(existing: Manifest | None, incoming: Manifest) -> Manifest:
+    """Fold `incoming` into `existing`, preserving other adapters' rows.
+
+    Each `sync_tool` call used to write the manifest for its own adapter only,
+    which meant the last adapter to sync a shared directory erased every other
+    adapter's record of what it had written there. Those adapters then lost
+    hand-edit protection on their files: with no manifest row,
+    `detect_hand_edits` treats a file as unmanaged and the next sync silently
+    overwrites whatever the human put there.
+
+    The merge rule follows ownership. Rows belonging to `incoming.adapter_name`
+    are replaced wholesale — so a file that adapter no longer renders correctly
+    disappears from the manifest. Rows belonging to any other adapter are kept
+    untouched. Legacy rows with no `adapter` are attributed to the incoming
+    adapter, because before this function existed a manifest only ever
+    contained one adapter's rows anyway.
+    """
+    if existing is None:
+        return incoming
+
+    owner = incoming.adapter_name
+
+    def _fold(
+        old: list[ManifestEntry], new: list[ManifestEntry]
+    ) -> list[ManifestEntry]:
+        kept = [e for e in old if (e.adapter or owner) != owner]
+        by_path = {e.path: e for e in kept}
+        for e in new:
+            by_path[e.path] = e
+        return sorted(by_path.values(), key=lambda e: e.path)
+
+    return Manifest(
+        schema_version=incoming.schema_version,
+        source_repo=incoming.source_repo,
+        source_commit=incoming.source_commit,
+        source_files=_fold(existing.source_files, incoming.source_files),
+        outputs=_fold(existing.outputs, incoming.outputs),
+        adapter_name=owner,
+        adapter_version=incoming.adapter_version,
+        rendered_at=incoming.rendered_at,
+        rendered_by=incoming.rendered_by,
+    )
 
 
 def read_manifest(directory: Path) -> Manifest | None:

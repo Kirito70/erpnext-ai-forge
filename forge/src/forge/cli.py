@@ -21,6 +21,7 @@ from forge.commands import (
     discover as discover_cmd,
     render as render_cmd,
     score as score_cmd,
+    skills as skills_cmd,
     stats as stats_cmd,
     sync as sync_cmd,
     test as test_cmd,
@@ -175,9 +176,29 @@ def sync(
         help="Write into apps whose git remote is not ours without asking. "
         "Without it, an unattended run skips them.",
     ),
+    target: Optional[str] = typer.Option(
+        None,
+        "--target",
+        help="Which repo to render into: 'bench' (default) or 'self' (this repo).",
+    ),
+    all_targets: bool = typer.Option(
+        False,
+        "--all-targets",
+        help="Sync every declared target, each with its own enabled_tools.",
+    ),
+    prune_harness: bool = typer.Option(
+        False,
+        "--prune-harness",
+        help="Delete harness scripts the render no longer produces. Opt-in: the "
+             "swap never deletes, so an orphaned script would otherwise linger.",
+    ),
 ) -> None:
-    """Render and sync canonical artifacts into the bench (transactional per file)."""
-    sync_cmd.run(tool=tool, all_tools=all_tools, dry_run=dry_run, justify=justify, assume_yes=yes)
+    """Render and sync canonical artifacts into a target (transactional per file)."""
+    sync_cmd.run(
+        tool=tool, all_tools=all_tools, dry_run=dry_run, justify=justify,
+        assume_yes=yes, target=target, all_targets=all_targets,
+        prune_harness_dir=prune_harness,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -243,6 +264,27 @@ def apps_remove(
 ) -> None:
     """Stop writing per-app files into these apps (third-party repos, usually)."""
     raise typer.Exit(apps_cmd.run_remove(names, prune=prune))
+
+
+# ---------------------------------------------------------------------------
+# skills
+# ---------------------------------------------------------------------------
+skills_app = typer.Typer(
+    help="Skills provenance lockfile — detect unreviewed drift in external skills.",
+)
+app.add_typer(skills_app, name="skills")
+
+
+@skills_app.command("verify")
+def skills_verify() -> None:
+    """Verify every provenance: external skill against canonical/skills-lock.json."""
+    skills_cmd.run_verify()
+
+
+@skills_app.command("list")
+def skills_list() -> None:
+    """List every skill with its provenance (internal/external)."""
+    skills_cmd.run_list()
 
 
 # ---------------------------------------------------------------------------
@@ -403,17 +445,35 @@ def deprecate(
         console.print(
             f"  supersedes: set on {result.superseded_by_path.relative_to(repo_root)}"
         )
-    console.print(f"\n[cyan]Suggested CHANGELOG line:[/cyan]")
+    console.print("\n[cyan]Suggested CHANGELOG line:[/cyan]")
     console.print(f"  {result.changelog_line}")
 
 
 @app.command()
 def diff(
-    tool: str = typer.Option(..., "--tool"),
+    tool: str = typer.Option(..., "--tool", help="Adapter to diff, e.g. claude-code"),
+    content: bool = typer.Option(
+        True, "--content/--no-content", help="Show the unified diff body, not just the file list"
+    ),
+    unchanged: bool = typer.Option(
+        False, "--unchanged", help="Also list files that would not change"
+    ),
+    target: Optional[str] = typer.Option(
+        None, "--target", help="Which repo to diff against: 'bench' (default) or 'self'."
+    ),
 ) -> None:
-    """Show what `forge sync --tool <tool>` would change in the bench."""
-    console.print(f"[yellow]not yet implemented[/yellow] — would diff for tool={tool}")
-    raise typer.Exit(code=0)
+    """Show what `forge sync --tool <tool>` would change. Writes nothing.
+
+    Worth running before any sync you cannot easily eyeball afterwards — the
+    settings.json merge and the executable hook scripts in particular.
+    """
+    from forge.commands import diff as diff_cmd
+
+    raise typer.Exit(
+        code=diff_cmd.run(
+            tool, show_content=content, show_unchanged=unchanged, target=target
+        )
+    )
 
 
 if __name__ == "__main__":

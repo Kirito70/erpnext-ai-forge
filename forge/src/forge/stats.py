@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import json
 import statistics
-from collections import Counter, defaultdict
-from dataclasses import dataclass, field, asdict
+from collections import Counter
+from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any

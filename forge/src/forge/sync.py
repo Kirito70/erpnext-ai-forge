@@ -16,19 +16,28 @@ import shutil
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from rich.console import Console
 from rich.prompt import Confirm
 
 from forge.audit import audit_log
-from forge.loader import find_repo_root, load_adapter_config, load_forge_config
+from forge.loader import (
+    find_repo_root,
+    load_adapter_config,
+    load_forge_config,
+    load_target,
+    load_targets,
+)
 from forge.manifest import (
     ManifestEntry,
     build_manifest,
+    merge_manifest,
     read_manifest,
     sha256_text,
     write_manifest,
 )
+from forge.models import Target
 from forge.render import RenderedArtifact, render
 from forge.repo import is_foreign, owner_of_app
 from forge.scoring import Finding, score_file
@@ -54,11 +63,20 @@ class SyncResult:
 
 
 def _stage_artifacts(
-    rendered: list[RenderedArtifact], staging_root: Path, tool: str
+    rendered: list[RenderedArtifact],
+    staging_root: Path,
+    tool: str,
+    target_root: Path | None = None,
 ) -> Path:
     """Write rendered artifacts into staging directory.
 
     Returns the per-tool staging root (e.g., <bench>/.forge-staging/claude-code/).
+
+    `target_root` is authoritative when given. Without it the root is *inferred*
+    by looking for an `apps/` directory or an existing `.claude` — which works
+    for a populated bench and fails for a repo receiving its first sync, because
+    neither marker exists yet. The inferred fallback then produced staging paths
+    like `.forge-staging/claude-code/Work/Projects/...`.
     """
     tool_staging = staging_root / tool
     if tool_staging.exists():
@@ -67,10 +85,10 @@ def _stage_artifacts(
 
     for r in rendered:
         _assert_resolved_output_path(r)
-        # Recreate the bench-relative structure inside staging
-        # by computing the relative path from the bench root.
+        # Recreate the target-relative structure inside staging.
         try:
-            bench_relative = r.output_path.relative_to(_bench_root_from(r))
+            root = target_root or _bench_root_from(r)
+            bench_relative = r.output_path.relative_to(root)
         except (ValueError, RuntimeError) as exc:
             # Previously this fell back to `Path(r.output_path.name)`, which
             # drops every directory component and stages the file at the tool
@@ -87,6 +105,10 @@ def _stage_artifacts(
         staged_path = tool_staging / bench_relative
         staged_path.parent.mkdir(parents=True, exist_ok=True)
         staged_path.write_text(r.content)
+        if r.mode is not None:
+            # Set it here, not just at swap time, so `ls -l` on the staging dir
+            # tells the truth about what is going to land.
+            staged_path.chmod(r.mode)
 
     return tool_staging
 
@@ -163,7 +185,7 @@ class GateOutcome:
 def _security_gate(
     repo_root: Path,
     rendered: list[RenderedArtifact],
-    forge_cfg: dict,
+    forge_cfg: dict[str, Any],
     justify: str | None,
 ) -> GateOutcome:
     """Score every CANONICAL source contributing to this render. Block if
@@ -217,6 +239,84 @@ def _security_gate(
     )
 
 
+SETTINGS_FRAGMENT_KIND = "settings-fragment"
+
+
+def _settings_fragments(rendered: list[RenderedArtifact]) -> list[RenderedArtifact]:
+    return [r for r in rendered if r.artifact_kind == SETTINGS_FRAGMENT_KIND]
+
+
+def _merge_settings_fragments(
+    rendered: list[RenderedArtifact],
+) -> tuple[list[Path], list[ScalarConflict], Path | None]:
+    """Merge forge's settings fragments into the target's settings.json.
+
+    This is the one artifact that must NOT go through the atomic swap. Every
+    other output is forge's to own outright; settings.json is shared — it holds
+    permissions and hooks a human added and forge never wrote. Overwriting it
+    would silently delete their work on every sync.
+
+    So the fragment is rendered, scored and staged like anything else (the
+    evidence trail matters for incident response), but landed by deep-merging
+    into whatever is already on disk, after taking a `.forge-backup`.
+
+    Until now `merge_settings_json` and `write_settings_with_backup` existed but
+    were never called from anywhere, which quietly made
+    `sync.backup_claude_settings: true` in forge.config.yaml untrue.
+    """
+    written: list[Path] = []
+    conflicts: list[ScalarConflict] = []
+    backup: Path | None = None
+
+    by_path: dict[Path, list[dict[str, Any]]] = {}
+    for frag in _settings_fragments(rendered):
+        try:
+            parsed = json.loads(frag.content)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"{frag.tool}: settings fragment '{frag.artifact_id}' is not valid "
+                f"JSON ({exc}). Check the adapter's wiring template."
+            ) from exc
+        by_path.setdefault(frag.output_path, []).append(parsed)
+
+    for path, fragments in by_path.items():
+        merged, path_conflicts = merge_settings_json(path, fragments)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        this_backup = write_settings_with_backup(path, merged)
+        backup = backup or this_backup
+        conflicts.extend(path_conflicts)
+        written.append(path)
+
+    return written, conflicts, backup
+
+
+def prune_harness(
+    rendered: list[RenderedArtifact], target_root: Path, harness_dir: Path
+) -> list[Path]:
+    """Delete files under `harness_dir` that this render no longer produces.
+
+    The swap never deletes, so a script removed from canonical stays in the
+    target and keeps running — a hook nobody can find the source of.
+
+    Deliberately opt-in (`--prune-harness`) rather than automatic. Deleting
+    files in someone's repo because a render came out shorter than last time is
+    exactly the kind of surprise that costs trust in the tool, and the failure
+    mode without pruning is mild: the wiring file is the only thing that invokes
+    these scripts, so an orphan is inert.
+    """
+    if not harness_dir.is_dir():
+        return []
+    expected = {
+        r.output_path.name for r in rendered if r.artifact_kind == "harness-script"
+    }
+    removed: list[Path] = []
+    for path in sorted(harness_dir.iterdir()):
+        if path.is_file() and path.name not in expected:
+            path.unlink()
+            removed.append(path)
+    return removed
+
+
 def _swap_into_bench(
     tool_staging: Path, bench_root: Path, protected: set[Path] | None = None
 ) -> list[Path]:
@@ -238,6 +338,12 @@ def _swap_into_bench(
         target.parent.mkdir(parents=True, exist_ok=True)
         tmp = target.with_suffix(target.suffix + ".tmp")
         tmp.write_text(staged_path.read_text())
+        # Carry the staged mode across, and set it on the temp file *before* the
+        # rename. Chmod-after-rename leaves a window where the file is live but
+        # still 0644 — a hook firing in that window fails with "permission
+        # denied". Setting it first keeps the swap genuinely atomic: the file
+        # appears at its final path already executable.
+        tmp.chmod(staged_path.stat().st_mode & 0o777)
         tmp.replace(target)
         written.append(target)
     return written
@@ -297,7 +403,10 @@ def _app_of_output(path: Path) -> str | None:
 
 
 def foreign_app_targets(
-    rendered: list[RenderedArtifact], bench_root: Path, forge_cfg: dict
+    rendered: list[RenderedArtifact],
+    bench_root: Path,
+    forge_cfg: dict[str, Any],
+    target: Target | None = None,
 ) -> dict[str, str]:
     """{app: owner} for per-app outputs whose repo belongs to someone else.
 
@@ -306,7 +415,16 @@ def foreign_app_targets(
     list without checking whose repo it is, which is exactly the mistake worth
     catching before files appear in a third party's working tree.
     """
-    owned = set((forge_cfg.get("bench") or {}).get("owned_remotes") or [])
+    if target is not None and target.self_target:
+        # We are running inside this repo. Ownership is not the question, and
+        # prompting about it would be noise on every self-sync.
+        return {}
+
+    owned = set(
+        (target.owned_remotes if target is not None else None)
+        or (forge_cfg.get("bench") or {}).get("owned_remotes")
+        or []
+    )
     if not owned:
         return {}
 
@@ -394,26 +512,26 @@ def sync_tool(
     dry_run: bool = False,
     justify: str | None = None,
     assume_yes: bool = False,
+    target: Target | None = None,
+    prune_harness_dir: bool = False,
 ) -> SyncResult:
-    """Sync a single tool. Renders, stages, validates, swaps."""
+    """Sync a single tool into one target. Renders, stages, validates, swaps."""
     result = SyncResult(tool=tool)
     try:
         forge_cfg = load_forge_config(repo_root)
-        bench_root = Path(
-            forge_cfg["bench"]["path"].replace(
-                "{{ env.FORGE_BENCH_PATH }}",
-                __import__("os").environ.get("FORGE_BENCH_PATH", ""),
-            )
-        )
+        target = target or load_target(repo_root, forge_cfg=forge_cfg)
+        bench_root = target.root
         if not bench_root or not bench_root.is_dir():
             raise FileNotFoundError(
-                f"Bench path not found: {bench_root!r}. Set FORGE_BENCH_PATH."
+                f"Target '{target.name}' root not found: {str(bench_root)!r}. "
+                f"Set the environment variable it interpolates, or fix `root:` "
+                f"in forge.config.yaml."
             )
 
         staging_root = bench_root / forge_cfg["sync"].get("staging_dir", ".forge-staging")
-        rendered = render(repo_root, tool)
+        rendered = render(repo_root, tool, target)
         _warn_oversized_aggregates(repo_root, tool, rendered)
-        tool_staging = _stage_artifacts(rendered, staging_root, tool)
+        tool_staging = _stage_artifacts(rendered, staging_root, tool, bench_root)
 
         ok, err = _validate_staging(tool_staging)
         if not ok:
@@ -471,7 +589,7 @@ def sync_tool(
                 },
             )
             console.print(f"[yellow]![/yellow] {tool}: {gate.message}")
-            console.print(f"  Re-run with --justify '<one-line reason>' to proceed.")
+            console.print("  Re-run with --justify '<one-line reason>' to proceed.")
             return result
 
         if justify:
@@ -505,7 +623,7 @@ def sync_tool(
 
         # Ownership guard: never create files in a repo belonging to another
         # organisation without someone saying yes to it.
-        foreign = foreign_app_targets(rendered, bench_root, forge_cfg)
+        foreign = foreign_app_targets(rendered, bench_root, forge_cfg, target)
         skip_apps = _confirm_foreign_writes(foreign, assume_yes) if foreign else set()
         if skip_apps:
             rendered = [
@@ -539,18 +657,58 @@ def sync_tool(
             if staged.is_file() and _app_of_output(staged) in skip_apps:
                 staged.unlink()
 
+        # Settings fragments are merged, not swapped. Protect them from the swap
+        # so the human's own permissions and hooks survive.
+        fragments = _settings_fragments(rendered)
+        protected |= {f.output_path for f in fragments}
+
+        # Scaffolds are seeded once and then owned by whoever writes into them.
+        # The ledgers accumulate agent-written rows; re-rendering the header
+        # over them on every sync would delete the entire build history.
+        protected |= {
+            r.output_path
+            for r in rendered
+            if r.artifact_kind == "scaffold" and r.output_path.exists()
+        }
+
         # Live swap
         written = _swap_into_bench(tool_staging, bench_root, protected=protected)
-        result.files_written = written
 
-        # settings.json merge — only the claude-code adapter touches it
-        if tool == "claude-code":
-            staged_settings = [p for p in written if p.name == "settings.json"]
-            if staged_settings:
-                # Already swapped; back up + merge with pre-swap snapshot is
-                # handled by write_settings_with_backup pattern in adapter renderer.
-                # For Phase 2 simplicity, we just record backup absence here.
-                result.settings_backup = staged_settings[0].with_suffix(".json.forge-backup")
+        # …then merge the fragments into whatever is already on disk.
+        merged_paths, conflicts, backup = _merge_settings_fragments(fragments)
+        written.extend(merged_paths)
+        result.settings_conflicts = conflicts
+        result.settings_backup = backup
+        if conflicts:
+            console.print(
+                f"[yellow]![/yellow] {tool}: overrode {len(conflicts)} value(s) "
+                f"already set in settings.json (previous values logged to audit):"
+            )
+            for c in conflicts:
+                console.print(f"    {c.path}: {c.prior_value!r} → {c.new_value!r}")
+            audit_log(
+                repo_root,
+                {
+                    "action": "sync.settings_conflicts",
+                    "tool": tool,
+                    "conflicts": [
+                        {"path": c.path, "prior": c.prior_value, "new": c.new_value}
+                        for c in conflicts
+                    ],
+                },
+            )
+
+        if prune_harness_dir:
+            harness_out = {
+                r.output_path.parent
+                for r in rendered
+                if r.artifact_kind == "harness-script"
+            }
+            for hdir in harness_out:
+                for gone in prune_harness(rendered, bench_root, hdir):
+                    console.print(f"[yellow]pruned[/yellow] {gone}")
+
+        result.files_written = written
 
         # Manifest per bench output dir touched
         bench_output_dirs = {p.parent for p in written}
@@ -561,6 +719,7 @@ def sync_tool(
                     path=str(r.source_path.relative_to(repo_root)),
                     version=r.source_version,
                     sha256=sha256_text(r.content),
+                    adapter=tool,
                 )
                 for r in relevant
             ]
@@ -571,9 +730,19 @@ def sync_tool(
                     path=r.output_path.name,
                     version=r.source_version,
                     sha256=sha256_text(r.content),
+                    mode=r.mode,
+                    adapter=tool,
                 )
                 for r in relevant
                 if r.output_path not in hand_edited
+                # Settings fragments get no `outputs` row. Forge contributes to
+                # settings.json, it does not own the file: what lands on disk is
+                # the MERGE of forge's fragment and the human's own keys, so a
+                # hash of the fragment can never match the file. Recording one
+                # would make detect_hand_edits report "hand-edited" on every
+                # single sync, which trains people to ignore that warning — the
+                # one warning that must stay meaningful.
+                and r.artifact_kind != SETTINGS_FRAGMENT_KIND
             ]
             if entries:
                 manifest = build_manifest(
@@ -584,6 +753,10 @@ def sync_tool(
                     entries=entries,
                     outputs=outputs,
                 )
+                # Fold into whatever is already there. Several adapters write
+                # the same bench-root dir; overwriting would strip their rows
+                # and with them their hand-edit protection.
+                manifest = merge_manifest(read_manifest(out_dir), manifest)
                 write_manifest(out_dir, manifest)
 
         audit_log(
@@ -617,14 +790,17 @@ def sync_all(
     dry_run: bool = False,
     justify: str | None = None,
     assume_yes: bool = False,
+    target: Target | None = None,
+    prune_harness_dir: bool = False,
 ) -> list[SyncResult]:
-    """Multi-tool sync. Per Part B item 7: render + validate every tool first;
-    only swap if all pass. On any failure: abort the whole run."""
+    """Multi-tool sync into one target. Per Part B item 7: render + validate every
+    tool first; only swap if all pass. On any failure: abort the whole run."""
     # Phase 1: render + stage every tool
     staged_results: list[SyncResult] = []
     for tool in tools:
         # Force dry_run during the first pass to populate staging without swapping
-        r = sync_tool(repo_root, tool, dry_run=True, justify=justify, assume_yes=True)
+        r = sync_tool(repo_root, tool, dry_run=True, justify=justify, assume_yes=True,
+                      target=target)
         staged_results.append(r)
         if not r.success:
             console.print(
@@ -639,7 +815,9 @@ def sync_all(
     final_results: list[SyncResult] = []
     for tool in tools:
         final_results.append(
-            sync_tool(repo_root, tool, dry_run=False, justify=justify, assume_yes=assume_yes)
+            sync_tool(repo_root, tool, dry_run=False, justify=justify,
+                      assume_yes=assume_yes, target=target,
+                      prune_harness_dir=prune_harness_dir)
         )
     return final_results
 
@@ -653,23 +831,55 @@ def run_sync(
     dry_run: bool,
     justify: str | None,
     assume_yes: bool = False,
+    target: str | None = None,
+    all_targets: bool = False,
+    prune_harness_dir: bool = False,
 ) -> int:
     """CLI entry. Returns process exit code."""
     repo_root = find_repo_root()
     forge_cfg = load_forge_config(repo_root)
+    targets = load_targets(repo_root, forge_cfg)
 
-    if all_tools:
-        tools = list(forge_cfg.get("enabled_tools", []))
-    elif tool:
-        tools = [t.strip() for t in tool.split(",")]
+    if all_targets:
+        selected = list(targets.values())
     else:
-        console.print("[red]Pass --tool <name> or --all[/red]")
-        return 2
+        try:
+            selected = [load_target(repo_root, target, forge_cfg=forge_cfg)]
+        except KeyError as exc:
+            console.print(f"[red]{exc}[/red]")
+            return 2
 
-    if not tools:
-        console.print("[yellow]No tools enabled in forge.config.yaml[/yellow]")
-        return 0
+    exit_code = 0
+    for tgt in selected:
+        # Each target declares which adapters can act on it. The forge repo has
+        # no apps and no Frappe tooling, so syncing cursor/cline/copilot into it
+        # would emit files for tools that have nothing to say about a Python CLI.
+        if all_tools:
+            tools = list(tgt.enabled_tools)
+        elif tool:
+            requested = [t.strip() for t in tool.split(",")]
+            tools = [t for t in requested if t in tgt.enabled_tools]
+            skipped = [t for t in requested if t not in tgt.enabled_tools]
+            if skipped:
+                console.print(
+                    f"[yellow]![/yellow] {tgt.name}: skipping "
+                    f"{', '.join(skipped)} — not in this target's enabled_tools."
+                )
+        else:
+            console.print("[red]Pass --tool <name> or --all[/red]")
+            return 2
 
-    results = sync_all(repo_root, tools, dry_run=dry_run, justify=justify, assume_yes=assume_yes)
-    failed = [r for r in results if not r.success]
-    return 1 if failed else 0
+        if not tools:
+            console.print(f"[yellow]{tgt.name}: no enabled tools to sync.[/yellow]")
+            continue
+
+        if len(selected) > 1:
+            console.print(f"\n[bold cyan]── target: {tgt.name} ──[/bold cyan]")
+        results = sync_all(
+            repo_root, tools, dry_run=dry_run, justify=justify,
+            assume_yes=assume_yes, target=tgt,
+            prune_harness_dir=prune_harness_dir,
+        )
+        if any(not r.success for r in results):
+            exit_code = 1
+    return exit_code

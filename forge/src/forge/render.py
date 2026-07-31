@@ -29,14 +29,18 @@ from forge.loader import (
     load_commands,
     load_discovery,
     load_forge_config,
+    load_harness,
+    load_policies,
     load_skills,
+    load_target,
     load_tools,
     repo_head_commit,
 )
 from forge.models import (
     CanonicalArtifact,
-    DiscoverySnapshot,
     ForgeContext,
+    HarnessSpec,
+    Target,
     ToolSpec,
 )
 
@@ -53,6 +57,13 @@ class RenderedArtifact:
     source_version: str
     artifact_id: str
     artifact_kind: str
+    mode: int | None = None
+    """POSIX permission bits, e.g. 0o755. `None` leaves the umask default.
+
+    Only set for artifacts that must be executable — the harness hook scripts.
+    Everything else is Markdown or JSON that nothing execs, so it stays None
+    rather than pinning a mode we would then have to keep correct.
+    """
 
 
 def _resolve(template_str: str, ctx: dict[str, Any]) -> str:
@@ -60,6 +71,26 @@ def _resolve(template_str: str, ctx: dict[str, Any]) -> str:
     adapter.yaml strings. Used for output paths."""
     env = Environment(undefined=StrictUndefined, autoescape=False)
     return env.from_string(template_str).render(**ctx)
+
+
+def _shell_quote(value: str) -> str:
+    return "'" + value.replace("'", "'\\''") + "'"
+
+
+def render_gate_cmd(cmd: str) -> str:
+    """Turn a gates.yaml `cmd` into shell, substituting its placeholders.
+
+    The placeholders expand to shell expressions, not to baked-in literals:
+    `{file}` becomes `"$FILE"` so one rendered script handles every file, and
+    `{app}`/`{app_dir}` become calls to the helpers in common.sh so the app is
+    derived from the path at run time. Baking values in at render time would
+    need one script per app.
+    """
+    return (
+        cmd.replace("{file}", '"$FILE"')
+        .replace("{app_dir}", '"$(_app_dir_of "$FILE")"')
+        .replace("{app}", '"$(_app_of "$FILE")"')
+    )
 
 
 def _build_jinja_env(adapter_dir: Path, repo_root: Path) -> Environment:
@@ -72,38 +103,96 @@ def _build_jinja_env(adapter_dir: Path, repo_root: Path) -> Environment:
     """
     templates_dir = adapter_dir / "templates"
     shared_dir = repo_root / "adapters" / "_shared" / "templates"
-    return Environment(
+    # Harness sources come last so an adapter can still override a script by
+    # name — same precedence rule the shared dir already follows.
+    harness_dir = repo_root / "canonical" / "harness"
+    env = Environment(
         loader=ChoiceLoader(
-            [FileSystemLoader(str(templates_dir)), FileSystemLoader(str(shared_dir))]
+            [
+                FileSystemLoader(str(templates_dir)),
+                FileSystemLoader(str(shared_dir)),
+                FileSystemLoader(str(harness_dir)),
+            ]
         ),
         autoescape=select_autoescape(disabled_extensions=("md", "yaml", "yml", "j2", "json")),
         keep_trailing_newline=True,
         undefined=StrictUndefined,  # fail loudly on missing template variables
     )
+    env.filters["render_gate_cmd"] = render_gate_cmd
+    return env
 
 
-def _managed_apps(forge_cfg: dict[str, Any]) -> set[str] | None:
-    """Apps forge may write per-app files into, or None for "no restriction".
+# The three ledger files, split by lifecycle. `LEDGER-pending.md` is read on
+# every build session; keeping finished work out of it is a saving paid on every
+# ticket, forever. Adding a fourth (e.g. blocked) needs only a row here.
+LEDGER_PHASES: list[dict[str, Any]] = [
+    {
+        "id": "proposed",
+        "title": "Proposed & Gap",
+        "states": ["proposed", "gap"],
+        "blurb": (
+            "Tickets that have been filed but not yet accepted into the plan, "
+            "including gap tickets raised during review. Nothing here is being "
+            "built."
+        ),
+    },
+    {
+        "id": "pending",
+        "title": "Pending",
+        "states": [
+            "todo", "claimed", "in_progress", "blocked", "gates_green", "reviewed",
+        ],
+        "blurb": (
+            "Accepted work, in flight. **Read this file first** — it is the only "
+            "ledger a build session normally needs, and it is kept small on "
+            "purpose."
+        ),
+    },
+    {
+        "id": "done",
+        "title": "Done",
+        "states": ["done", "abandoned"],
+        "blurb": (
+            "Terminal states, append-only. Kept out of the pending ledger so "
+            "finished work stops costing context on every session."
+        ),
+    },
+]
+
+
+def _target_wants(target: Target, group: str) -> bool:
+    """Does this target receive the adapter's `group` artifacts?
+
+    Default (None) is everything, so the bench is unaffected. A target that
+    names a subset gets only that subset.
+    """
+    return target.renders is None or group in target.renders
+
+
+def _managed_apps_for(target: Target) -> set[str] | None:
+    """Apps this target may write per-app files into, or None for "no restriction".
 
     Discovery finds every custom app in the bench, but an app whose upstream
     belongs to another team should not receive a generated CLAUDE.md — that is
-    an unwanted diff in a repo we do not own. Opt-in by name, declared once in
-    forge.config.yaml so every adapter honours the same list.
+    an unwanted diff in a repo we do not own. Opt-in by name, declared per
+    target so every adapter honours the same list.
     """
-    managed = (forge_cfg.get("bench") or {}).get("managed_apps")
-    return set(managed) if managed else None
+    return set(target.managed_apps) if target.managed_apps else None
 
 
 
-def _build_forge_context(repo_root: Path, forge_cfg: dict[str, Any]) -> ForgeContext:
-    bench_path_str = _resolve(forge_cfg["bench"]["path"], {"env": dict(os.environ)})
-    primary_site = _resolve(forge_cfg["bench"]["primary_site"], {"env": dict(os.environ)})
+def _build_forge_context(
+    repo_root: Path, forge_cfg: dict[str, Any], target: Target
+) -> ForgeContext:
     return ForgeContext(
         version=forge_version,
         source_commit=repo_head_commit(repo_root) or "uncommitted",
         rendered_at=datetime.now(timezone.utc),
-        bench_path=Path(bench_path_str),
-        primary_site=primary_site,
+        bench_path=target.root,
+        # Only a Frappe target has a site. Templates that interpolate it are
+        # bench-only; a profile that has none renders an empty string rather
+        # than a plausible-looking wrong site name.
+        primary_site=target.primary_site or "",
         env=dict(os.environ),
     )
 
@@ -170,13 +259,18 @@ def _tool_to_template_dict(tool: ToolSpec) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Render entry point
 # ---------------------------------------------------------------------------
-def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
+def render(
+    repo_root: Path, tool: str, target: Target | None = None
+) -> list[RenderedArtifact]:
     """Render every artifact this adapter is responsible for, in memory.
 
-    Returns a list of RenderedArtifact — caller writes them to disk."""
+    `target` defaults to the bench, so every existing caller keeps its exact
+    behaviour. Returns a list of RenderedArtifact — caller writes them to disk.
+    """
     adapter_cfg = load_adapter_config(repo_root, tool)
     forge_cfg = load_forge_config(repo_root)
-    forge_ctx = _build_forge_context(repo_root, forge_cfg)
+    target = target or load_target(repo_root, forge_cfg=forge_cfg)
+    forge_ctx = _build_forge_context(repo_root, forge_cfg, target)
     discovery = load_discovery(repo_root)
     adapter_dir = repo_root / "adapters" / tool
     env = _build_jinja_env(adapter_dir, repo_root)
@@ -220,7 +314,7 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
 
     # --- Agents ---
     agents_dir = resolve_path(output_paths_cfg.get("agents_dir", ""))
-    if "agents" in adapter_cfg.get("artifacts", {}):
+    if "agents" in adapter_cfg.get("artifacts", {}) and _target_wants(target, "agents"):
         tmpl = env.get_template(adapter_cfg["artifacts"]["agents"]["template"])
         for agent in load_agents(repo_root):
             content = tmpl.render(
@@ -247,7 +341,7 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
 
     # --- Commands ---
     commands_dir = resolve_path(output_paths_cfg.get("commands_dir", ""))
-    if "commands" in adapter_cfg.get("artifacts", {}):
+    if "commands" in adapter_cfg.get("artifacts", {}) and _target_wants(target, "commands"):
         tmpl = env.get_template(adapter_cfg["artifacts"]["commands"]["template"])
         for cmd in load_commands(repo_root):
             content = tmpl.render(
@@ -274,7 +368,8 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
 
     # --- Skills ---
     skills_dir = resolve_path(output_paths_cfg.get("skills_dir", ""))
-    skills_cfg = adapter_cfg.get("artifacts", {}).get("skills")
+    skills_cfg = (adapter_cfg.get("artifacts", {}).get("skills")
+                  if _target_wants(target, "skills") else None)
     if skills_cfg:
         tmpl = env.get_template(skills_cfg["template"])
         for skill in load_skills(repo_root):
@@ -302,7 +397,8 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
             )
 
     # --- Tools (reference docs only — settings.json fragment is handled by sync) ---
-    tools_cfg = adapter_cfg.get("artifacts", {}).get("tools")
+    tools_cfg = (adapter_cfg.get("artifacts", {}).get("tools")
+                 if _target_wants(target, "tools") else None)
     if tools_cfg and tools_cfg.get("template_doc"):
         tmpl = env.get_template(tools_cfg["template_doc"])
         # Prefer the adapter-declared `tools_dir`; fall back to the Claude Code
@@ -338,7 +434,7 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
             )
 
     # --- Bench-root CLAUDE.md ---
-    if "root_claude_md" in adapter_cfg.get("artifacts", {}):
+    if "root_claude_md" in adapter_cfg.get("artifacts", {}) and _target_wants(target, "root_claude_md"):
         tmpl = env.get_template("claude-md-root.j2")
         content = tmpl.render(
             forge={
@@ -363,8 +459,8 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
 
     # --- Per-app CLAUDE.md ---
     per_app_cfg = output_paths_cfg.get("per_app_claude_md", {})
-    managed = _managed_apps(forge_cfg)
-    if per_app_cfg.get("apps"):
+    managed = _managed_apps_for(target)
+    if per_app_cfg.get("apps") and _target_wants(target, "per_app_claude_md"):
         tmpl = env.get_template("claude-md-per-app.j2")
         app_notes = load_app_notes(repo_root)
         # `managed_apps` is authoritative when set; the adapter's own `apps:`
@@ -404,6 +500,142 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
                 )
             )
 
+    # --- Harness scripts (single owning adapter per target) ---
+    # The first artifacts forge writes that a machine EXECUTES, so they are the
+    # first to carry a mode. `source_path` points at the real .sh.j2 so the
+    # existing security gate in sync.py scores them with no change there.
+    # Loaded unconditionally: only the owning adapter WRITES the scripts, but
+    # every adapter needs the gate table to render the shared AGENTS-HARNESS.md.
+    harness: HarnessSpec | None = load_harness(repo_root)
+    harness_cfg = adapter_cfg.get("artifacts", {}).get("harness_scripts")
+    if (
+        harness is not None
+        and harness_cfg is not None
+        and _target_wants(target, "harness_scripts")
+    ):
+        profile = harness.profile(target.stack_profile)
+        harness_dir = Path(_resolve(harness_cfg["output_dir"], output_ctx))
+        for script in harness.scripts:
+            tmpl = env.get_template(f"scripts/{script.source_path.name}")
+            content = tmpl.render(
+                forge=forge_ctx,
+                target={
+                    "name": target.name,
+                    "root": str(target.root),
+                    "stack_profile": target.stack_profile,
+                    "primary_site": target.primary_site or "",
+                },
+                profile=profile,
+                harness=harness,
+                bench={"primary_site": forge_ctx.primary_site},
+            )
+            rendered.append(
+                RenderedArtifact(
+                    tool=tool,
+                    source_path=script.source_path,
+                    output_path=harness_dir / script.filename,
+                    content=content,
+                    source_commit=forge_ctx.source_commit,
+                    source_version=harness.version,
+                    artifact_id=f"harness/{script.id}",
+                    artifact_kind="harness-script",
+                    mode=script.mode,
+                )
+            )
+
+    # --- Hook wiring (per-tool; emits nothing when the adapter has no hooks) ---
+    # Deliberately emits NOTHING rather than an empty file: _validate_staging
+    # rejects zero-byte staged files, so an empty emission would abort the sync.
+    wiring_cfg = adapter_cfg.get("artifacts", {}).get("hook_wiring")
+    if (
+        wiring_cfg
+        and harness is not None
+        and _target_wants(target, "hook_wiring")
+        and adapter_cfg.get("capabilities", {}).get("hooks")
+    ):
+        events = adapter_cfg.get("capabilities", {}).get("hook_events", {})
+        # An adapter only wires the events it actually has. opencode has no
+        # end-of-session event and antigravity's edit payload carries no file
+        # path — for those the missing half is instruction-level, in
+        # AGENTS-HARNESS.md, rather than a hook that fires and does nothing.
+        hooks_for_tool = [h for h in harness.hooks if h.fires_on in events]
+        scripts_dir_rel = forge_cfg.get("harness", {}).get(
+            "scripts_dir", "scripts/harness"
+        )
+        if hooks_for_tool:
+            tmpl = env.get_template(wiring_cfg["template"])
+            content = tmpl.render(
+                forge=forge_ctx,
+                target={
+                    "name": target.name,
+                    "root": str(target.root),
+                    "stack_profile": target.stack_profile,
+                },
+                hooks=hooks_for_tool,
+                events=events,
+                harness=harness,
+                # Only the owning adapter declares `harness_dir`; the others
+                # merely point at the scripts it wrote, so fall back to the
+                # target-relative path from forge.config.yaml.
+                harness_dir=(
+                    _resolve(adapter_cfg["output_paths"]["harness_dir"], output_ctx)
+                    if "harness_dir" in adapter_cfg.get("output_paths", {})
+                    else str(target.root / scripts_dir_rel)
+                ),
+                scripts_dir=scripts_dir_rel,
+                permissions=harness.permissions,
+                profile_permissions=(
+                    harness.permissions.get("profiles", {}).get(target.stack_profile)
+                    or {}
+                ),
+                bench={"primary_site": forge_ctx.primary_site},
+            )
+            rendered.append(
+                RenderedArtifact(
+                    tool=tool,
+                    source_path=repo_root / "canonical" / "harness" / "harness.yaml",
+                    output_path=Path(_resolve(wiring_cfg["output"], output_ctx)),
+                    content=content,
+                    source_commit=forge_ctx.source_commit,
+                    source_version=harness.version,
+                    artifact_id=f"hook-wiring/{tool}",
+                    # Not swapped like a normal file — it merges into human-owned
+                    # content. See _merge_settings_fragments in sync.py.
+                    artifact_kind=wiring_cfg.get("artifact_kind", "hook-wiring"),
+                )
+            )
+
+    # --- Ledger scaffolds (write-once; agents own the rows) ---
+    ledger_cfg = adapter_cfg.get("artifacts", {}).get("ledger")
+    if ledger_cfg and _target_wants(target, "ledger"):
+        tmpl = env.get_template(ledger_cfg["template"])
+        for phase in LEDGER_PHASES:
+            content = tmpl.render(
+                forge=forge_ctx,
+                phase=phase,
+                target={"name": target.name},
+                bench={"primary_site": forge_ctx.primary_site},
+            )
+            rendered.append(
+                RenderedArtifact(
+                    tool=tool,
+                    source_path=repo_root
+                    / "canonical"
+                    / "policies"
+                    / "definition-of-done.md",
+                    output_path=Path(
+                        _resolve(ledger_cfg["output"], {**output_ctx, "phase": phase})
+                    ),
+                    content=content,
+                    source_commit=forge_ctx.source_commit,
+                    source_version="1.0.0",
+                    artifact_id=f"ledger/{phase['id']}",
+                    # Written only if absent — never overwritten. See
+                    # _swap_into_bench.
+                    artifact_kind="scaffold",
+                )
+            )
+
     # --- Aggregate strategies (Cursor, OpenCode, Cline, Copilot, Codex, Antigravity) ---
     # Each entry in adapter.yaml `artifacts:` with strategy: aggregate emits one
     # output file rendered from the full canonical set. The template receives
@@ -423,6 +655,7 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
         if isinstance(spec, dict)
         and spec.get("strategy") == "aggregate"
         and kind not in DEDICATED
+        and _target_wants(target, kind)
     ]
     if aggregate_entries:
         all_agents = [_artifact_to_template_dict(a) for a in load_agents(repo_root)]
@@ -446,6 +679,18 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
                     "custom_apps": discovery.apps.get("custom_apps", []),
                     "anti_patterns": discovery.anti_patterns,
                 },
+                # Harness context, so the shared harness doc can print the gate
+                # table for THIS target. Absent when no harness is authored, in
+                # which case the template's `{% if profile %}` skips the section.
+                target={
+                    "name": target.name,
+                    "stack_profile": target.stack_profile,
+                    "primary_site": target.primary_site or "",
+                },
+                profile=(harness.profile(target.stack_profile) if harness else None),
+                policies=[
+                    _artifact_to_template_dict(p) for p in load_policies(repo_root)
+                ],
             )
             output_path = resolve_path(spec["output"])
             rendered.append(
@@ -490,7 +735,10 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
                 )
                 # Pass `app` as the full dict so adapter.yaml output strings can
                 # use `{{ app.name }}` (and `{{ app.stack }}`, etc.).
-                output_path = _resolve(
+                # Distinct name from the `output_path: Path` bound earlier in
+                # this function — reusing it made the same local both str and
+                # Path depending on the branch taken.
+                resolved_output = _resolve(
                     spec["output"],
                     {**output_ctx, "app": app_data, "app_name": app_name},
                 )
@@ -498,7 +746,7 @@ def render(repo_root: Path, tool: str) -> list[RenderedArtifact]:
                     RenderedArtifact(
                         tool=tool,
                         source_path=repo_root / "discovery" / "INVENTORY.md",
-                        output_path=Path(output_path),
+                        output_path=Path(resolved_output),
                         content=content,
                         source_commit=forge_ctx.source_commit,
                         source_version=forge_version,

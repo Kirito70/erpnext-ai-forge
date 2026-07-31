@@ -83,6 +83,21 @@ jobs:
       - name: Install dependencies from uv.lock (frozen, reproducible)
         run: uv sync --frozen --all-extras
 
+      # Lint and type-check before the forge commands, so a syntax-level
+      # problem surfaces as a lint failure rather than a confusing traceback
+      # from `forge validate`.
+      - name: ruff check
+        run: uv run ruff check src/
+
+      # `ruff format --check` is deliberately NOT here yet. The codebase predates
+      # the formatter and 23 of 29 files differ (~425 lines). Turning it on in
+      # the same change as a feature would bury that feature in mechanical churn,
+      # and a gate that fails the moment it lands teaches people to skip CI.
+      # Land the reformat as its own commit, then add the check.
+
+      - name: mypy (strict)
+        run: uv run mypy src/forge
+
       - name: forge validate (schema + caller refs)
         run: uv run forge validate
         working-directory: ${{ github.workspace }}    # forge needs repo root
@@ -91,16 +106,42 @@ jobs:
         run: uv run --project forge forge score --path canonical/ --fail-below 80
         working-directory: ${{ github.workspace }}
 
+      # Named separately from `forge validate` (which also runs this check)
+      # so a skills-provenance failure shows up as its own red step rather
+      # than buried inside a generic "schema" failure.
+      - name: forge skills verify
+        run: uv run --project forge forge skills verify
+        working-directory: ${{ github.workspace }}
+
       - name: forge test (pytest)
         run: uv run pytest tests/ -v
 
-      - name: forge sync --all --dry-run (renders every adapter)
+      - name: forge sync --all-targets --dry-run (every adapter, every target)
         env:
           FORGE_BENCH_PATH: ${{ github.workspace }}/.ci-fake-bench
           FORGE_PRIMARY_SITE: ci-site
         run: |
-          mkdir -p "$FORGE_BENCH_PATH/apps"
-          uv run --project forge forge sync --all --dry-run
+          # `.claude` as well as `apps` so the legacy bench-root inference in
+          # sync.py has both signals it looks for.
+          mkdir -p "$FORGE_BENCH_PATH/apps" "$FORGE_BENCH_PATH/.claude"
+          uv run --project forge forge sync --all-targets --all --dry-run
+        working-directory: ${{ github.workspace }}
+
+      # The forge repo's own harness is generated, not hand-written. If someone
+      # edits a rendered file directly instead of its canonical source, the two
+      # drift silently — which is the exact failure this repo exists to prevent
+      # everywhere else.
+      - name: self target is in sync with canonical
+        env:
+          FORGE_BENCH_PATH: ${{ github.workspace }}/.ci-fake-bench
+          FORGE_PRIMARY_SITE: ci-site
+        run: |
+          uv run --project forge forge sync --target self --all
+          git diff --exit-code || {
+            echo "::error::The self target is out of sync with canonical/."
+            echo "Run: forge sync --target self --all, then commit the result."
+            exit 1
+          }
         working-directory: ${{ github.workspace }}
 
       - name: Upload audit log on failure (forensics)

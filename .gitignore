@@ -54,6 +54,11 @@ discovery/data/*.private.json
 # Staging dir used by `forge sync --all`
 .forge-staging/
 
+# Throwaway bench CI and `forge diff` render against. Today it holds only the
+# ignored staging dir, so git happens not to see it — that stops being true the
+# moment a sync writes a real file there.
+.ci-fake-bench/
+
 # Temporary
 *.tmp
 *.bak

@@ -39,6 +39,48 @@ bench:
     - noviznaerp_payroll
     - erpnext_location
 
+# Additional render targets, layered on top of `bench:` above.
+#
+# The forge repo generates the harness every other repo runs, and until now had
+# none of its own. Hand-writing one would guarantee the two drift, so it is a
+# target like any other: same canonical sources, same security gate, same
+# hand-edit protection. What differs is the stack — this is a Python CLI, not a
+# Frappe bench — and that difference is confined to `stack_profile`, which
+# selects the gate table in canonical/harness/gates.yaml.
+targets:
+  self:
+    root: "."                  # relative paths resolve against the forge repo
+    stack_profile: python_cli
+    self_target: true          # skips the foreign-write prompt; we are inside it
+    # Only the tools that can act on this repo.
+    enabled_tools:
+      - claude-code
+      - opencode
+      - codex
+
+    # Which artifact groups this target receives. Omit the key entirely and a
+    # target gets everything — right for the bench, wrong here: the canonical
+    # agents, skills and tools describe a Frappe bench, and rendering
+    # `bench-migrate` or the ERPNext accounting skill into a Python CLI repo
+    # would be actively misleading. `per_app_claude_md` is worse — with no
+    # managed_apps to constrain it, it invents apps/ directories for the five
+    # bench apps inside this repo.
+    #
+    # The harness, and only the harness. Same canonical scripts the bench gets;
+    # the stack difference is confined to gates.yaml -> stacks.python_cli.
+    renders:
+      - harness_scripts
+      - hook_wiring
+      # The doc that explains the hooks. Safe here despite being an aggregate:
+      # harness-and-gates.md.j2 reads only forge/target/profile, so it carries
+      # no Frappe content. A repo with blocking hooks and nothing describing
+      # them is how people end up disabling the hooks.
+      - harness_doc
+      # The reasoning protocol is stack-neutral and applies to work on this
+      # repo as much as to the bench. Its Frappe-specific section is a table of
+      # risks, which is context, not instruction.
+      - operating_manual_doc
+
 # Tools managed by `forge sync --all` (all 7 adapters enabled — Phase 3 complete)
 enabled_tools:
   - claude-code        # Phase 1a/1b — primary target (subagent-capable)
@@ -80,6 +122,22 @@ sync:
   manifest_version: 1
   backup_claude_settings: true     # .claude/settings.json.forge-backup on every sync
 
+# Verification harness — the mechanical enforcement layer.
+#
+# The scripts themselves are canonical (canonical/harness/), rendered per target
+# like every other artifact. Two rules keep them from tripping over each other:
+#
+#   - Exactly ONE enabled adapter per target renders scripts/harness/, because
+#     all seven would otherwise write the same paths and fight over the manifest.
+#   - No hook ever invokes `forge sync`. A sync from inside a hook would rewrite
+#     the scripts mid-run, and `_confirm_foreign_writes` fails closed on a
+#     non-tty, so it would skip silently rather than ask. `forge validate`
+#     greps the harness templates to enforce this.
+harness:
+  enabled: true
+  owner_adapter: claude-code
+  scripts_dir: scripts/harness     # target-relative
+
 # Commit conventions (v0.2 Decision 20)
 commits:
   enforce_conventional: true
@@ -95,6 +153,10 @@ commits:
     - audit
     - docs
     - ci
+    - harness      # scripts/harness/* and the canonical/harness/ sources behind them
+    - hooks        # per-tool hook wiring emitted by the adapters
+    - ticketing    # ticket contract, ledger, gap loop
+    - policies     # canonical/policies/*
   types: [feat, fix, refactor, chore, docs, test, perf, ci]
 
 # Confirmation tokens (v0.2 Decision 13)

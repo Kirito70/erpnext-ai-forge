@@ -11,15 +11,13 @@ Per governance.md §3:
 
 from __future__ import annotations
 
-import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator
+from typing import Any, Iterator
 
 import frontmatter
 
-from forge.loader import find_repo_root, load_agents, load_commands, load_skills, load_tools
 
 
 @dataclass
@@ -75,7 +73,7 @@ def find_artifact(repo_root: Path, kind: str, name: str) -> Path:
     return matches[0]
 
 
-def _set_frontmatter_status(path: Path, **updates) -> None:
+def _set_frontmatter_status(path: Path, **updates: Any) -> None:
     """Mutate the frontmatter of `path` with the supplied key/value pairs.
 
     Preserves body and existing keys. Writes atomically (temp + rename).
@@ -91,7 +89,8 @@ def _append_to_supersedes(replacement_path: Path, deprecated_id: str) -> None:
     """Add `deprecated_id` to the `supersedes:` list on the replacement
     artifact. Idempotent — does nothing if already present."""
     post = frontmatter.load(replacement_path)
-    existing = list(post.metadata.get("supersedes", []) or [])
+    meta: dict[str, Any] = post.metadata or {}
+    existing = list(meta.get("supersedes", []) or [])
     if deprecated_id not in existing:
         existing.append(deprecated_id)
         post.metadata["supersedes"] = existing
