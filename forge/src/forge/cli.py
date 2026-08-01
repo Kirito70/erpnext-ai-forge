@@ -19,6 +19,7 @@ from forge.commands import (
     audit as audit_cmd,
     commit as commit_cmd,
     discover as discover_cmd,
+    ledger as ledger_cmd,
     render as render_cmd,
     score as score_cmd,
     skills as skills_cmd,
@@ -285,6 +286,39 @@ def skills_verify() -> None:
 def skills_list() -> None:
     """List every skill with its provenance (internal/external)."""
     skills_cmd.run_list()
+
+
+# ---------------------------------------------------------------------------
+# ledger
+# ---------------------------------------------------------------------------
+ledger_app = typer.Typer(
+    help="Reconcile vault tickets against the repo build ledger.",
+)
+app.add_typer(ledger_app, name="ledger")
+
+
+@ledger_app.command("sync")
+def ledger_sync(
+    project: str = typer.Option(..., "--project", help="Vault project, e.g. novizna-pos."),
+    target: Optional[str] = typer.Option(
+        None, "--target", help="Which target's ledger to check. Default: bench."
+    ),
+    vault_path: Optional[Path] = typer.Option(
+        None, "--vault-path", help="Override vault discovery ($NOVIZNA_VAULT, brains.toml)."
+    ),
+    fix: bool = typer.Option(
+        False, "--fix",
+        help="Seed a `todo` row for tickets with no ledger coverage. Never touches "
+             "the vault, never edits an existing row, never removes an orphan row.",
+    ),
+) -> None:
+    """Report vault tickets with no ledger coverage, and orphan ledger rows.
+
+    Does not sync field values — the vault's `status:` and the ledger's
+    `build_state:` are deliberately independent (see definition-of-done.md).
+    This only checks that every actively-worked ticket has SOME ledger row.
+    """
+    ledger_cmd.run_sync(project, target, vault_path, fix)
 
 
 # ---------------------------------------------------------------------------

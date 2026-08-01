@@ -21,72 +21,72 @@ store yet for this meta-work, so `build_state` here is the single source of trut
 | [PHASE-5](PHASE-5.md) | Ticket authoring and refinement (`/write-ticket`, `/refine-ticket`, `ticket-refiner`) | **done** | PHASE-4 |
 | [PHASE-6](PHASE-6.md) | `/ticket-review` DoD gate, risk-tiered lanes, gap loop, ownership guard | **done** | PHASE-4, PHASE-5 |
 | [PHASE-7](PHASE-7.md) | Skills provenance lockfile (`skills-lock.json`, `forge skills verify`) | **done** | PHASE-0 |
+| [PHASE-8](PHASE-8.md) | `forge ledger sync` — reconcile vault tickets against the repo ledger (post-epic follow-up) | **done** | PHASE-4 |
 
-**All seven phases are done.** The epic's implementation is complete; nothing
-remains in the original plan's scope. See "Known follow-ups" in each ticket for
-work explicitly deferred (not forgotten) during that phase.
+**All eight tickets are done.** PHASE-0 through PHASE-7 were the original
+seven-phase plan; PHASE-8 closed the one follow-up item asked for afterward.
 
-## Current repo state (as of last verification, after PHASE-7)
+## Current repo state (as of last verification, after PHASE-8)
 
-- **Tests:** 367 passed, 2 skipped (`forge/tests/`)
-- **Lint:** `ruff check src/` clean, `mypy src/forge` (strict) clean
+- **Tests:** 386 passed, 2 skipped (`forge/tests/`)
+- **Lint:** `ruff check src/` clean, `mypy src/forge` (strict) clean, 33 source files
 - **Security score:** `forge score --path canonical/ --fail-below 80` → lowest 100
 - **Schema:** `forge validate --no-check-drift` → `✓ schema valid`
 - **Canonical content:** 11 agents, 21 commands, 31 skills, 6 policies, 14 tools
 - **Char budget headroom (binding constraint, antigravity, 15,000 cap):** 6,809
   chars free
 - **Live self-harness:** `./scripts/harness/gates.sh quick` → `RESULT: GREEN`
-- **Working tree:** NOT committed. 85 changed paths as of this writing. Run
-  `git status --porcelain | wc -l` for the current count. See each phase
-  ticket's "Files touched"/"Files created"/"Files modified" section for the
-  specific files that phase is responsible for.
+- **Working tree:** PHASE-0 through PHASE-7 are committed (6 atomic commits —
+  see `git log --oneline` for `feat(forge)`, `feat(harness)`,
+  `chore(harness)`, `feat(ticketing)`, `feat(skills)`, `docs`). PHASE-8's
+  `forge ledger sync` work is the only thing not yet committed as of this
+  writing.
 
-## Self-target side effects on disk
+## A known inaccuracy in the committed history
 
-`forge sync --target self` has been run for real against this repo repeatedly
-during verification (Phases 1 through 7), so `.claude/`, `.opencode/`,
-`scripts/harness/`, `AGENTS-HARNESS.md`, `AGENTS-OPERATING-MANUAL.md`, and
-`.forge-manifest.json` at the repo root are genuinely on disk and untracked.
-These are the intended generated output of the `self` target, not stray files
-— see PHASE-1/PHASE-2 for why the forge repo renders its own harness. They
-should be committed (or explicitly `.gitignore`d, if the decision is to only
-ever generate them in CI) before or alongside this epic's commit.
+The `feat(ticketing)` commit's message says "forge validate gains two checks:
+every review_only agent must declare read-only tools, and no ledger/ticket
+scaffold may be written under an upstream or foreign-remote app directory" —
+that `validate.py` code actually landed in the earlier `feat(forge)` commit,
+which bundled the engine file's full final state rather than being split
+phase-by-phase (see "Commit history and its limits" below). Not fixed via
+amend since it wasn't asked for; flagging here so it isn't mistaken for
+current, undocumented behavior.
 
-## Recommended commit boundary(s)
+## Commit history and its limits
 
-The whole epic is one working tree right now (85 changed paths across 7
-phases). Two reasonable ways to split it into commits, in order:
+Six commits landed PHASE-0 through PHASE-7, grouped by **concern** rather than
+by exact phase number: `feat(forge)` (engine: targets, scoring, diff, skills
+lockfile core), `feat(harness)` (canonical/harness/ + policy rollout to all 7
+adapters), `chore(harness)` (self-target rendered output, regenerated fresh
+immediately before committing), `feat(ticketing)` (ticket authoring/review
+content), `feat(skills)` (the lockfile data), `docs` (this ticket record).
 
-1. **Phases 0–4** — pipeline safety, targets, hooks, adapter rollout,
-   policy/ledger. Changes to `forge/src/forge/*.py` plumbing plus the harness
-   and policy content everything downstream depends on.
-2. **Phases 5–7** — new canonical *content* built on top of that plumbing
-   (ticket authoring/review commands and agents, the skills lockfile). Lower
-   risk to leave split from (1) since it doesn't touch pipeline internals
-   beyond `validate.py` and the `scoring.py`/`skills_lock.py` refactor from
-   PHASE-7.
-
-Whichever split is used, commit the self-target generated output (see above)
-in the same commit as the phase that changed what it renders, not separately —
-otherwise `forge validate`'s self-target drift check (added in PHASE-1's CI
-step) will show the working tree as out of sync with what's committed.
+True per-phase bisectability wasn't achievable without risky hunk-level
+surgery — `render.py`, `sync.py`, `validate.py`, `models.py`, `loader.py`,
+`cli.py`, and `forge.config.yaml` each accumulated changes from 3–5 phases
+with no intermediate commits along the way. Each of the six commits touches a
+disjoint file set (verified programmatically against the full changed-path
+list before each commit) and is independently reviewable; they are not,
+however, each independently phase-accurate in their messages for the handful
+of shared engine files (see "known inaccuracy" above).
 
 ## Known follow-ups across the whole epic (not phase-specific)
 
 - No live end-to-end smoke test of `/write-ticket` → `/refine-ticket` →
-  `/ticket-review` → `/gap-ticket` against a real vault ticket exists yet
-  (noted in PHASE-5 and PHASE-6). All four commands are documented and their
-  individual mechanics are unit-tested, but nobody has run the full chain for
-  real. Natural next step once there's a real ticket to try it on.
+  `/ticket-review` → `/gap-ticket` (and now `forge ledger sync`) against a
+  real vault ticket exists yet (noted in PHASE-5, PHASE-6, PHASE-8). All five
+  are documented and unit-tested individually against fixtures, but nobody
+  has run the full chain against a real Obsidian vault. Natural next step
+  once there's a real ticket to try it on.
 - Per-app ledger mirroring (`apps/<app>/docs/harness/LEDGER-*.md`) was never
   built (noted in PHASE-4, referenced again in PHASE-6). The ownership-guard
   check added in PHASE-6 is forward-compatible with it but has nothing real to
-  protect today.
+  protect today. `forge ledger sync` (PHASE-8) only reconciles a target's
+  root ledger, for the same reason.
 - 3 Frappe gate commands remain `UNVERIFIED` against a real bench (PHASE-2):
   `python-lint`, `frontend-lint`, `python-lint-all`. No linter convention
   exists anywhere in this repo currently — confirm one before trusting these.
-- No `forge ledger sync` command exists to reconcile vault and repo ledger
-  copies (PHASE-4) — documented as an agent duty for now.
 - `ruff format --check` is intentionally not enforced yet (PHASE-1) — 23 of 29
   `forge/src` files predate the formatter. Land as its own commit before
   adding the check.
