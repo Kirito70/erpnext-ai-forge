@@ -50,7 +50,7 @@ for FILE in "$@"; do
   case "$FILE" in
     {% for p in gate.match.split(',') %}{{ p | trim }}{% if not loop.last %}|{% endif %}{% endfor %})
       if ! run_to {{ gate.get('timeout_seconds', 120) }} \
-           {{ gate.cmd | render_gate_cmd }} 2>&1 | cap; then
+           {{ gate.cmd | render_gate_cmd(target.primary_site) }} 2>&1 | cap; then
         fail_block "{{ gate.id }} failed on $FILE"
         rc=1
       fi

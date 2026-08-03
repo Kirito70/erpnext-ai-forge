@@ -14,6 +14,7 @@ Two properties carry this design, and both are tested here:
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -97,6 +98,34 @@ def test_app_placeholders_resolve_at_runtime():
     """Baking the app name in at render time would need one script per app."""
     out = render_gate_cmd("bench run-tests --app {app}")
     assert '"$(_app_of "$FILE")"' in out
+
+
+def test_site_placeholder_is_substituted_at_render_time():
+    """{site} is a per-target constant (FORGE_PRIMARY_SITE), known at render
+    time and identical for every invocation — unlike {file}/{app}, it must be
+    baked in as a literal, not a shell expression.
+
+    Shipped unsubstituted for one real sync: `bench --site {site} run-tests`
+    ran with `{site}` as a literal, nonexistent site name against the real
+    Novizna bench, caught only because someone actually read the generated
+    script rather than trusting `bash -n` (which happily accepts `{site}` as
+    an ordinary argument token)."""
+    out = render_gate_cmd("bench --site {site} run-tests", site="novizna-pos")
+    assert out == "bench --site novizna-pos run-tests"
+    assert "{site}" not in out
+
+
+def test_no_unsubstituted_braces_reach_a_rendered_gate_line(repo_root, bench_env):
+    """Generic guard against the whole class of bug above: whatever new
+    placeholder gates.yaml grows next, catch it here rather than shipping it
+    to a real bench first. `bash -n` cannot catch this — `{anything}` is
+    syntactically valid as a bare word."""
+    for name, content in _harness_files(repo_root, "bench").items():
+        for line in content.splitlines():
+            if "run_gate" in line or "run_to" in line:
+                assert not re.search(r"\{[a-z_]+\}", line), (
+                    f"{name}: unsubstituted placeholder in {line!r}"
+                )
 
 
 # --- the two targets share scripts, not gates ------------------------------

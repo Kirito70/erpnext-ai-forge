@@ -49,7 +49,7 @@ printf '=== harness gates (%s) — target %s ===\n' "$MODE" "{{ target.name }}" 
 {%- if gate.get('note') %}
 # {{ gate.get('note') | replace('\n', ' ') | trim }}
 {%- endif %}
-run_gate "{{ gate.id }}" {{ gate.get('timeout_seconds', 300) }} {{ gate.cmd | render_gate_cmd }}
+run_gate "{{ gate.id }}" {{ gate.get('timeout_seconds', 300) }} {{ gate.cmd | render_gate_cmd(target.primary_site) }}
 {% endfor %}
 if [ "$MODE" != "quick" ]; then
 {%- if not profile.get('full') %}
@@ -63,7 +63,7 @@ if [ "$MODE" != "quick" ]; then
 {%- if gate.get('note') %}
   # {{ gate.get('note') | replace('\n', ' ') | trim }}
 {%- endif %}
-  run_gate "{{ gate.id }}" {{ gate.get('timeout_seconds', 1800) }} {{ gate.cmd | render_gate_cmd }}
+  run_gate "{{ gate.id }}" {{ gate.get('timeout_seconds', 1800) }} {{ gate.cmd | render_gate_cmd(target.primary_site) }}
 {%- endfor %}
 fi
 

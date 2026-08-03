@@ -22,7 +22,7 @@ exit 0
 {%- else %}
 {% for gate in profile.get('typecheck') %}
 # {{ gate.id }} [{{ gate.verify_status }}]
-out="$(run_to {{ gate.get('timeout_seconds', 120) }} {{ gate.cmd | render_gate_cmd }} 2>&1)" || true
+out="$(run_to {{ gate.get('timeout_seconds', 120) }} {{ gate.cmd | render_gate_cmd(target.primary_site) }} 2>&1)" || true
 if printf '%s' "$out" | grep -qE 'error:|error TS'; then
   note "typecheck ({{ gate.id }}) reported problems — advisory, not blocking:"
   printf '%s\n' "$out" | grep -E 'error:|error TS' | cap 20 >&2

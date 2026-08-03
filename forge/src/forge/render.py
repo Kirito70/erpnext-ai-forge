@@ -77,19 +77,27 @@ def _shell_quote(value: str) -> str:
     return "'" + value.replace("'", "'\\''") + "'"
 
 
-def render_gate_cmd(cmd: str) -> str:
+def render_gate_cmd(cmd: str, site: str = "") -> str:
     """Turn a gates.yaml `cmd` into shell, substituting its placeholders.
 
-    The placeholders expand to shell expressions, not to baked-in literals:
-    `{file}` becomes `"$FILE"` so one rendered script handles every file, and
-    `{app}`/`{app_dir}` become calls to the helpers in common.sh so the app is
-    derived from the path at run time. Baking values in at render time would
-    need one script per app.
+    `{file}`, `{app}`, `{app_dir}` expand to shell expressions rather than
+    baked-in literals: `{file}` becomes `"$FILE"` so one rendered script
+    handles every file, and `{app}`/`{app_dir}` call the helpers in
+    common.sh so the app is derived from the path at run time. Baking those
+    in at render time would need one script per app.
+
+    `{site}` is different: it is a per-TARGET constant (`FORGE_PRIMARY_SITE`),
+    known at render time and the same for every invocation of the script, so
+    it is substituted as a literal. Left unsubstituted, `bench --site {site}
+    run-tests` would run with `{site}` as a literal, nonexistent site name —
+    this was shipped that way until caught on the first real sync against the
+    Novizna bench.
     """
     return (
         cmd.replace("{file}", '"$FILE"')
         .replace("{app_dir}", '"$(_app_dir_of "$FILE")"')
         .replace("{app}", '"$(_app_of "$FILE")"')
+        .replace("{site}", site)
     )
 
 
