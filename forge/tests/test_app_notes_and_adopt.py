@@ -203,6 +203,43 @@ def test_adoption_is_idempotent_on_already_clean_notes():
     assert _strip_generated_scaffolding(body) == body
 
 
+def test_adoption_survives_a_stray_leftover_footer():
+    # Real-world shape found in apps/novizna_pos/CLAUDE.md: an earlier sync's
+    # footer was never cleaned up, so the file has TWO `---\n<sub>...</sub>`
+    # blocks — one stale, sitting right before hand-added sections, and one
+    # real, at the true end. A lazy-but-\Z-anchored regex matches from the
+    # FIRST block all the way to the end, silently eating everything between
+    # them — including the hand-added sections this test defends.
+    rendered = (
+        "## Real Notes\n"
+        "\n"
+        "- something a human wrote\n"
+        "\n"
+        "---\n"
+        "\n"
+        "<sub>Source: canonical/apps/x.md v0.1.0 (aaa0000). Synced at T1.</sub>\n"
+        "\n"
+        "## Hand-added section one (NPOS-D13c)\n"
+        "\n"
+        "- important ticket documentation\n"
+        "\n"
+        "## Hand-added section two (NPOS-H1)\n"
+        "\n"
+        "- more important ticket documentation\n"
+        "\n"
+        "---\n"
+        "\n"
+        "<sub>Source: canonical/apps/x.md v0.1.0 (bbb1111). Synced at T2.</sub>\n"
+    )
+    body = _strip_generated_scaffolding(rendered)
+
+    assert "Hand-added section one" in body
+    assert "important ticket documentation" in body
+    assert "Hand-added section two" in body
+    assert "more important ticket documentation" in body
+    assert "<sub>" not in body
+
+
 # ---------------------------------------------------------------------------
 # unresolved output paths (the bench-root CLAUDE.md corruption)
 # ---------------------------------------------------------------------------

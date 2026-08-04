@@ -91,3 +91,112 @@ Agent-facing rules for this app (applies to Claude Code, opencode, and any other
 
 Restaurant UI (from `novizna_restaurant`) renders inside this app and follows the same design
 system — see `apps/novizna_restaurant/DESIGN.md` for restaurant-specific token mappings.
+
+## Hand-added rule
+
+- Never ship a POS build without running `yarn build`.
+
+## Customer-scoped Address & Contact management (hand-added, NPOS-D13c)
+
+- **Backend module:** `novizna_pos/novizna_pos/customer_links.py` — 12 whitelisted, rate-limited endpoints
+  (`list_/get_/create_/update_/unlink_customer_{address,contact}` + `set_customer_primary_{address,contact}`),
+  re-exported via `masters/api.py`. Config (`CustomerLinkConfig`, whitelists, read scope) lives in
+  `masters/registry.py`. Tests: `tests/customer/` (55 tests).
+- **Read contract:** payloads contain only derived scalars (`email_id`/`phone`/`mobile_no`).
+  `email_ids`/`phone_nos`/`links` are never disclosed (PII withheld at the API boundary) — do not add
+  them to read fields.
+- **Unlink semantics:** shared records are never force-deleted (`force=0`, `LinkExistsError` caught);
+  response `deleted:false` means "unlinked but still shared with another party".
+- **Write contract:** HTTP 417 raise for validation errors; enveloped `{success:false, error}` for
+  upstream doctype validation. `_log_mutation` audit call on every successful write (8 paths).
+- **Capability gating:** create/update → `customer:write`; unlink/set-primary → `customer:delete`.
+- Frontend side documented in "POS Pages map" below.
+
+## Company retail-operational parity (hand-added, NPOS-D15)
+
+- **Policy module:** `novizna_pos/novizna_pos/masters/company_policy.py` — `validate_company_writes(config, payload, doc=None)`
+  called pre-save from both `create_master` and `update_master` (api.py). Guards:
+  - **Perpetual inventory:** `enable_perpetual_inventory` truthy requires BOTH `default_inventory_account` and
+    `stock_adjustment_account`; payload-present keys are authoritative (an explicit empty/whitespace value is
+    "missing", never a silent clear); clearing either account while the flag is on is blocked; disabling is always
+    allowed. The trio is **update-only** (not in `create_fields` — a fresh Company's CoA may not carry the heads yet).
+  - **`credit_limit`:** requires the elevated tier — `MASTER_DATA_UNRESTRICTED_ROLES` (System Manager, Accounts
+    Manager) + Administrator — *above* the `branch_company` POS Admin write; finite `>= 0` float-parity range guard.
+  - **`company_logo` (Attach Image):** only `/files/...` or `private/files/...` attachment paths pass (fullmatch
+    shape + explicit `..` / `?` / `#` rejection). Arbitrary URLs (`https://`, `data:`, `//host`,
+    `/api/method/upload_file`, `javascript:`) are refused — never accept a raw URL string for an attach field.
+  - **Account membership mirror:** `default_inventory_account` is the one account upstream `validate_default_accounts`
+    skips; the policy validates is_group/company/disabled/account_currency against `doc.default_currency` for it
+    (all four axes, mirroring upstream company.py:267-273).
+- **PII:** `registration_details` / `company_description` are whitelisted for create/update (the point of D15) but
+  are **excluded from `list_fields` and `search_fields`** — they never appear in `list_master` payloads.
+- **Picker filters:** `MasterConfig.picker_filters` maps account fields to `{"is_group": 0, "company": "@current-record"}`
+  (`registry.PICKER_FILTER_CURRENT_RECORD`); surfaced via `get_master_layout`. Client substitutes the record name
+  on edit, drops the company leg on create; the server membership guard is authoritative.
+- **Deferred-to-desk (named in the registry Company comment, not silently dropped):** depreciation/fixed-asset
+  accounts, advance payments, exchange-rate revaluation, provisional accounting, budget approver roles,
+  manufacturing warehouses/accounts, purchase expense accounts, `create_chart_of_accounts_based_on`/`chart_of_accounts`/
+  `existing_company` (creation-time only), `accounts_frozen_till_date`/`role_allowed_for_frozen_entries`. These are
+  finance-owner set-once fields; a POS console must not make a wrong value easy to cause.
+- **Company creation stays enabled (Option A).** Creating a Company triggers ERPNext Chart of Accounts generation;
+  that is retained by decision — the console does not restrict creation.
+- Frontend: `CompanyEditorPanel.vue` rebuilt on the RecordDetail tab shell (Details: Essentials / Contact &
+  Registration / Selling Defaults / Stock Defaults / Accounts sections + Connections + Activity); `CompanyFieldInput.vue`
+  renders per-field type incl. filtered account pickers and the logo upload (existing `fileUpload.uploadFile`,
+  `isPrivate:false`); `src/services/company.ts` (`getCompanyLayout`, `resolvePickerFilters`, `hasElevatedCreditTier` —
+  client tier read is fail-open, the server policy is authoritative); `useCompanyCreditLimit` composable.
+  Tests: `tests/masters/test_company_policy.py` (37), `test_company_parity_integration.py` (11), layout contract
+  in `test_masters_layout.py`.
+
+## Multi-terminal test pack (hand-added, NPOS-H1)
+
+- **Layer A — CI gate:** `novizna_pos/novizna_pos/tests/invoice/test_multi_terminal_pack.py` (39 tests,
+  plain `unittest.TestCase` — do NOT convert to `FrappeTestCase`). Simulates N=5/10/25 terminals by
+  **sequential interleaving** through the real `save_invoice` / `sync_queued_invoice` / one-to-one-posting /
+  closing-health seams; **never threads** against the shared `frappe.db` connection (EXECUTION-GUIDE §H1 binding).
+- **Why not `FrappeTestCase`:** the bench runner's compat preload walk imports `erpnext.tests.utils`, whose
+  module-level `BootStrapTestData()` creates Price List "Standard Buying" — already present in this
+  production-DB dev site → `DuplicateEntryError`. Plain-`unittest` modules run clean via
+  `bench --site novizna-v16 run-tests --module novizna_pos.novizna_pos.tests.invoice.test_multi_terminal_pack`.
+- **Idempotency scope (corrected contract):** `_get_idempotency_filters` (invoice.py:2480) keys on
+  profile+company+customer+is_return+local-id — **`pos_terminal_id` is NOT a key**. Terminal isolation comes
+  from distinct POS Profiles + namespaced `pos_local_transaction_id`s, not from the terminal id in the lookup.
+- **Lifecycle vs seams:** the heavy doc lifecycle (`set_missing_values`, exchange-rate fetch,
+  `autocreate_missing_identities` minting, `submit`, `_SYNC_MINT_SAVEPOINT` pairing) is inseparable from live
+  Meta/DB state — Layer A contract-tests the deterministic seams (`_prepare_invoice_payload`,
+  `_strip_client_system_fields`, `_classify_sync_error`, `_make_sync_response`, replay/idempotency lookups,
+  `_validate_*`) and mocks the lifecycle with side-effect delegators. The real lifecycle is Layer B territory.
+- **Test hygiene:** every DB-touching test deletes its rows and rolls back in `tearDown`; never
+  `frappe.db.commit()`; side-effect delegators only (never blanket `frappe.db` patches — poisons the Meta
+  loader). `frappe.flags.ignore_account_permission` is snapshot/restored via `addCleanup`. Real duplicate
+  classification tests use the genuine optimistic-lock message ("…modified after you have opened it") and the
+  `server_validation` branch — not synthetic "Duplicate entry for idempotency key" strings.
+- **Layer B — manual loadtest:** `novizna_pos/loadtest/pos_multi_terminal_loadtest.py` (NOT under `tests/`,
+  filename not `test_*` → auto-excluded from the unit suite). Multiprocessing workers (5/10/25) each own
+  `frappe.init/connect`; drives `sync_queued_invoice`. **Safety contract (Security-mandated):** `--site` is a
+  required argv (never read from config); `--terminals` argparse-constrained to {5,10,25}; `--max-invoices`
+  hard-ceilinged at 500; records are `POS-LOAD-*`-prefixed; commits only on success paths with rollback on
+  every swallowed exception; `--cleanup` is POS-Invoice-scoped (minted Material Receipts / bundles need
+  `bench seed-pos --pack baseline --reset`); report prints counters/timings only, no site_config values or
+  secrets. ERPNext enforces one open POS Opening Entry per user → Layer B runs N workers under the shared
+  `POS-SEED-MAIN` session (measures one-session contention; Layer A models per-terminal sessions instead).
+- Run Layer A: `bench --site novizna-v16 run-tests --module novizna_pos.novizna_pos.tests.invoice.test_multi_terminal_pack`
+  (plus regression: `test_idempotency`, `test_sync`, `test_one_to_one_posting`, `test_closing_health`).
+
+## POS Pages map (hand-added, NPOS-D13c)
+
+- `PosManageCustomersPage.vue` hosts `CustomerEditorPanel.vue` inline (no customer-record route).
+  `CustomerEditorPanel.vue` tabs: **Contacts & Addresses** first (new), then Transactions / Credit /
+  Connections / Activity.
+- **Contacts & Addresses tab** = `src/components/customers/CustomerLinksPanel.vue` +
+  `CustomerLinkEditorDialog.vue`, backed by `src/stores/customerLinks.ts` (Pinia, id `customer-links`)
+  and `src/services/customerLinks.ts` (12 endpoints under `novizna_pos.novizna_pos.customer_links`).
+- **Error channels** (both land in the same UI surface): HTTP 417 → rejected promise (server-raised
+  ValidationError); enveloped `{success:false, error}` with HTTP 200 (upstream doctype validation) —
+  read `envelope.success`. Load failures render an inline retry banner, never an empty customer.
+- **Capability gating**: create/edit → `customer:write`; unlink/set-primary → `customer:delete`
+  (via `useMasterCapabilities()`). Unlink toast wording follows the server's `deleted` flag —
+  `deleted:false` says "unlinked, still shared with another party", never "deleted".
+- Whitelists are pinned in the dialog: Address sends the 14 registry fields (never `disabled`,
+  `is_billing_address`); Contact sends scalars only (never `email_ids`/`phone_nos`/`links`). Check
+  fields go out as `1|0`. The server owns the `links`/child-row plumbing.

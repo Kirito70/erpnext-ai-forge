@@ -36,7 +36,11 @@ _GENERATED_HEAD = re.compile(r"\A(?:<!--.*?-->\s*)+", re.S)
 # H2 loses its first heading on every adoption.
 _H1 = re.compile(r"\A#(?!#)[^\n]*\n", re.S)
 _FACTS = re.compile(r"\A(?:\*\*(?:Stack|Custom DocTypes|Whitelist APIs|Purpose):\*\*[^\n]*\n)+", re.S)
-_TRAILING_FOOTER = re.compile(r"\n*---\n+<sub>.*?</sub>\s*\Z", re.S)
+# Matches ANY footer-shaped block, not just the trailing one — a document can
+# accumulate a stray earlier footer (e.g. a leftover from a prior sync that
+# never got cleaned up). Only the LAST such match is ever the real trailing
+# footer; see `_strip_generated_scaffolding` for why that distinction matters.
+_FOOTER_BLOCK = re.compile(r"\n*---\n+<sub>.*?</sub>\s*", re.S)
 _COMMON_COMMANDS = re.compile(r"\n*(?:---\n+)?## Common Commands\n.*?(?=\n---\n|\Z)", re.S)
 
 
@@ -48,7 +52,19 @@ def _strip_generated_scaffolding(text: str) -> str:
     on every round trip.
     """
     body = text
-    body = _TRAILING_FOOTER.sub("", body)
+    # Strip only the LAST footer-shaped block, and only if nothing but
+    # whitespace follows it. A naive "lazy .*? anchored to \Z" regex matches
+    # from the FIRST footer-shaped block all the way to the end whenever two
+    # exist, silently swallowing everything in between — including hand-added
+    # sections sitting after a stray leftover footer.
+    footer_matches = list(_FOOTER_BLOCK.finditer(body))
+    if footer_matches:
+        last = footer_matches[-1]
+        if not body[last.end() :].strip():
+            body = body[: last.start()]
+    # Any OTHER footer-shaped block is stale leftover, not notes — drop it too,
+    # rather than carrying it into canonical as if a human wrote it.
+    body = _FOOTER_BLOCK.sub("", body)
     body = _COMMON_COMMANDS.sub("", body)
     body = _GENERATED_HEAD.sub("", body)
     body = _H1.sub("", body).lstrip("\n")
