@@ -50,6 +50,7 @@ The 10 currently-overridden files are listed in [override-map.json](../../discov
 
 ### Foundational (always loaded)
 - [`frontend/novizna-crm-override-system`](../skills/frontend/novizna-crm-override-system.md)
+- [`frontend/spa-file-structure`](../skills/frontend/spa-file-structure.md) — where a page/component goes (within the bucket the override system picks)
 - [`frontend/frappe-ui-components`](../skills/frontend/frappe-ui-components.md)
 - [`frappe-core/conventions`](../skills/frappe-core/conventions.md)
 

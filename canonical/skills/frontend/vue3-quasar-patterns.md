@@ -191,7 +191,11 @@ const routes = [
 ]
 ```
 
-Restaurant pages go under `src/pages/restaurant/`; their components under `src/components/restaurant/`.
+The route path and the file path are the same path — `/pos/manage/catalog/items` lives at
+`src/pages/pos/manage/catalog/items/ItemsPage.vue`. Folder layout, shared-component placement and
+the "touch it, move it" migration rule are owned by
+[`frontend/spa-file-structure`](./spa-file-structure.md); read it before adding any page.
+Restaurant pages follow the same rule under the `restaurant` area.
 
 ### Pattern: Service worker allowlist
 

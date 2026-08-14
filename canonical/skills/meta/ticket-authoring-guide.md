@@ -108,6 +108,13 @@ sections, present or explicitly marked not-applicable:
   and an explicit idempotency argument (what happens if this patch runs twice
   — a patch that silently corrupts on re-run is a Tier-3 review trigger per
   [review-protocol](../../policies/review-protocol.md)).
+- **Frontend file destinations** — for any UI ticket: the exact folder each new
+  page/component lands in, as `<area>/<category>/<entity>/`, plus the nav-config
+  entry and route path that must agree with it (see
+  [`spa-file-structure`](../frontend/spa-file-structure.md)). "Add a Coupon Codes
+  page" is not a destination; `pages/pos/manage/pricing/coupon-codes/` is. A
+  ticket that leaves this to the implementer gets a file dropped wherever the
+  neighbours already are, which is how flat page directories grow.
 - **Fixture filter scope** — for a fixture export: the exact filter, and
   confirmation it does not sweep in another app's records.
 - **Negative acceptance criteria** — not just "returns the right data" but
@@ -138,6 +145,8 @@ If you can't answer these, the ticket isn't ready — send it through
 - Deciding fixture-vs-Custom-Field implicitly by which one is mentioned first,
   rather than explicitly in DECIDE.
 - Forgetting the negative case: "handles X" without "and rejects not-X".
+- Naming a UI surface without naming its folder — the implementer then places it
+  by imitation, and every ticket after inherits the wrong tree.
 
 ## References
 

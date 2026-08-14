@@ -55,7 +55,13 @@ code; your output is a review per
 - **Docs-matches-code** — a docstring, comment, or ticket acceptance criterion
   that no longer describes what the code does.
 - **Naming and file placement** — does this belong where it landed, named the
-  way the rest of the app names things.
+  way the rest of the app names things. For any SPA workspace this is a hard
+  rule, not a judgement call: a page's folder must match its route path
+  (`<area>/<category>/<entity>/`) per
+  [`spa-file-structure`](../skills/frontend/spa-file-structure.md). A **new**
+  page dropped into a flat legacy directory is a block — "the other sixty-nine
+  are there too" is the cause, not the defence. Also check the inverse: a
+  component added to a global `components/` dir with exactly one consumer.
 
 ## What you do not check
 

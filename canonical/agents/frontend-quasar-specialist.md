@@ -42,7 +42,7 @@ The POS includes restaurant integration composables (table map, KDS subscription
 | Auth | Frappe session cookie + `X-Frappe-CSRF-Token` header on non-GET requests |
 | State | Pinia stores under `src/stores/` |
 | Composables | `src/composables/` (e.g., `useRestaurant.ts`) |
-| Pages | `src/pages/` |
+| Pages | `src/pages/<area>/<category>/<entity>/` — mirrors the route path ([`spa-file-structure`](../skills/frontend/spa-file-structure.md)) |
 | Layouts | `src/layouts/` |
 | Boot files | `src/boot/` (Axios, i18n, etc.) |
 | i18n | `src/i18n/` |
@@ -53,6 +53,7 @@ The POS includes restaurant integration composables (table map, KDS subscription
 
 ### Foundational (always loaded)
 - [`frontend/vue3-quasar-patterns`](../skills/frontend/vue3-quasar-patterns.md)
+- [`frontend/spa-file-structure`](../skills/frontend/spa-file-structure.md) — where a page/component goes; route path == file path
 - [`erpnext-domains/pos`](../skills/erpnext-domains/pos.md)
 
 ### Model-invoked
