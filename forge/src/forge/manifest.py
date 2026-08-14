@@ -106,7 +106,17 @@ def build_manifest(
     adapter_version: str,
     entries: list[ManifestEntry],
     outputs: list[ManifestEntry] | None = None,
+    rendered_at: str | None = None,
 ) -> Manifest:
+    """Build a manifest.
+
+    `rendered_at` defaults to now, but callers writing into a git-tracked
+    directory should pass a deterministic stamp instead. A wall-clock value
+    means the manifest differs on every sync even when nothing was rendered
+    differently — and since the manifest records each output's sha256, and the
+    outputs carry the same stamp in their provenance footer, one clock read
+    dirties two files in every managed app, forever.
+    """
     return Manifest(
         schema_version=MANIFEST_SCHEMA_VERSION,
         source_repo=source_repo,
@@ -115,7 +125,7 @@ def build_manifest(
         outputs=outputs or [],
         adapter_name=adapter_name,
         adapter_version=adapter_version,
-        rendered_at=datetime.now(timezone.utc).isoformat(),
+        rendered_at=rendered_at or datetime.now(timezone.utc).isoformat(),
         rendered_by=f"forge {forge_version}",
     )
 

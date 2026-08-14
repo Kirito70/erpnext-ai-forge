@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +40,61 @@ def find_repo_root(start: Path | None = None) -> Path:
     raise FileNotFoundError(
         "Could not locate erpnext-ai-forge repo root (no forge.config.yaml found)."
     )
+
+
+@lru_cache(maxsize=512)
+def file_last_commit(repo_root: Path, rel_path: str) -> tuple[str, str] | None:
+    """`(sha, ISO-8601 commit date)` of the last commit touching `rel_path`.
+
+    Provenance for a generated file should describe the source it came from,
+    not the moment `forge sync` happened to run. Stamping repo HEAD and a
+    wall-clock time made every sync rewrite every managed app — the footer
+    changed, so the file's sha256 changed, so the manifest changed — and made
+    `forge validate` report drift for apps whose source had not moved.
+
+    Anchored per file, a re-sync with unchanged sources produces byte-identical
+    output and the working tree stays clean.
+
+    None when the path is untracked or this is not a git repo; callers fall
+    back to HEAD.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%H%x00%cI", "--", rel_path],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
+        )
+        if result.returncode == 0 and "\0" in result.stdout:
+            sha, _, date = result.stdout.strip().partition("\0")
+            if sha:
+                return sha, date
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return None
+
+
+@lru_cache(maxsize=512)
+def commit_date(repo_root: Path, sha: str) -> str | None:
+    """ISO-8601 committer date for `sha`, or None if it cannot be resolved."""
+    if not sha:
+        return None
+    try:
+        result = subprocess.run(
+            ["git", "show", "-s", "--format=%cI", sha],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return None
 
 
 def repo_head_commit(repo_root: Path) -> str | None:

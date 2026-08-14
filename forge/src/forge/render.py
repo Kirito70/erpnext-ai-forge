@@ -23,6 +23,7 @@ from jinja2 import ChoiceLoader, Environment, FileSystemLoader, StrictUndefined,
 
 from forge import __version__ as forge_version
 from forge.loader import (
+    file_last_commit,
     load_adapter_config,
     load_agents,
     load_app_notes,
@@ -75,6 +76,25 @@ def _resolve(template_str: str, ctx: dict[str, Any]) -> str:
 
 def _shell_quote(value: str) -> str:
     return "'" + value.replace("'", "'\\''") + "'"
+
+
+def _source_provenance(
+    repo_root: Path, source: Path, forge_ctx: ForgeContext
+) -> tuple[str, str]:
+    """`(commit, timestamp)` describing when `source` last changed.
+
+    Falls back to the sync-run values when the file is untracked or git is
+    unavailable — a new canonical file has no commit yet, and a footer is not
+    worth failing a sync over.
+    """
+    try:
+        rel = str(source.relative_to(repo_root))
+    except ValueError:
+        return forge_ctx.source_commit or "uncommitted", forge_ctx.rendered_at.isoformat()
+    found = file_last_commit(repo_root, rel)
+    if found is None:
+        return forge_ctx.source_commit or "uncommitted", forge_ctx.rendered_at.isoformat()
+    return found
 
 
 def _unlinted_apps(target: Target, lint_apps: list[str]) -> list[str]:
@@ -512,13 +532,20 @@ def render(
             if not app_data:
                 continue
             notes = app_notes.get(app_name)
+            # Provenance describes THIS app's source note, not the sync run.
+            # Stamping repo HEAD + wall-clock rewrote every managed app on
+            # every sync — footer changes, so sha256 changes, so the manifest
+            # changes — and reported drift for apps whose source never moved.
+            app_commit, app_stamp = _source_provenance(
+                repo_root, repo_root / "canonical" / "apps" / f"{app_name}.md", forge_ctx
+            )
             content = tmpl.render(
                 app=app_data,
                 app_notes=notes.body.strip() if notes else "",
                 forge={
                     "version": forge_ctx.version,
-                    "source_commit": forge_ctx.source_commit,
-                    "rendered_at": forge_ctx.rendered_at.isoformat(),
+                    "source_commit": app_commit,
+                    "rendered_at": app_stamp,
                 },
                 bench={"primary_site": forge_ctx.primary_site},
             )
@@ -532,7 +559,11 @@ def render(
                     source_path=repo_root / "discovery" / "INVENTORY.md",
                     output_path=Path(per_app_path),
                     content=content,
-                    source_commit=forge_ctx.source_commit,
+                    # Per-app, matching the footer: the manifest records this
+                    # as the source_commit for the app's output dir, so using
+                    # repo HEAD here would reintroduce the churn the footer
+                    # change removes.
+                    source_commit=app_commit,
                     source_version=forge_version,
                     artifact_id=f"per-app-claude-md/{app_name}",
                     artifact_kind="aggregate",

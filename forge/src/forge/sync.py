@@ -23,6 +23,7 @@ from rich.prompt import Confirm
 
 from forge.audit import audit_log
 from forge.loader import (
+    commit_date,
     find_repo_root,
     load_adapter_config,
     load_forge_config,
@@ -745,13 +746,23 @@ def sync_tool(
                 and r.artifact_kind != SETTINGS_FRAGMENT_KIND
             ]
             if entries:
+                manifest_commit = next(
+                    iter([r.source_commit or "" for r in relevant]), ""
+                )
+                # Deterministic stamp: the date of the commit this output was
+                # rendered from, not the moment sync ran. A wall-clock value
+                # rewrote the manifest on every sync — and since the manifest
+                # records each output's sha256, and those outputs carry the
+                # same stamp in their own footer, one clock read dirtied two
+                # files in every managed app, every time.
                 manifest = build_manifest(
                     source_repo="erpnext-ai-forge",
-                    source_commit=next(iter([r.source_commit or "" for r in relevant]), ""),
+                    source_commit=manifest_commit,
                     adapter_name=tool,
                     adapter_version="0.1.0",
                     entries=entries,
                     outputs=outputs,
+                    rendered_at=commit_date(repo_root, manifest_commit),
                 )
                 # Fold into whatever is already there. Several adapters write
                 # the same bench-root dir; overwriting would strip their rows
