@@ -41,6 +41,22 @@ class ManifestEntry:
     silently discard one full round of hand-edit protection. An optional field
     parses old manifests unchanged, which is the whole point.
     """
+    source_sha256: str | None = None
+    """Hash of the CANONICAL SOURCE this row was rendered from.
+
+    `sha256` above is the rendered output — both lists in a manifest carry the
+    same output hash, keyed by different paths. That answers "has the bench
+    file been hand-edited", but nothing answered "has the source moved since",
+    so staleness was inferred from git commits: first the manifest's commit vs
+    repo HEAD (every app went stale on any unrelated forge commit), then vs the
+    newest source commit (a single scalar compared against a max over many
+    sources — mismatched almost always). Both were proxies for a content
+    question the manifest simply did not record.
+
+    Optional, and adding it does NOT bump MANIFEST_SCHEMA_VERSION, for the
+    reason given on `mode` above. Absent means "cannot judge staleness for this
+    row" — which reports nothing, rather than guessing.
+    """
     adapter: str | None = None
     """Which adapter rendered this row.
 
@@ -63,6 +79,8 @@ class ManifestEntry:
             d["mode"] = self.mode
         if self.adapter is not None:
             d["adapter"] = self.adapter
+        if self.source_sha256 is not None:
+            d["source_sha256"] = self.source_sha256
         return d
 
 

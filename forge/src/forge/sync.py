@@ -247,6 +247,20 @@ def _settings_fragments(rendered: list[RenderedArtifact]) -> list[RenderedArtifa
     return [r for r in rendered if r.artifact_kind == SETTINGS_FRAGMENT_KIND]
 
 
+def _source_hash(source_path: Path) -> str | None:
+    """Hash of a canonical source file, or None if it cannot be read.
+
+    None rather than raising: several artifacts name a representative source
+    (an aggregate points at `discovery/INVENTORY.md`) and a missing or binary
+    one must not fail a sync. A row without this simply opts out of the
+    staleness check instead of producing a false finding.
+    """
+    try:
+        return sha256_text(source_path.read_text())
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
 def _merge_settings_fragments(
     rendered: list[RenderedArtifact],
 ) -> tuple[list[Path], list[ScalarConflict], Path | None]:
@@ -721,6 +735,9 @@ def sync_tool(
                     version=r.source_version,
                     sha256=sha256_text(r.content),
                     adapter=tool,
+                    # What the bench was rendered FROM, so staleness is a
+                    # content question rather than a guess from commit shas.
+                    source_sha256=_source_hash(r.source_path),
                 )
                 for r in relevant
             ]
