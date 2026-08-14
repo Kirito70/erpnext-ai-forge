@@ -18,6 +18,7 @@ import yaml
 from forge.models import (
     CanonicalArtifact,
     DiscoverySnapshot,
+    HarnessConfig,
     HarnessScript,
     HarnessSpec,
     HookSpec,
@@ -315,6 +316,23 @@ def load_harness(repo_root: Path) -> HarnessSpec | None:
             )
         )
 
+    configs: list[HarnessConfig] = []
+    for entry in raw.get("configs") or []:
+        rel = entry["file"]
+        source = base / rel
+        sources.append(source)
+        # Unlike scripts, the landing place is declared rather than derived:
+        # a config has to sit where its tool looks for it.
+        configs.append(
+            HarnessConfig(
+                id=str(entry["id"]),
+                source_path=source,
+                output_path=str(entry["output_path"]),
+                mode=int(str(entry.get("mode", "0644")), 8),
+                purpose=str(entry.get("purpose", "")),
+            )
+        )
+
     hooks = tuple(
         HookSpec(
             id=str(h["id"]),
@@ -336,6 +354,7 @@ def load_harness(repo_root: Path) -> HarnessSpec | None:
         gates=gates,
         permissions=permissions,
         source_paths=tuple(sources),
+        configs=tuple(configs),
     )
 
 
@@ -398,6 +417,7 @@ def load_targets(repo_root: Path, forge_cfg: dict[str, Any] | None = None) -> di
 
         site = raw.get("primary_site")
         managed = raw.get("managed_apps")
+        lint = raw.get("lint_apps")
         targets[name] = Target(
             name=name,
             root=root,
@@ -406,6 +426,7 @@ def load_targets(repo_root: Path, forge_cfg: dict[str, Any] | None = None) -> di
             primary_site=resolve_config_str(str(site), env) if site else None,
             owned_remotes=frozenset(raw.get("owned_remotes") or []),
             managed_apps=tuple(managed) if managed else None,
+            lint_apps=tuple(lint) if lint else None,
             renders=frozenset(raw["renders"]) if raw.get("renders") is not None else None,
             self_target=bool(raw.get("self_target", False)),
         )

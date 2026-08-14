@@ -77,14 +77,44 @@ def _shell_quote(value: str) -> str:
     return "'" + value.replace("'", "'\\''") + "'"
 
 
+def _unlinted_apps(target: Target, lint_apps: list[str]) -> list[str]:
+    """Every app directory in the target that `lint_apps` does not name.
+
+    Read from the filesystem rather than from `upstream_apps`, which lists only
+    the Frappe-ecosystem apps and would leave third-party ones (raven,
+    cargo_management, changemakers) linted.
+
+    Rendering the inverse of an allow-list means the generated exclude is a
+    snapshot: an app vendored into the bench after the last sync is absent from
+    it and therefore gets linted. That is the failure direction we want — a
+    noisy gate prompts a re-sync, whereas silently skipping a new app is a gap
+    nobody notices.
+    """
+    apps_dir = target.root / "apps"
+    if not apps_dir.is_dir():
+        return []
+    allowed = set(lint_apps)
+    return sorted(
+        p.name
+        for p in apps_dir.iterdir()
+        if p.is_dir() and not p.name.startswith(".") and p.name not in allowed
+    )
+
+
 def render_gate_cmd(cmd: str, site: str = "") -> str:
     """Turn a gates.yaml `cmd` into shell, substituting its placeholders.
 
-    `{file}`, `{app}`, `{app_dir}` expand to shell expressions rather than
-    baked-in literals: `{file}` becomes `"$FILE"` so one rendered script
-    handles every file, and `{app}`/`{app_dir}` call the helpers in
-    common.sh so the app is derived from the path at run time. Baking those
-    in at render time would need one script per app.
+    `{file}`, `{app}`, `{app_dir}`, `{js_dir}` expand to shell expressions
+    rather than baked-in literals: `{file}` becomes `"$FILE"` so one rendered
+    script handles every file, and the rest call the helpers in common.sh so
+    the app is derived from the path at run time. Baking those in at render
+    time would need one script per app.
+
+    `{app_dir}` and `{js_dir}` are not interchangeable. `{app_dir}` is the
+    Frappe app (`apps/<app>`); `{js_dir}` is the nearest package.json above the
+    file. They coincide only when an app keeps its JS workspace at its root —
+    novizna_pos does not, so a frontend gate given `{app_dir}` fails on every
+    edit. Frontend gates want `{js_dir}`; `bench --app` wants `{app}`.
 
     `{site}` is different: it is a per-TARGET constant (`FORGE_PRIMARY_SITE`),
     known at render time and the same for every invocation of the script, so
@@ -94,8 +124,9 @@ def render_gate_cmd(cmd: str, site: str = "") -> str:
     Novizna bench.
     """
     return (
-        cmd.replace("{file}", '"$FILE"')
+        cmd.replace("{file}", '"$(_abs_of "$FILE")"')
         .replace("{app_dir}", '"$(_app_dir_of "$FILE")"')
+        .replace("{js_dir}", '"$(_js_dir_of "$FILE")"')
         .replace("{app}", '"$(_app_of "$FILE")"')
         .replace("{site}", site)
     )
@@ -532,6 +563,9 @@ def render(
                     "root": str(target.root),
                     "stack_profile": target.stack_profile,
                     "primary_site": target.primary_site or "",
+                    # Reuses `lint_apps`: "ours to lint" and "ours to run gates
+                    # against" are the same set, and a second list would drift.
+                    "owned_apps": sorted(target.lint_apps or ()),
                 },
                 profile=profile,
                 harness=harness,
@@ -550,6 +584,55 @@ def render(
                     mode=script.mode,
                 )
             )
+
+        # Tool configs ride with the scripts — same owning adapter, same
+        # security gate — but land at target-root paths of their own choosing,
+        # because a linter reads config from where it is invoked, not from
+        # scripts_dir.
+        #
+        # Skipped entirely when the target declares no `lint_apps`: emitting an
+        # unscoped ruff.toml would silently widen the lint scope of a target
+        # that never asked for one.
+        if target.lint_apps:
+            lint_apps = sorted(target.lint_apps)
+            excluded_apps = _unlinted_apps(target, lint_apps)
+            for cfg_spec in harness.configs:
+                # Absolute, like every other rendered path — sync rejects
+                # relative ones. Re-checked against the target root afterwards
+                # so an `output_path` of `../…` in harness.yaml cannot land a
+                # file outside the repo forge was asked to write to.
+                config_path = (target.root / cfg_spec.output_path).resolve()
+                if not config_path.is_relative_to(target.root.resolve()):
+                    raise ValueError(
+                        f"harness config {cfg_spec.id!r} has output_path "
+                        f"{cfg_spec.output_path!r}, which escapes the target root"
+                    )
+                tmpl = env.get_template(cfg_spec.source_path.name)
+                content = tmpl.render(
+                    forge=forge_ctx,
+                    target={
+                        "name": target.name,
+                        "root": str(target.root),
+                        "stack_profile": target.stack_profile,
+                        "primary_site": target.primary_site or "",
+                    },
+                    harness=harness,
+                    lint_apps=lint_apps,
+                    excluded_apps=excluded_apps,
+                )
+                rendered.append(
+                    RenderedArtifact(
+                        tool=tool,
+                        source_path=cfg_spec.source_path,
+                        output_path=config_path,
+                        content=content,
+                        source_commit=forge_ctx.source_commit,
+                        source_version=harness.version,
+                        artifact_id=f"harness/{cfg_spec.id}",
+                        artifact_kind="harness-config",
+                        mode=cfg_spec.mode,
+                    )
+                )
 
     # --- Hook wiring (per-tool; emits nothing when the adapter has no hooks) ---
     # Deliberately emits NOTHING rather than an empty file: _validate_staging

@@ -49,6 +49,21 @@ scripts:
     mode: "0755"
     purpose: "Adapter: session-end event -> gates quick, blocking."
 
+# Tool-config files. Not scripts: nothing executes these, and each lands where
+# its tool looks for it rather than in `scripts_dir` — ruff reads config from
+# the directory the check runs in, so a scripts/harness/ruff.toml is inert.
+#
+# Rendered only for targets that declare `lint_apps`. A target without one gets
+# no file, and its linter keeps whatever scope it already had.
+configs:
+  - id: ruff-scope
+    file: ruff.toml.j2
+    output_path: ruff.toml
+    mode: "0644"
+    purpose: >-
+      Confines `ruff check apps` to the apps we own. Without it the gate reports
+      upstream and third-party findings we are not allowed to fix.
+
 hooks:
   # Hooks invoke the ADAPTER scripts, never check-file/gates directly: a hook is
   # handed a JSON payload on stdin, while check-file.sh takes file paths as

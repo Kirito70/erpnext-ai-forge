@@ -39,6 +39,34 @@ bench:
     - noviznaerp_payroll
     - erpnext_location
 
+  # Apps the Python linter may see. Renders canonical/harness/ruff.toml.j2 into
+  # the target's ruff.toml, excluding every app in the bench not named here.
+  #
+  # Wider than `managed_apps` on purpose: these are two different questions.
+  # `managed_apps` is "does forge write instruction files here", which we keep
+  # narrow; this is "is this app's Python ours to fix", which covers apps we
+  # own but have not onboarded to forge yet.
+  #
+  # Deliberately its own list rather than derived:
+  #   - from `owned_remotes`: the upstream apps are forks into our own org
+  #     (frappe -> novizna_framework, erpnext -> noviznaerp,
+  #     crm -> novizna_crm_core, hrms -> novizna_hrms,
+  #     press -> novizna_press_core), so remote ownership calls all five ours.
+  #   - from `upstream_apps`: that list is the write guard's and omits the
+  #     third-party apps (raven, cargo_management, changemakers) we also never
+  #     lint.
+  #
+  # An allow-list, so an app vendored in later is linted (noisy, prompts a
+  # re-sync) rather than skipped (quiet, and nobody notices).
+  lint_apps:
+    - erpnext_location
+    - invoice_ninja_integration
+    - novizna_core
+    - novizna_crm
+    - novizna_pos
+    - novizna_restaurant
+    - noviznaerp_payroll
+
 # Additional render targets, layered on top of `bench:` above.
 #
 # The forge repo generates the harness every other repo runs, and until now had

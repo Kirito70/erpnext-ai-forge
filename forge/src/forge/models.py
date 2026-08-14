@@ -115,6 +115,24 @@ class HarnessScript:
 
 
 @dataclass(frozen=True)
+class HarnessConfig:
+    """One tool-config file the harness ships (ruff.toml, and later friends).
+
+    Separate from HarnessScript because the two differ in the way that matters
+    to rendering: every script lands in a single `scripts_dir`, while a config
+    has to land where its tool looks for it. Ruff resolves configuration from
+    the directory a check is invoked in, so a `scripts/harness/ruff.toml` would
+    be silently ignored. Hence `output_path`, relative to the target root.
+    """
+
+    id: str
+    source_path: Path        # canonical/harness/<name>.j2
+    output_path: str         # target-root-relative, e.g. "ruff.toml"
+    mode: int
+    purpose: str
+
+
+@dataclass(frozen=True)
 class HookSpec:
     """One hook: an event, and the script it runs."""
 
@@ -138,6 +156,9 @@ class HarnessSpec:
     gates: dict[str, Any]        # gates.yaml -> stacks
     permissions: dict[str, Any]  # permissions.yaml
     source_paths: tuple[Path, ...]
+    configs: tuple[HarnessConfig, ...] = ()
+    """Tool-config files rendered next to the scripts. Defaults to empty so a
+    canonical checkout predating `configs:` still loads."""
 
     def script(self, script_id: str) -> HarnessScript | None:
         for s in self.scripts:
@@ -178,6 +199,27 @@ class Target:
     primary_site: str | None = None
     owned_remotes: frozenset[str] = frozenset()
     managed_apps: tuple[str, ...] | None = None
+    lint_apps: tuple[str, ...] | None = None
+    """Apps whose Python the linter is allowed to see. None disables scoping.
+
+    Deliberately NOT derived from either half of the write guard, because
+    neither half is a lint-scope answer on its own:
+
+    - `owned_remotes` answers "may we commit here". On this bench the upstream
+      apps are forks into our own org (frappe -> novizna_framework,
+      erpnext -> noviznaerp, crm -> novizna_crm_core, hrms -> novizna_hrms,
+      press -> novizna_press_core), so remote ownership says yes to all five;
+      lint scope must say no.
+    - `upstream_apps` names the Frappe-ecosystem apps and omits third-party
+      ones we equally never lint (raven, cargo_management, changemakers).
+
+    The guard combines the two (`is_upstream or is_foreign`) and is exact; it
+    is only their individual use that would be wrong here. Kept as its own list
+    anyway, since "may we write here" and "is this ours to fix" are different
+    questions that will not always have the same answer.
+
+    An allow-list rather than a deny-list so a newly vendored app is loud
+    (linted, noisy) rather than quiet (skipped, and nobody notices)."""
     renders: frozenset[str] | None = None
     """Which adapter artifact groups this target receives; None means all.
 
