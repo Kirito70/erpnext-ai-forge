@@ -30,12 +30,15 @@ stacks:
       - id: python-lint
         match: "*.py"
         cmd: "ruff check --fix {file}"
-        verify_status: UNVERIFIED
+        verify_status: VERIFIED
         note: >-
-          No linter convention exists anywhere in canonical/ or adapters/ — zero
-          references to ruff, eslint, prettier or black. Frappe upstream ships a
-          ruff config via pre-commit, but THIS bench has not declared one.
-          Confirm before trusting: `ls apps/novizna_crm/pyproject.toml .ruff.toml`
+          Run against the bench 2026-08-14: exit 0 on a clean file, and the
+          convention the old note doubted does now exist — a bench-root
+          ruff.toml rendered from ruff.toml.j2, plus per-app [tool.ruff] in 13
+          of 21 apps. Note that ruff resolves configuration hierarchically, so
+          a file inside an app with its own config is governed by that file and
+          not by the bench root; the scope excludes only apply here through
+          force-exclude, and only for apps shipping no config of their own.
       - id: frontend-lint
         match: "*.js,*.ts,*.vue"
         cmd: "yarn --cwd {js_dir} lint --fix {file}"
@@ -56,7 +59,14 @@ stacks:
     quick:
       - id: python-lint-all
         cmd: "ruff check apps"
-        verify_status: UNVERIFIED
+        verify_status: VERIFIED
+        note: >-
+          Run against the bench 2026-08-14. Scoped by the generated bench-root
+          ruff.toml (see lint_apps): 2189 findings across all 21 apps became
+          1231 across the 7 we own. Exits 1 today and that is correct — the
+          remaining findings are real pre-existing debt (973 auto-fixable),
+          concentrated in novizna_restaurant and noviznaerp_payroll. VERIFIED
+          means the command is right, not that the gate is green.
 
     # The real Definition of Done. Minutes, not seconds — run by the
     # orchestrator during /ticket-review, never from a Stop hook.

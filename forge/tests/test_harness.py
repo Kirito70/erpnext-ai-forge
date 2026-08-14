@@ -182,9 +182,40 @@ def test_gate_tables_do_differ(repo_root, bench_env):
     assert "mypy" in selff and "mypy" not in bench
 
 
-def test_unverified_gates_are_marked_in_the_output(repo_root, bench_env):
-    """The debt has to be visible in the artifact, not just in the source."""
-    assert "UNVERIFIED" in _harness_files(repo_root, "bench")["check-file.sh"]
+def test_unverified_gates_are_marked_in_the_output(repo_root):
+    """The debt has to be visible in the artifact, not just in the source.
+
+    Rendered from a synthetic gate table rather than the bench's own. The
+    earlier form asserted "UNVERIFIED" appeared in the real check-file.sh,
+    which tied a test of the MECHANISM to the project's current state: once
+    every file_lint gate on the bench was actually verified, the marker
+    correctly stopped rendering and this test failed. Paying down verification
+    debt should not break the suite.
+    """
+    from forge.render import _build_jinja_env
+
+    env = _build_jinja_env(repo_root / "adapters" / "claude-code", repo_root)
+    out = env.get_template("scripts/check-file.sh.j2").render(
+        forge={"version": "0.0.0"},
+        target={
+            "name": "synthetic",
+            "root": "/tmp/synthetic",
+            "stack_profile": "frappe",
+            "primary_site": "",
+        },
+        profile={
+            "file_lint": [
+                {
+                    "id": "made-up-gate",
+                    "match": "*.py",
+                    "cmd": "true {file}",
+                    "verify_status": "UNVERIFIED",
+                }
+            ]
+        },
+    )
+    assert "UNVERIFIED" in out
+    assert "made-up-gate" in out
 
 
 # --- generated shell is real shell -----------------------------------------
