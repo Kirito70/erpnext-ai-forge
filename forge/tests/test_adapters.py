@@ -58,11 +58,11 @@ def test_opencode_renders_full_artifact_set(repo_root):
     agent, command, skill, and tool under .opencode/<kind>/."""
     rendered = render(repo_root, "opencode")
     summary = render_summary(rendered)
-    # Same counts as Claude Code (8 agents + 17 commands + 30 skills + 14 tools)
+    # Same counts as Claude Code (11 agents + 21 commands + 32 skills + 14 tools)
     # plus a single AGENTS.md index aggregate.
     assert summary.get("agent") == 11
     assert summary.get("command") == 21
-    assert summary.get("skill") == 31
+    assert summary.get("skill") == 33
     assert summary.get("tool") == 14
     assert summary.get("aggregate") == 4   # AGENTS.md index + the three shared bench-root docs
     # AGENTS.md is the bench-root index

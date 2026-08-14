@@ -11,6 +11,38 @@ Section order per release: **Added / Changed / Deprecated / Removed / Fixed / Se
 
 ## [Unreleased]
 
+### Added — harness `configs:` and a forge-managed ruff scope
+
+`harness.yaml` gains a `configs:` section alongside `scripts:`, for tool-config files the harness ships. Configs differ from scripts in the one way rendering cares about: a script lands in the shared `scripts_dir`, while a config must land where its tool looks for it, so each declares its own target-root-relative `output_path`. They render under the existing `harness_scripts` group and inherit its single-owner rule, security gate, drift detection and hand-edit protection unchanged.
+
+First config: **`canonical/harness/ruff.toml.j2`**, rendering the bench's `ruff.toml`.
+
+- New `bench.lint_apps` in `forge.config.yaml` — the apps the Python linter may see. The template renders its inverse as `extend-exclude`.
+- `extend-exclude` rather than `exclude`, so ruff's built-in defaults (`node_modules`, `.venv`, `__pycache__`, …) survive. The bench root is not a git repository, so `respect-gitignore` provides no cover there.
+- `force-exclude = true`, so the per-file gate (`ruff check --fix {file}`) honours the scope too. This holds only for excluded apps that ship no ruff config of their own — ruff resolves configuration hierarchically, and an app with its own `[tool.ruff]` never consults the bench-root file. The whole-bench gate is unaffected; it excludes during the walk.
+
+`lint_apps` is deliberately its own list rather than derived from the write guard: `owned_remotes` alone calls the upstream forks ours, and `upstream_apps` alone omits the third-party apps. "May we write here" and "is this ours to fix" are different questions.
+
+Effect on the Novizna bench: `ruff check apps` drops from 2189 findings to 1231, removing 958 belonging to upstream and third-party apps.
+
+### Fixed — discovery classified third-party apps as ours
+
+`discover_bench.py` derived `custom_apps` as "every app not in `upstream_apps`". That list names the Frappe-ecosystem apps only, so third-party apps vendored into the bench (`raven`, `cargo_management`, `changemakers`) fell through to `custom` and were walked — putting another organisation's DocTypes, whitelisted APIs and anti-pattern findings into the indexes agents read as our own surface area.
+
+Now uses the same predicate the write guard already applies (`is_upstream or is_foreign`, `forge/src/forge/repo.py`), so the two cannot drift. Neither half suffices alone on this bench: the upstream apps are forks into our own org, so `is_foreign` clears them; the third-party apps are absent from `upstream_apps`, so that list clears them.
+
+- `apps-index.json` entries under `upstream_apps` now carry `type: upstream | third_party` — the two are fixed by different edits.
+- `totals` splits into `upstream_app_count` / `third_party_app_count` / `unowned_app_count`; the first silently included third-party apps once they were reclassified.
+- `test_load_discovery` asserted `len(custom) == 8`, a number produced by the bug. Replaced with a partition invariant that will not break on the next app installed.
+
+The checked-in discovery snapshot was also 2.5 months stale (2026-05-26) and predated `novizna_restaurant`; regenerated. Custom apps 8 → 7, and the set now agrees independently with `lint_apps`.
+
+**Not affected:** the write guard itself. `is_upstream or is_foreign` covers all 14 unowned apps exactly; only discovery used the incomplete half.
+
+### Tests
+- 390 passing, 2 skipped (was 389). New: `test_third_party_app_is_not_custom`, verified to fail without the fix.
+- `ruff check forge/src` and `mypy forge/src/forge` clean; `forge validate` schema-valid.
+
 ---
 
 ## [0.6.3] — 2026-05-27

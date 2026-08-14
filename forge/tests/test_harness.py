@@ -88,10 +88,27 @@ def test_stop_hook_runs_quick_not_full(repo_root, bench_env):
 # --- gate command rendering ------------------------------------------------
 
 def test_placeholders_become_shell_not_literals():
-    """`{file}` must become `"$FILE"`, not a baked-in path — one rendered
-    script has to handle every file it is called about."""
+    """`{file}` must become a shell expression, not a baked-in path — one
+    rendered script has to handle every file it is called about.
+
+    Absolute rather than bare `"$FILE"`: gates that change directory
+    (`yarn --cwd <js_dir> lint <file>`) resolve a bench-relative path against
+    the wrong root and exit 2 with "No files matching the pattern".
+    """
     out = render_gate_cmd("ruff check --fix {file}")
-    assert out == 'ruff check --fix "$FILE"'
+    assert out == 'ruff check --fix "$(_abs_of "$FILE")"'
+
+
+def test_js_dir_placeholder_is_distinct_from_app_dir():
+    """A frontend gate must get the JS workspace, not the Frappe app.
+
+    They differ whenever an app keeps its frontend in a subdirectory — as
+    novizna_pos does — and `yarn --cwd <app_dir>` then fails outright because
+    there is no package.json there.
+    """
+    out = render_gate_cmd("yarn --cwd {js_dir} lint {file}")
+    assert '"$(_js_dir_of "$FILE")"' in out
+    assert "_app_dir_of" not in out
 
 
 def test_app_placeholders_resolve_at_runtime():

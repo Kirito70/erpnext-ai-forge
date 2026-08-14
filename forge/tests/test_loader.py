@@ -59,9 +59,9 @@ def test_load_commands_returns_21(repo_root):
     assert expected_subset <= {c.id for c in commands}
 
 
-def test_load_skills_returns_31(repo_root):
+def test_load_skills_returns_33(repo_root):
     skills = load_skills(repo_root)
-    assert len(skills) == 31  # +meta/ticket-authoring-guide
+    assert len(skills) == 33  # +frontend/spa-file-structure, +frontend/frappe-worktrees
     # Every skill has a domain inferred from parent dir
     domains = {s.domain for s in skills}
     assert "frappe-core" in domains
@@ -104,7 +104,16 @@ def test_load_discovery(repo_root):
     custom = snap.custom_app_names()
     assert "novizna_crm" in custom
     assert "novizna_pos" in custom
-    assert len(custom) == 8
+
+    # The two lists partition the bench: nothing is both ours and not ours.
+    # Asserted as an invariant rather than a hard-coded length, which was the
+    # previous form — it encoded the count produced by the classification bug
+    # (third-party apps counted as custom) and would break again on the next
+    # app installed into the bench.
+    unowned = {a["name"] for a in snap.apps.get("upstream_apps", [])}
+    assert not (set(custom) & unowned)
+    assert snap.apps["totals"]["custom_app_count"] == len(custom)
+    assert snap.apps["totals"]["unowned_app_count"] == len(unowned)
 
 
 def test_discovery_app_lookup(repo_root):
