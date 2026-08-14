@@ -1,28 +1,8 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-05-26T06:58:30.458694+00:00",
+  "generated_at": "2026-08-13T11:19:10.406552+00:00",
   "generated_by": "forge discover",
   "custom_apps": {
-    "cargo_management": {
-      "total_whitelist_methods": 10,
-      "sample_methods": [
-        "get_packages_and_wr_in_cargo_shipment",
-        "update_status",
-        "make_sales_invoice",
-        "update_status",
-        "find_package_by_tracking_number"
-      ]
-    },
-    "changemakers": {
-      "total_whitelist_methods": 9,
-      "sample_methods": [
-        "get_app_version",
-        "get_current_user_info",
-        "get_form_fields",
-        "get_doctype_options",
-        "upload_base64_file"
-      ]
-    },
     "erpnext_location": {
       "total_whitelist_methods": 3,
       "sample_methods": [
@@ -58,13 +38,23 @@
       ]
     },
     "novizna_pos": {
-      "total_whitelist_methods": 33,
+      "total_whitelist_methods": 107,
       "sample_methods": [
         "get_system_settings",
         "get_pos_profiles",
         "get_items",
-        "get_restaurant_orders_by_status",
-        "get_restaurant_tables"
+        "resolve_barcode",
+        "get_restaurant_orders_by_status"
+      ]
+    },
+    "novizna_restaurant": {
+      "total_whitelist_methods": 111,
+      "sample_methods": [
+        "scale_recipe",
+        "install_fixtures_api",
+        "get_branches_for_company",
+        "get_restaurant_floors_for_branch",
+        "get_restaurant_tables_for_floor"
       ]
     },
     "noviznaerp_payroll": {

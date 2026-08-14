@@ -1,43 +1,8 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-05-26T06:58:30.458694+00:00",
+  "generated_at": "2026-08-13T11:19:10.406552+00:00",
   "generated_by": "forge discover",
   "per_app": {
-    "cargo_management": {
-      "sql_fstring": [],
-      "allow_guest": [
-        "apps/cargo_management/cargo_management/parcel_management/doctype/parcel/api/api_17track.py:146",
-        "apps/cargo_management/cargo_management/parcel_management/doctype/parcel/api/easypost_api.py:84"
-      ],
-      "ignore_permissions": [
-        "apps/cargo_management/cargo_management/parcel_management/doctype/parcel/api/api_17track.py:175",
-        "apps/cargo_management/cargo_management/parcel_management/doctype/parcel/api/easypost_api.py:114",
-        "apps/cargo_management/cargo_management/parcel_selling/utils.py:16",
-        "apps/cargo_management/cargo_management/parcel_selling/utils.py:33",
-        "apps/cargo_management/cargo_management/shipment_management/doctype/cargo_shipment_receipt/actions.py:87",
-        "apps/cargo_management/cargo_management/shipment_management/doctype/cargo_shipment_receipt/actions.py:99",
-        "apps/cargo_management/cargo_management/utils.py:46"
-      ],
-      "db_commit_non_test": [
-        "apps/cargo_management/cargo_management/shipment_management/doctype/cargo_shipment_receipt/actions.py:94",
-        "apps/cargo_management/cargo_management/shipment_management/doctype/cargo_shipment_receipt/actions.py:96"
-      ]
-    },
-    "changemakers": {
-      "sql_fstring": [],
-      "allow_guest": [],
-      "ignore_permissions": [
-        "apps/changemakers/changemakers/api/__init__.py:60",
-        "apps/changemakers/changemakers/api/__init__.py:97",
-        "apps/changemakers/changemakers/frappe_changemakers/doctype/changemakers_user_profile/changemakers_user_profile.py:15"
-      ],
-      "db_commit_non_test": [
-        "apps/changemakers/changemakers/config/e2e.py:16",
-        "apps/changemakers/changemakers/frappe_changemakers/doctype/changemakers_user_profile/changemakers_user_profile.py:17",
-        "apps/changemakers/changemakers/install.py:16",
-        "apps/changemakers/changemakers/www/c.py:8"
-      ]
-    },
     "erpnext_location": {
       "sql_fstring": [],
       "allow_guest": [],
@@ -45,7 +10,7 @@
         "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:145",
         "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:245",
         "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:316",
-        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:399",
+        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:423",
         "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:94"
       ],
       "db_commit_non_test": [
@@ -56,7 +21,7 @@
         "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:257",
         "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:320",
         "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:327",
-        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:407",
+        "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:431",
         "apps/erpnext_location/erpnext_location/erpnext_location/utils/data_import.py:98"
       ]
     },
@@ -146,17 +111,76 @@
     "novizna_pos": {
       "sql_fstring": [],
       "allow_guest": [
-        "apps/novizna_pos/novizna_pos/novizna_pos/api.py:82"
+        "apps/novizna_pos/novizna_pos/novizna_pos/api.py:80"
       ],
       "ignore_permissions": [
-        "apps/novizna_pos/novizna_pos/novizna_pos/doctype/cash_variance_entry/cash_variance_entry.py:172",
-        "apps/novizna_pos/novizna_pos/novizna_pos/doctype/cash_variance_entry/cash_variance_entry.py:229",
-        "apps/novizna_pos/novizna_pos/novizna_pos/invoice.py:71",
-        "apps/novizna_pos/novizna_pos/pos_hooks/after_install.py:45",
-        "apps/novizna_pos/novizna_pos/pos_hooks/after_install.py:79"
+        "apps/novizna_pos/novizna_pos/loadtest/pos_multi_terminal_loadtest.py:538",
+        "apps/novizna_pos/novizna_pos/loadtest/pos_multi_terminal_loadtest.py:540",
+        "apps/novizna_pos/novizna_pos/migrate.py:217",
+        "apps/novizna_pos/novizna_pos/migrate.py:225",
+        "apps/novizna_pos/novizna_pos/migrate.py:239",
+        "apps/novizna_pos/novizna_pos/migrate.py:247",
+        "apps/novizna_pos/novizna_pos/migrate.py:38",
+        "apps/novizna_pos/novizna_pos/novizna_pos/checkout_mint.py:186",
+        "apps/novizna_pos/novizna_pos/novizna_pos/checkout_mint.py:187",
+        "apps/novizna_pos/novizna_pos/novizna_pos/customer_links.py:362",
+        "apps/novizna_pos/novizna_pos/novizna_pos/customer_links.py:442",
+        "apps/novizna_pos/novizna_pos/novizna_pos/customer_links.py:462",
+        "apps/novizna_pos/novizna_pos/novizna_pos/customer_links.py:497",
+        "apps/novizna_pos/novizna_pos/novizna_pos/customer_links.py:524",
+        "apps/novizna_pos/novizna_pos/novizna_pos/customer_links.py:591"
       ],
       "db_commit_non_test": [
+        "apps/novizna_pos/novizna_pos/loadtest/pos_multi_terminal_loadtest.py:374",
+        "apps/novizna_pos/novizna_pos/loadtest/pos_multi_terminal_loadtest.py:394",
+        "apps/novizna_pos/novizna_pos/loadtest/pos_multi_terminal_loadtest.py:400",
+        "apps/novizna_pos/novizna_pos/loadtest/pos_multi_terminal_loadtest.py:426",
+        "apps/novizna_pos/novizna_pos/loadtest/pos_multi_terminal_loadtest.py:546",
+        "apps/novizna_pos/novizna_pos/novizna_pos/invoice.py:2089",
+        "apps/novizna_pos/novizna_pos/novizna_pos/seed/seed_pos_data.py:197",
+        "apps/novizna_pos/novizna_pos/novizna_pos/seed/seed_pos_data.py:260",
+        "apps/novizna_pos/novizna_pos/novizna_pos/seed/seed_pos_data.py:88",
+        "apps/novizna_pos/novizna_pos/patches/v1_0/scope_fiscal_years_to_company.py:69",
         "apps/novizna_pos/novizna_pos/templates/pages/pos/index.py:9"
+      ]
+    },
+    "novizna_restaurant": {
+      "sql_fstring": [
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/api/dashboard.py:153",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/api/dashboard.py:167",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/api/dashboard.py:191",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/api/dashboard.py:202",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/api/dashboard.py:253",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/api/dashboard.py:366",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/api/dashboard.py:407",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/api/integration.py:487"
+      ],
+      "allow_guest": [
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/api/integration.py:528",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/api/integration.py:553"
+      ],
+      "ignore_permissions": [
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/doctype/restaurant_reservation/restaurant_reservation.py:397",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/doctype/restaurant_settings/restaurant_settings.py:29",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/setup/load_master_data.py:119",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/setup/load_master_data.py:154",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/setup/load_master_data.py:189",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/setup/load_master_data.py:224",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/setup/load_master_data.py:259",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/setup/load_master_data.py:294",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/setup/load_master_data.py:84"
+      ],
+      "db_commit_non_test": [
+        "apps/novizna_restaurant/final_verification.py:184",
+        "apps/novizna_restaurant/final_verification.py:205",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/api/integration.py:215",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/setup/load_master_data.py:120",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/setup/load_master_data.py:155",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/setup/load_master_data.py:190",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/setup/load_master_data.py:225",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/setup/load_master_data.py:260",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/setup/load_master_data.py:295",
+        "apps/novizna_restaurant/novizna_restaurant/novizna_restaurant/setup/load_master_data.py:85"
       ]
     },
     "noviznaerp_payroll": {
@@ -220,9 +244,9 @@
     }
   },
   "totals": {
-    "sql_fstring": 15,
+    "sql_fstring": 23,
     "allow_guest": 13,
-    "ignore_permissions": 63,
-    "db_commit_non_test": 56
+    "ignore_permissions": 72,
+    "db_commit_non_test": 70
   }
 }

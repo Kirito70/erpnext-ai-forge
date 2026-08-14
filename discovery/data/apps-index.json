@@ -1,9 +1,19 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-05-26T06:58:30.458694+00:00",
+  "generated_at": "2026-08-13T11:19:10.406552+00:00",
   "generated_by": "forge discover",
   "bench_path": "/home/tayyab/Work/Projects/erp/novizna-v16/novizna-v16",
   "upstream_apps": [
+    {
+      "name": "cargo_management",
+      "type": "third_party",
+      "modifiable": false
+    },
+    {
+      "name": "changemakers",
+      "type": "third_party",
+      "modifiable": false
+    },
     {
       "name": "crm",
       "type": "upstream",
@@ -58,24 +68,14 @@
       "name": "press",
       "type": "upstream",
       "modifiable": false
+    },
+    {
+      "name": "raven",
+      "type": "third_party",
+      "modifiable": false
     }
   ],
   "custom_apps": [
-    {
-      "name": "cargo_management",
-      "type": "custom",
-      "stack": "python",
-      "doctype_count": 12,
-      "whitelist_api_count": 10,
-      "purpose": "ERPNext Cargo Management for Freight Forwarders"
-    },
-    {
-      "name": "changemakers",
-      "type": "custom",
-      "stack": "python + frappe-ui-vue3",
-      "doctype_count": 52,
-      "whitelist_api_count": 9
-    },
     {
       "name": "erpnext_location",
       "type": "custom",
@@ -112,8 +112,16 @@
       "name": "novizna_pos",
       "type": "custom",
       "stack": "python + quasar-vue3-pwa",
-      "doctype_count": 3,
-      "whitelist_api_count": 33
+      "doctype_count": 11,
+      "whitelist_api_count": 107
+    },
+    {
+      "name": "novizna_restaurant",
+      "type": "custom",
+      "stack": "python",
+      "doctype_count": 42,
+      "whitelist_api_count": 111,
+      "purpose": "Restaurant App Created by Novizna"
     },
     {
       "name": "noviznaerp_payroll",
@@ -126,8 +134,10 @@
   ],
   "totals": {
     "upstream_app_count": 11,
-    "custom_app_count": 8,
-    "custom_doctype_count": 156,
-    "custom_whitelist_api_count": 205
+    "third_party_app_count": 3,
+    "unowned_app_count": 14,
+    "custom_app_count": 7,
+    "custom_doctype_count": 142,
+    "custom_whitelist_api_count": 371
   }
 }
