@@ -49,11 +49,25 @@ for FILE in "$@"; do
 {%- endif %}
   case "$FILE" in
     {% for p in gate.match.split(',') %}{{ p | trim }}{% if not loop.last %}|{% endif %}{% endfor %})
+{%- if gate.get('requires') %}
+      # `requires: {{ gate.get('requires') }}` — this gate needs a context the
+      # file may not have. Missing context is a SKIP, not a failure: a JS file
+      # in an app with no package.json is not lintable, and blocking the edit
+      # over it just teaches people to bypass the hook.
+      if [ -z "$(_{{ gate.get('requires') }}_of "$FILE")" ]; then
+        note "{{ gate.id }}: no {{ gate.get('requires') }} for $FILE — skipped."
+      elif ! run_to {{ gate.get('timeout_seconds', 120) }} \
+           {{ gate.cmd | render_gate_cmd(target.primary_site) }} 2>&1 | cap; then
+        fail_block "{{ gate.id }} failed on $FILE"
+        rc=1
+      fi
+{%- else %}
       if ! run_to {{ gate.get('timeout_seconds', 120) }} \
            {{ gate.cmd | render_gate_cmd(target.primary_site) }} 2>&1 | cap; then
         fail_block "{{ gate.id }} failed on $FILE"
         rc=1
       fi
+{%- endif %}
       ;;
   esac
 {%- endfor %}

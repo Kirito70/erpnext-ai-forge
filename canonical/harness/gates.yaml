@@ -38,9 +38,15 @@ stacks:
           Confirm before trusting: `ls apps/novizna_crm/pyproject.toml .ruff.toml`
       - id: frontend-lint
         match: "*.js,*.ts,*.vue"
-        cmd: "yarn --cwd {app_dir} lint --fix {file}"
-        verify_status: UNVERIFIED
-        note: "Confirm yarn vs npm per frontend, and that a `lint` script exists."
+        cmd: "yarn --cwd {js_dir} lint --fix {file}"
+        requires: js_dir
+        verify_status: VERIFIED
+        note: >-
+          `{js_dir}`, not `{app_dir}`: novizna_pos keeps its Quasar workspace in
+          the nested novizna-pos-ui/ and has no package.json at the app root, so
+          `yarn --cwd apps/novizna_pos` failed on every .ts/.vue edit (HARNESS-001).
+          `requires: js_dir` skips the gate for a JS file in an app with no
+          workspace at all, rather than failing on an empty --cwd.
 
     # Whole-target, advisory. Never blocks — cross-file breakage is normal
     # mid-refactor, and blocking on it makes people work around the hook.
@@ -65,14 +71,21 @@ stacks:
           that FORGE_PRIMARY_SITE is the site tests should run against — the
           bench has four.
       - id: coverage-floor
-        cmd: "coverage report --fail-under=80"
-        verify_status: DOCUMENTED
-        note: "Same source; the project-wide floor is 80% on new code."
+        cmd: "env/bin/coverage report --fail-under=80"
+        verify_status: VERIFIED
+        note: >-
+          Same source; the project-wide floor is 80% on new code. Invoked
+          through the bench venv: `coverage` is installed there (7.14.0) but is
+          not on PATH, so the bare `coverage` this used to run failed with
+          "command not found" on every full-gate run (HARNESS-002).
       - id: frontend-build
-        cmd: "yarn --cwd {app_dir} build"
+        cmd: "yarn --cwd {js_dir} build"
+        requires: js_dir
         timeout_seconds: 900
-        verify_status: DOCUMENTED
-        note: "Wrapped by canonical/tools/frontend-build.yaml."
+        verify_status: VERIFIED
+        note: >-
+          Wrapped by canonical/tools/frontend-build.yaml. Same `{js_dir}` fix as
+          frontend-lint — see HARNESS-001.
 
   # -------------------------------------------------------------------------
   # The forge repo itself. Simpler, and that simplicity lives here as fewer
