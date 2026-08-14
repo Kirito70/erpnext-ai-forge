@@ -54,7 +54,7 @@ def _make_fake_bench_with_manifest(
 
 def test_clean_bench_no_drift(repo_root, tmp_path, monkeypatch):
     head = "abc123def"
-    monkeypatch.setattr("forge.drift.repo_head_commit", lambda _: head)
+    monkeypatch.setattr("forge.drift._newest_source_commit", lambda *_: head)
     bench, manifest_dir, _ = _make_fake_bench_with_manifest(
         tmp_path, source_commit=head
     )
@@ -68,7 +68,7 @@ def test_clean_bench_no_drift(repo_root, tmp_path, monkeypatch):
 
 def test_hand_edited_file_flagged_as_drift(repo_root, tmp_path, monkeypatch):
     head = "abc123def"
-    monkeypatch.setattr("forge.drift.repo_head_commit", lambda _: head)
+    monkeypatch.setattr("forge.drift._newest_source_commit", lambda *_: head)
     bench, _, bench_file = _make_fake_bench_with_manifest(
         tmp_path, source_commit=head
     )
@@ -82,7 +82,7 @@ def test_hand_edited_file_flagged_as_drift(repo_root, tmp_path, monkeypatch):
 
 def test_missing_file_flagged_as_drift(repo_root, tmp_path, monkeypatch):
     head = "abc123def"
-    monkeypatch.setattr("forge.drift.repo_head_commit", lambda _: head)
+    monkeypatch.setattr("forge.drift._newest_source_commit", lambda *_: head)
     bench, manifest_dir, bench_file = _make_fake_bench_with_manifest(
         tmp_path, source_commit=head
     )
@@ -94,19 +94,19 @@ def test_missing_file_flagged_as_drift(repo_root, tmp_path, monkeypatch):
 
 
 def test_stale_manifest_flagged(repo_root, tmp_path, monkeypatch):
-    monkeypatch.setattr("forge.drift.repo_head_commit", lambda _: "new-head-7890")
+    monkeypatch.setattr("forge.drift._newest_source_commit", lambda *_: "new-head-7890")
     bench, _, _ = _make_fake_bench_with_manifest(
         tmp_path, source_commit="old-commit-12345"
     )
     report = check_drift(repo_root, bench_root=bench)
     assert report.has_staleness
     assert any(
-        "manifest source_commit=old-com" in f.detail for f in report.findings
+        "sources have changed since" in f.detail for f in report.findings
     )
 
 
 def test_staging_dir_skipped(repo_root, tmp_path, monkeypatch):
-    monkeypatch.setattr("forge.drift.repo_head_commit", lambda _: "head")
+    monkeypatch.setattr("forge.drift._newest_source_commit", lambda *_: "head")
     bench, _, _ = _make_fake_bench_with_manifest(tmp_path, source_commit="head")
     # Put another manifest under .forge-staging/ — should be ignored
     staging = bench / ".forge-staging" / "claude-code" / ".claude" / "agents"
@@ -126,7 +126,7 @@ def test_staging_dir_skipped(repo_root, tmp_path, monkeypatch):
 
 
 def test_drift_render_lists_findings(repo_root, tmp_path, monkeypatch):
-    monkeypatch.setattr("forge.drift.repo_head_commit", lambda _: "head")
+    monkeypatch.setattr("forge.drift._newest_source_commit", lambda *_: "head")
     bench, _, bench_file = _make_fake_bench_with_manifest(tmp_path, source_commit="head")
     bench_file.write_text("drifted content")
     report = check_drift(repo_root, bench_root=bench)

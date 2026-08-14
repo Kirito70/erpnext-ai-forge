@@ -4,8 +4,14 @@ For each `.forge-manifest.json` found in the bench, compare:
 
   1. The current sha256 of every file the manifest lists, against the manifest's
      recorded sha256. Mismatch = drift (hand-edited or replaced).
-  2. The manifest's `source_commit` against the current repo HEAD. Older
-     commits = stale sync (re-run `forge sync` to refresh).
+  2. The manifest's `source_commit` against the newest commit touching the
+     sources it was rendered from. Behind = stale sync (re-run `forge sync`).
+
+     Deliberately not a comparison against repo HEAD. Provenance is recorded
+     per source file, so a manifest legitimately sits on an older commit while
+     its own sources are unchanged; measuring against HEAD marked every managed
+     app stale the moment any unrelated forge commit landed, and a report that
+     is mostly noise is a report people stop reading.
 
 Drift in (1) is louder than (2). Both feed into `forge validate --check-drift`.
 """
@@ -17,8 +23,28 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
-from forge.loader import load_forge_config, repo_head_commit
-from forge.manifest import MANIFEST_FILENAME, read_manifest, sha256_text
+from forge.loader import file_last_commit, load_forge_config
+from forge.manifest import MANIFEST_FILENAME, ManifestEntry, read_manifest, sha256_text
+
+
+def _newest_source_commit(
+    repo_root: Path, entries: Iterable[ManifestEntry]
+) -> str | None:
+    """The most recent commit touching any of `entries`' source paths.
+
+    Returns None when none of them are tracked, in which case there is nothing
+    to compare and the manifest is left alone rather than reported stale.
+    """
+    newest: str | None = None
+    newest_date = ""
+    for entry in entries:
+        found = file_last_commit(repo_root, entry.path)
+        if found is None:
+            continue
+        sha, date = found
+        if date > newest_date:
+            newest, newest_date = sha, date
+    return newest
 
 
 @dataclass
@@ -73,7 +99,9 @@ def check_drift(
     if not bench_root.is_dir():
         return report
 
-    current_head = repo_head_commit(repo_root)
+    # Repo HEAD is deliberately no longer consulted: staleness is now judged
+    # per manifest against its own sources (see below), not against whatever
+    # the forge repo happens to be pointing at.
 
     for manifest_path in _iter_manifests(bench_root):
         report.manifests_checked += 1
@@ -90,19 +118,29 @@ def check_drift(
             )
             continue
 
-        # 1) Compare manifest commit vs repo HEAD
-        if current_head and manifest.source_commit and manifest.source_commit != current_head:
-            report.findings.append(
-                DriftFinding(
-                    severity="STALE",
-                    manifest_path=manifest_path,
-                    file_path=None,
-                    detail=(
-                        f"manifest source_commit={manifest.source_commit[:7]} "
-                        f"vs repo HEAD={current_head[:7]}"
-                    ),
+        # 1) Is the manifest's source_commit still the last commit that touched
+        #    the sources it was rendered from?
+        #
+        #    NOT a comparison against repo HEAD. Provenance is per source file,
+        #    so a manifest legitimately records an older commit when its own
+        #    sources have not moved — comparing to HEAD marked every managed app
+        #    STALE the moment any unrelated forge commit landed, which is noise
+        #    that trains people to ignore the report.
+        if manifest.source_commit and manifest.source_files:
+            newest = _newest_source_commit(repo_root, manifest.source_files)
+            if newest and newest != manifest.source_commit:
+                report.findings.append(
+                    DriftFinding(
+                        severity="STALE",
+                        manifest_path=manifest_path,
+                        file_path=None,
+                        detail=(
+                            f"rendered from {manifest.source_commit[:7]}, but its "
+                            f"sources have changed since ({newest[:7]}) — re-run "
+                            f"`forge sync`"
+                        ),
+                    )
                 )
-            )
 
         # 2) For each manifest entry, verify the rendered bench file still
         #    matches the recorded sha256. The manifest stores entries by
