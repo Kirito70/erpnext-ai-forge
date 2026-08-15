@@ -39,9 +39,12 @@ else — that a weaker implementer can build from without guessing.
 
 1. **Architect:** load [`ticket-authoring-guide`](../skills/meta/ticket-authoring-guide.md) and [`ticketing-contract`](../policies/ticketing-contract.md).
 2. **Architect:** run the five passes — **VERIFY** (ground every claim against `discovery/data/*.json`, reusing the [architect §0 pre-flight](../agents/architect.md)), **PLACE** (resolve `$NOVIZNA_VAULT` per the contract; collision-check the proposed key across the vault `tickets/` dir, the vault `INDEX.md`, and all three ledger files), **DECIDE** (lock schema/permission/patch decisions; escalate per [escalation-rules](../policies/escalation-rules.md) if a forbidden decision is required), **SPECIFY** (fill the mandatory sections — DocType/field table, whitelist signature, permission matrix, patch position + idempotency argument, negative ACs, whichever apply), **DEFEND** (self-check before handing off).
-3. **Architect:** if `--gap-of` was given — set `labels: [gap]`, `origin: <PARENT-KEY> (<today's date>)`, add a `build_state: gap` row to `LEDGER-proposed.md`, and back-reference the new ticket from the parent's journal `## REVIEW` entry (create the entry if this is the first gap raised against that ticket).
+3. **Architect:** if `--gap-of` was given — set `labels: [gap]`, `origin: <PARENT-KEY> (<today's date>)`, and back-reference the new ticket from the parent's journal `## REVIEW` entry (create the entry if this is the first gap raised against that ticket).
 4. **Architect:** write the ticket file to `$VAULT/wiki/<project>/tickets/<KEY>.md` with the frontmatter schema from `ticketing-contract`. Do not flip `status:` — a new ticket starts `To Do` and stays human-owned from that point on.
-5. **Architect:** report the ticket key, its `depends_on`/`blocks` as written, and anything left as "assumed" or "not yet confirmed" from the VERIFY pass — do not silently drop these caveats from the handoff.
+5. **Architect:** add a ledger row to `LEDGER-proposed.md` for **every** ticket, not only gaps — `build_state: gap` when `--gap-of` was given, otherwise `build_state: proposed`.
+
+   A ticket with no ledger row is invisible to every build session, and `forge ledger sync` reports it as `missing-ledger-row` indefinitely — 70 of 136 novizna tickets are in exactly that state. Writing the row only for gaps also contradicted this command's own ownership guard below, which says a ticket is written "to the vault **and to the owning target's ledger**" unconditionally.
+6. **Architect:** report the ticket key, its `depends_on`/`blocks` as written, and anything left as "assumed" or "not yet confirmed" from the VERIFY pass — do not silently drop these caveats from the handoff.
 
 ## Ownership guard
 

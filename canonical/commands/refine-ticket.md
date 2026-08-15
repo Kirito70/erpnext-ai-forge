@@ -68,11 +68,19 @@ weaker than whoever wrote it.
    [escalation-rules](../policies/escalation-rules.md) if a required edit
    itself needs human approval (e.g., the refiner determined a new DocType is
    actually required).
+9. **Architect:** on a PASS verdict, move the ledger row from `LEDGER-proposed.md`
+   to `LEDGER-pending.md` as `build_state: todo` — `brain ticket start <KEY> --state todo`
+   performs the move. This is the **only** writer of that transition: without it a refined
+   ticket never reaches the queue a build session reads, and `/ticket-review` is later told
+   to move a row out of `LEDGER-pending.md` that nothing ever put there.
+   On a FAIL verdict the row stays in `LEDGER-proposed.md`.
 
 ## Notes
 
 - This command **never changes `status:`** — refinement is not approval to
-  build; that's a separate, human-gated step.
+  build; that's a separate, human-gated step. Moving `build_state` to `todo` is
+  not approval either: it records that the ticket is well-formed enough to be
+  worked, which is evidence, not intent.
 - If refinement surfaces a finding that's genuinely a *different* piece of
   work than the ticket describes, that's a job for `/write-ticket --gap-of
   <KEY>`, not an expansion of this ticket's scope.

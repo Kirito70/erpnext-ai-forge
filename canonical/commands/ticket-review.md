@@ -70,9 +70,18 @@ hook; the proof it ran is the journal `## REVIEW` entry.
    scope, no matter how small the fix looks.
 7. **Architect:** on acceptance, append a `## REVIEW` entry to
    `docs/harness/journal/<KEY>.md` — reviewer verdicts, the pasted gate output,
-   any gap tickets filed — then move the ledger row from
-   `LEDGER-pending.md` to `LEDGER-done.md` (`build_state: done`). The vault
-   ticket's `status:` is left untouched for the human.
+   any gap tickets filed — **creating `docs/harness/journal/` if it is absent**;
+   then move the ledger row from `LEDGER-pending.md` to `LEDGER-done.md`
+   (`build_state: done`). `brain ticket done <KEY>` does both: it moves the row
+   and appends the journal entry, creating the directory. The vault ticket's
+   `status:` is left untouched for the human.
+
+   The directory's absence is not hypothetical — it did not exist in the Novizna
+   bench at all, which by §3 of
+   [definition-of-done](../policies/definition-of-done.md) ("No REVIEW entry
+   means the review did not happen") meant no ticket there had ever been
+   formally completed. Silently skipping the write is indistinguishable from a
+   review that never ran.
 
 ## Risk tiering quick reference
 
