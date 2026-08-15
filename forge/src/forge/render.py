@@ -442,11 +442,24 @@ def render(
                 bench={"primary_site": forge_ctx.primary_site},
             )
             domain = skill.domain or "uncategorized"
+            # Honour the adapter's `output` template. This was hardcoded to
+            # `<domain>/<id>.md`, so adapter.yaml's `output:` key was inert and
+            # every tool got the same layout whether it could read it or not —
+            # Claude Code discovers skills ONLY at `<name>/SKILL.md`, so all 33
+            # were invisible to its loader while appearing correctly synced.
+            if skills_cfg.get("output"):
+                skill_path = Path(_resolve(
+                    skills_cfg["output"],
+                    {**output_ctx,
+                     "artifact": {"id": skill.id, "domain": domain}},
+                ))
+            else:
+                skill_path = skills_dir / domain / f"{skill.id}.md"
             rendered.append(
                 RenderedArtifact(
                     tool=tool,
                     source_path=skill.source_path,
-                    output_path=skills_dir / domain / f"{skill.id}.md",
+                    output_path=skill_path,
                     content=content,
                     source_commit=skill.source_commit,
                     source_version=skill.version,

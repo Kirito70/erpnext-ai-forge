@@ -96,7 +96,15 @@ artifacts:
     strategy: one_file_per_skill_in_domain_dir
     source: canonical/skills/**/*.md
     template: skill.md.j2
-    output: "{{ output_paths.skills_dir }}/{{ artifact.domain }}/{{ artifact.id }}.md"
+    # `<id>/SKILL.md`, NOT `<domain>/<id>.md`. Claude Code discovers skills only
+    # at `.claude/skills/<name>/SKILL.md`; with the domain in the path and the
+    # id as the filename, `find .claude/skills -name SKILL.md` returned nothing
+    # and all 33 skills were unreachable by the native loader — the lazy-load
+    # mechanism the whole context design depends on was never actually wired.
+    #
+    # `domain` survives as frontmatter, where it belongs: it is metadata about
+    # the skill, not part of its address.
+    output: "{{ output_paths.skills_dir }}/{{ artifact.id }}/SKILL.md"
 
   policies:
     strategy: referenced_by_agents

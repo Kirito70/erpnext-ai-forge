@@ -61,10 +61,18 @@ def test_rendered_skill_carries_domain(repo_root):
         r for r in rendered
         if r.artifact_kind == "skill" and r.artifact_id == "novizna-crm-override-system"
     )
-    # Skill should be written under .claude/skills/frontend/
     assert skill.content.startswith("---"), "skill frontmatter must start on line 1"
-    assert "skills/frontend" in str(skill.output_path)
     assert "novizna-crm-override-system" in skill.content
+
+    # The domain still travels with the skill, but in FRONTMATTER, not in the
+    # path. Claude Code discovers skills only at `<name>/SKILL.md`; a domain
+    # segment in the path left all 33 invisible to its loader while they
+    # appeared correctly synced. The previous form asserted the domain was in
+    # the path — it pinned the bug.
+    assert "domain: frontend" in skill.content
+    assert str(skill.output_path).endswith(
+        "skills/novizna-crm-override-system/SKILL.md"
+    ), "skills must be addressable as <name>/SKILL.md"
 
 
 def test_rendered_per_app_includes_all_custom_apps(repo_root):
