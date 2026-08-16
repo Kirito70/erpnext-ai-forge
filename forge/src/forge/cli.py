@@ -193,12 +193,20 @@ def sync(
         help="Delete harness scripts the render no longer produces. Opt-in: the "
              "swap never deletes, so an orphaned script would otherwise linger.",
     ),
+    prune: bool = typer.Option(
+        False,
+        "--prune",
+        help="Delete outputs a manifest records but the render no longer "
+             "produces — what a changed `output:` leaves behind. Orphans are "
+             "reported without this flag; files with no manifest row, and "
+             "hand-edited ones, are never removed.",
+    ),
 ) -> None:
     """Render and sync canonical artifacts into a target (transactional per file)."""
     sync_cmd.run(
         tool=tool, all_tools=all_tools, dry_run=dry_run, justify=justify,
         assume_yes=yes, target=target, all_targets=all_targets,
-        prune_harness_dir=prune_harness,
+        prune_harness_dir=prune_harness, prune=prune,
     )
 
 

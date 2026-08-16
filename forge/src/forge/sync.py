@@ -22,6 +22,7 @@ from rich.console import Console
 from rich.prompt import Confirm
 
 from forge.audit import audit_log
+from forge.drift import _iter_manifests
 from forge.loader import (
     commit_date,
     find_repo_root,
@@ -31,6 +32,7 @@ from forge.loader import (
     load_targets,
 )
 from forge.manifest import (
+    Manifest,
     ManifestEntry,
     build_manifest,
     merge_manifest,
@@ -59,6 +61,8 @@ class SyncResult:
     files_unchanged: list[Path] = field(default_factory=list)
     settings_conflicts: list[ScalarConflict] = field(default_factory=list)
     settings_backup: Path | None = None
+    orphans: list[Orphan] = field(default_factory=list)
+    files_pruned: list[Path] = field(default_factory=list)
     success: bool = True
     error: str | None = None
 
@@ -332,6 +336,198 @@ def prune_harness(
     return removed
 
 
+@dataclass(frozen=True)
+class Orphan:
+    """A file forge wrote at a path it no longer renders."""
+
+    path: Path
+    manifest_path: Path
+    removable: bool
+    reason: str
+    manifest_row: ManifestEntry
+
+
+def find_orphans(
+    rendered: list[RenderedArtifact], bench_root: Path, tool: str
+) -> list[Orphan]:
+    """Outputs this adapter recorded writing but no longer produces.
+
+    Changing an artifact's `output:` writes the new location and leaves the old
+    one behind. Both then look generated and nothing says which is live —
+    moving the 33 skills to `<id>/SKILL.md` left the bench with 66 skill files,
+    10 stale directories and 43 stale manifests, cleaned up by hand.
+
+    Everything needed is already recorded: the manifest's `outputs` rows are
+    exactly the paths forge wrote. Two rules make consulting them safe:
+
+    - **A file with no manifest row is never an orphan.** It belongs to a
+      human, and deleting it is the one unrecoverable mistake available here.
+    - **A file whose content no longer matches its row is reported, not
+      removed.** It carries edits forge never adopted; the hand-edit guard
+      protects those on write, and a prune must not be the back door around it.
+
+    Must run BEFORE the manifest is rewritten: `merge_manifest` replaces the
+    owning adapter's rows wholesale, so the record of the old path is gone the
+    moment the new manifest lands.
+    """
+    produced = {r.output_path for r in rendered}
+    orphans: list[Orphan] = []
+
+    for manifest_path in _iter_manifests(bench_root):
+        out_dir = manifest_path.parent
+        manifest = read_manifest(out_dir)
+        if manifest is None:
+            # Unreadable, or a schema we do not understand. No record means no
+            # judgement — never a deletion on a guess.
+            continue
+        for entry in manifest.outputs:
+            if (entry.adapter or manifest.adapter_name) != tool:
+                continue
+            path = out_dir / entry.path
+            if path in produced or not path.is_file():
+                continue
+            try:
+                current = sha256_text(path.read_text(errors="replace"))
+            except OSError:
+                continue
+            matches = current == entry.sha256
+            orphans.append(
+                Orphan(
+                    path=path,
+                    manifest_path=manifest_path,
+                    manifest_row=entry,
+                    removable=matches,
+                    reason=(
+                        "no longer rendered"
+                        if matches
+                        else "no longer rendered, and hand-edited since"
+                    ),
+                )
+            )
+    return sorted(orphans, key=lambda o: str(o.path))
+
+
+def prune_orphans(orphans: list[Orphan], tool: str, bench_root: Path) -> list[Path]:
+    """Delete removable orphans, then tidy the records and directories.
+
+    Rewriting the manifest is part of the deletion, not an extra: rows left
+    pointing at files just removed make `forge validate` report them missing
+    forever, and the sync after a prune stops being a no-op.
+    """
+    removed: list[Path] = []
+    by_manifest: dict[Path, list[Orphan]] = {}
+    for o in orphans:
+        if o.removable:
+            by_manifest.setdefault(o.manifest_path, []).append(o)
+
+    for manifest_path, group in by_manifest.items():
+        out_dir = manifest_path.parent
+        gone = set()
+        for o in group:
+            o.path.unlink()
+            removed.append(o.path)
+            gone.add(o.path.name)
+
+        manifest = read_manifest(out_dir)
+        if manifest is None:
+            continue
+        manifest.outputs = [
+            e
+            for e in manifest.outputs
+            if not (e.path in gone and (e.adapter or manifest.adapter_name) == tool)
+        ]
+        # Source rows are only worth keeping while this adapter still has an
+        # output here. Once it renders nothing into the directory they describe
+        # a render that no longer happens, and validate keeps checking them for
+        # staleness against it.
+        if not any(
+            (e.adapter or manifest.adapter_name) == tool for e in manifest.outputs
+        ):
+            manifest.source_files = [
+                e
+                for e in manifest.source_files
+                if (e.adapter or manifest.adapter_name) != tool
+            ]
+
+        if manifest.outputs or manifest.source_files:
+            write_manifest(out_dir, manifest)
+        else:
+            manifest_path.unlink()
+
+        _remove_if_empty(out_dir, stop_at=bench_root)
+
+    return removed
+
+
+def _carry_forward_orphan_rows(
+    manifest: Manifest, orphans: list[Orphan], out_dir: Path
+) -> None:
+    """Re-record orphans that still exist on disk.
+
+    `merge_manifest` replaces the owning adapter's rows wholesale, so an orphan
+    that was reported but not removed would lose its row and become
+    indistinguishable from a file a human wrote — unprunable ever after, by the
+    very rule that protects unmanaged files. Reporting must not be the step
+    that destroys the evidence.
+    """
+    kept = [o.manifest_row for o in orphans if o.path.parent == out_dir and o.path.is_file()]
+    if not kept:
+        return
+    have = {e.path for e in manifest.outputs}
+    manifest.outputs = sorted(
+        manifest.outputs + [e for e in kept if e.path not in have],
+        key=lambda e: e.path,
+    )
+
+
+def _print_orphans(
+    tool: str, orphans: list[Orphan], prune: bool, dry_run: bool
+) -> None:
+    """Report orphans. Silent when there are none — a clean sync stays quiet."""
+    if not orphans:
+        return
+    removable = [o for o in orphans if o.removable]
+    kept = [o for o in orphans if not o.removable]
+
+    if removable:
+        verb = "would remove" if (dry_run or not prune) else "removing"
+        console.print(
+            f"[yellow]![/yellow] {tool}: {len(removable)} orphaned output(s) "
+            f"— {verb}:"
+        )
+        for o in removable:
+            console.print(f"    {o.path}")
+        if not prune:
+            console.print("    Pass [cyan]--prune[/cyan] to remove them.")
+
+    for o in kept:
+        console.print(
+            f"[yellow]![/yellow] {tool}: {o.path} is {o.reason} — left in place. "
+            f"Run [cyan]forge adopt[/cyan] or delete it yourself."
+        )
+
+
+def _remove_if_empty(directory: Path, stop_at: Path) -> None:
+    """Remove `directory` and any parent it just emptied, exclusive of `stop_at`.
+
+    Emptiness alone is not a safe stop condition: prune the last managed file
+    in a bench and the walk would climb through `.claude` and take the bench
+    root with it. The boundary is what makes this a tidy-up rather than a
+    recursive delete.
+    """
+    stop_at = stop_at.resolve()
+    current = directory.resolve()
+    while (
+        current != stop_at
+        and stop_at in current.parents
+        and current.is_dir()
+        and not any(current.iterdir())
+    ):
+        parent = current.parent
+        current.rmdir()
+        current = parent
+
+
 def _swap_into_bench(
     tool_staging: Path, bench_root: Path, protected: set[Path] | None = None
 ) -> list[Path]:
@@ -529,8 +725,15 @@ def sync_tool(
     assume_yes: bool = False,
     target: Target | None = None,
     prune_harness_dir: bool = False,
+    prune: bool = False,
+    report_orphans: bool = True,
 ) -> SyncResult:
-    """Sync a single tool into one target. Renders, stages, validates, swaps."""
+    """Sync a single tool into one target. Renders, stages, validates, swaps.
+
+    `report_orphans` exists for `sync_all`, which runs every tool through a
+    forced dry run to populate staging before it swaps anything. That pass is
+    internal bookkeeping; reporting from it would print every orphan twice.
+    """
     result = SyncResult(tool=tool)
     try:
         forge_cfg = load_forge_config(repo_root)
@@ -621,6 +824,11 @@ def sync_tool(
             )
 
         if dry_run:
+            # Orphan detection reads manifests and hashes files; it writes
+            # nothing, so a dry run can show exactly what `--prune` would take.
+            if report_orphans:
+                result.orphans = find_orphans(rendered, bench_root, tool)
+                _print_orphans(tool, result.orphans, prune, dry_run=True)
             audit_log(
                 repo_root,
                 {
@@ -713,6 +921,22 @@ def sync_tool(
                 },
             )
 
+        # Before the manifest is rewritten — `merge_manifest` replaces this
+        # adapter's rows wholesale, taking the record of any moved output with
+        # it. Reported by default; removed only when asked.
+        result.orphans = find_orphans(rendered, bench_root, tool)
+        _print_orphans(tool, result.orphans, prune, dry_run=False)
+        if prune:
+            result.files_pruned = prune_orphans(result.orphans, tool, bench_root)
+            audit_log(
+                repo_root,
+                {
+                    "action": "sync.pruned",
+                    "tool": tool,
+                    "files": [str(p) for p in result.files_pruned],
+                },
+            )
+
         if prune_harness_dir:
             harness_out = {
                 r.output_path.parent
@@ -785,6 +1009,13 @@ def sync_tool(
                 # the same bench-root dir; overwriting would strip their rows
                 # and with them their hand-edit protection.
                 manifest = merge_manifest(read_manifest(out_dir), manifest)
+                # Carry forward rows for orphans we did NOT remove. The merge
+                # replaces this adapter's rows wholesale, so a reported-but-kept
+                # orphan would lose its row and become indistinguishable from a
+                # file a human wrote — unprunable ever after, by the very rule
+                # that protects unmanaged files. Reporting must not be the thing
+                # that destroys the evidence.
+                _carry_forward_orphan_rows(manifest, result.orphans, out_dir)
                 write_manifest(out_dir, manifest)
 
         audit_log(
@@ -820,6 +1051,7 @@ def sync_all(
     assume_yes: bool = False,
     target: Target | None = None,
     prune_harness_dir: bool = False,
+    prune: bool = False,
 ) -> list[SyncResult]:
     """Multi-tool sync into one target. Per Part B item 7: render + validate every
     tool first; only swap if all pass. On any failure: abort the whole run."""
@@ -828,7 +1060,8 @@ def sync_all(
     for tool in tools:
         # Force dry_run during the first pass to populate staging without swapping
         r = sync_tool(repo_root, tool, dry_run=True, justify=justify, assume_yes=True,
-                      target=target)
+                      target=target, prune=prune,
+                      report_orphans=dry_run)
         staged_results.append(r)
         if not r.success:
             console.print(
@@ -845,7 +1078,7 @@ def sync_all(
         final_results.append(
             sync_tool(repo_root, tool, dry_run=False, justify=justify,
                       assume_yes=assume_yes, target=target,
-                      prune_harness_dir=prune_harness_dir)
+                      prune_harness_dir=prune_harness_dir, prune=prune)
         )
     return final_results
 
@@ -862,6 +1095,7 @@ def run_sync(
     target: str | None = None,
     all_targets: bool = False,
     prune_harness_dir: bool = False,
+    prune: bool = False,
 ) -> int:
     """CLI entry. Returns process exit code."""
     repo_root = find_repo_root()
@@ -906,7 +1140,7 @@ def run_sync(
         results = sync_all(
             repo_root, tools, dry_run=dry_run, justify=justify,
             assume_yes=assume_yes, target=tgt,
-            prune_harness_dir=prune_harness_dir,
+            prune_harness_dir=prune_harness_dir, prune=prune,
         )
         if any(not r.success for r in results):
             exit_code = 1

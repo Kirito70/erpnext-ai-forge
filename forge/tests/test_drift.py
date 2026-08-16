@@ -48,6 +48,15 @@ def _make_fake_bench_with_manifest(
         adapter_name="claude-code",
         adapter_version="0.1.0",
         entries=[entry],
+        # Real manifests always carry `outputs` — it is what the DRIFT check
+        # reads. This fixture omitted it and so exercised a fallback that
+        # rebuilt output names from source basenames, which is precisely the
+        # bug the check was rewritten to remove.
+        outputs=[ManifestEntry(
+            path=file_name,
+            version="1.0.0",
+            sha256=sha256_text(file_content),
+        )],
     )
     write_manifest(manifest_dir, manifest)
     return bench, manifest_dir, bench_file
@@ -195,6 +204,35 @@ def test_output_with_different_extension_is_not_reported_missing(repo_root, tmp_
         )],
     )
     write_manifest(manifest_dir, manifest)
+
+    report = check_drift(repo_root, bench_root=bench)
+    assert not report.has_drift, [f.detail for f in report.findings]
+
+
+def test_manifest_with_no_outputs_reports_nothing(repo_root, tmp_path):
+    """A settings-fragment manifest records sources and no outputs by design —
+    forge merges into settings.json, it does not own the file. Treating the
+    empty list as "fall back to source basenames" made `.claude/` report a
+    permanent DRIFT for `harness.yaml`, a canonical source path checked as if
+    it were a bench output.
+    """
+    bench = tmp_path / "fake-bench"
+    (bench / "apps").mkdir(parents=True)
+    manifest_dir = bench / ".claude"
+    manifest_dir.mkdir(parents=True)
+
+    write_manifest(manifest_dir, build_manifest(
+        source_repo="erpnext-ai-forge",
+        source_commit="abc123def",
+        adapter_name="claude-code",
+        adapter_version="0.1.0",
+        entries=[ManifestEntry(
+            path="canonical/harness/harness.yaml",
+            version="1.0.0",
+            sha256=sha256_text("harness config"),
+        )],
+        outputs=[],
+    ))
 
     report = check_drift(repo_root, bench_root=bench)
     assert not report.has_drift, [f.detail for f in report.findings]

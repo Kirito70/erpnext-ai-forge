@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Iterable
 
 from forge.loader import load_forge_config
-from forge.manifest import MANIFEST_FILENAME, ManifestEntry, read_manifest, sha256_text
+from forge.manifest import MANIFEST_FILENAME, read_manifest, sha256_text
 
 
 @dataclass
@@ -134,21 +134,16 @@ def check_drift(
         #    and for aggregates whose output is not a sibling under that name.
         #    It reported 48 files "gone" that were all present and correct.
         #
-        #    `outputs` is absent on manifests written before it existed; those
-        #    fall back below rather than silently checking nothing.
-        checkable = manifest.outputs or []
-        if not checkable:
-            checkable = [
-                ManifestEntry(
-                    path=Path(e.path).name,
-                    version=e.version,
-                    sha256=e.sha256,
-                    mode=e.mode,
-                    adapter=e.adapter,
-                )
-                for e in manifest.source_files
-            ]
-        for entry in checkable:
+        #    An EMPTY `outputs` is an answer, not a gap. A manifest whose only
+        #    contribution is a settings fragment records sources and no outputs
+        #    by design — forge merges into settings.json, it does not own the
+        #    file. Reconstructing rows from `source_files` in that case brought
+        #    the basename bug back for exactly those manifests: `.claude/`
+        #    reported a permanent DRIFT for `harness.yaml`, a canonical source
+        #    path checked as though it were a bench output. A pre-`outputs`
+        #    manifest cannot reach here anyway — `read_manifest` returns None on
+        #    a schema mismatch.
+        for entry in manifest.outputs:
             report.files_checked += 1
             bench_file = manifest_dir / entry.path
             if not bench_file.is_file():
