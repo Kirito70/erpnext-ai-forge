@@ -28,6 +28,8 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
+import subprocess
 import tomllib
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -43,11 +45,51 @@ _BRAINS_CONFIG = Path.home() / ".config" / "brain" / "brains.toml"
 LEDGER_FILES = ("LEDGER-proposed.md", "LEDGER-pending.md", "LEDGER-done.md")
 
 
+def _brain_bin() -> str | None:
+    """The `brain` executable, or None. `$BRAIN_BIN` first so a venv install
+    that is not on PATH can still be pointed at."""
+    explicit = os.environ.get("BRAIN_BIN")
+    if explicit:
+        return explicit if os.access(explicit, os.X_OK) else None
+    return shutil.which("brain")
+
+
+def _ask_brain() -> Path | None:
+    """Ask brain where the vault is. None if brain is absent or unsure.
+
+    Brain owns the vault registry; this is the delegation that replaces
+    forge's copy of the lookup. `brain vault path` is shell-shaped by
+    contract — an absolute path and exit 0, or nothing and exit 1 — so there
+    is nothing to parse and no brain import to depend on.
+
+    Every failure mode collapses to None, which is the same "ask the user"
+    answer the local fallback gives. A bench without brain must keep working.
+    """
+    exe = _brain_bin()
+    if not exe:
+        return None
+    try:
+        r = subprocess.run([exe, "vault", "path"], capture_output=True,
+                           text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if r.returncode != 0:
+        return None
+    out = r.stdout.strip()
+    if not out:
+        return None
+    p = Path(out)
+    return p if p.is_dir() else None
+
+
 def resolve_vault_path(explicit: Path | None = None) -> Path | None:
-    """`--vault-path` > `$NOVIZNA_VAULT` > brains.toml default > None.
+    """`--vault-path` > `$NOVIZNA_VAULT` > brain > brains.toml default > None.
 
     None means "ask the user — do not guess", per the contract. This function
     never falls back to a guessed path.
+
+    The brains.toml read below is a fallback for benches without brain
+    installed, not a second opinion: when brain answers, its answer is used.
     """
     if explicit is not None:
         return explicit if explicit.is_dir() else None
@@ -56,6 +98,10 @@ def resolve_vault_path(explicit: Path | None = None) -> Path | None:
     if env_path:
         p = Path(env_path)
         return p if p.is_dir() else None
+
+    from_brain = _ask_brain()
+    if from_brain is not None:
+        return from_brain
 
     if _BRAINS_CONFIG.is_file():
         try:

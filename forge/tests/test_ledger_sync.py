@@ -9,6 +9,7 @@ touching any real vault or the real repo's ledgers.
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -60,6 +61,48 @@ def test_no_resolution_is_none_not_a_guess(monkeypatch, tmp_path):
     """The contract says 'ask the user — do not guess'. Confirms this never
     falls back to a plausible-looking default path."""
     monkeypatch.delenv("NOVIZNA_VAULT", raising=False)
+    monkeypatch.setattr("forge.ledger_sync._brain_bin", lambda: None)
+    monkeypatch.setattr("forge.ledger_sync._BRAINS_CONFIG", tmp_path / "nonexistent.toml")
+    assert resolve_vault_path(None) is None
+
+
+def test_brain_answer_is_used_when_available(monkeypatch, tmp_path):
+    """Brain owns the registry; when it answers, forge does not re-derive."""
+    (tmp_path / "vault").mkdir()
+    monkeypatch.delenv("NOVIZNA_VAULT", raising=False)
+    monkeypatch.setattr("forge.ledger_sync._brain_bin", lambda: "/fake/brain")
+    monkeypatch.setattr(
+        "forge.ledger_sync.subprocess.run",
+        lambda *a, **k: subprocess.CompletedProcess(a[0], 0, f"{tmp_path / 'vault'}\n", ""))
+    assert resolve_vault_path(None) == tmp_path / "vault"
+
+
+@pytest.mark.parametrize("result", [
+    subprocess.CompletedProcess([], 1, "", "no default vault configured\n"),
+    subprocess.CompletedProcess([], 0, "\n", ""),
+    subprocess.CompletedProcess([], 0, "/definitely/not/here\n", ""),
+])
+def test_brain_failures_fall_back_rather_than_propagate(monkeypatch, tmp_path, result):
+    """A bench where brain is broken, silent, or points at a stale path must
+    still resolve through brains.toml — brain is a delegate, not a hard
+    dependency."""
+    (tmp_path / "vault").mkdir()
+    cfg = tmp_path / "brains.toml"
+    cfg.write_text(f'[[vaults]]\nname = "T"\npath = "{tmp_path / "vault"}"\ndefault = true\n')
+    monkeypatch.delenv("NOVIZNA_VAULT", raising=False)
+    monkeypatch.setattr("forge.ledger_sync._brain_bin", lambda: "/fake/brain")
+    monkeypatch.setattr("forge.ledger_sync.subprocess.run", lambda *a, **k: result)
+    monkeypatch.setattr("forge.ledger_sync._BRAINS_CONFIG", cfg)
+    assert resolve_vault_path(None) == tmp_path / "vault"
+
+
+def test_brain_crash_is_not_an_exception(monkeypatch, tmp_path):
+    """`forge ledger sync` must not die because a subprocess did."""
+    def boom(*a, **k):
+        raise OSError("no such executable")
+    monkeypatch.delenv("NOVIZNA_VAULT", raising=False)
+    monkeypatch.setattr("forge.ledger_sync._brain_bin", lambda: "/fake/brain")
+    monkeypatch.setattr("forge.ledger_sync.subprocess.run", boom)
     monkeypatch.setattr("forge.ledger_sync._BRAINS_CONFIG", tmp_path / "nonexistent.toml")
     assert resolve_vault_path(None) is None
 

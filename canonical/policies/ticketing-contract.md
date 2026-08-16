@@ -23,23 +23,22 @@ implementing: it carries the acceptance criteria the work is judged against.
 ### Resolving the vault path — never hardcode it
 
 Machines differ. A literal `/home/<someone>/...` in code, docs, or a commit is a bug.
-Discovery order, first hit wins:
 
-1. `$NOVIZNA_VAULT`
-2. the `default = true` entry (else the first entry) under `[[vaults]]` in `~/.config/brain/brains.toml`
-3. ask the user — do not guess
+**Brain owns the vault registry. Ask it — do not re-derive it.**
 
 ```bash
-VAULT="${NOVIZNA_VAULT:-$(python3 - <<'PY'
-import pathlib, tomllib
-cfg = pathlib.Path.home() / ".config" / "brain" / "brains.toml"
-vaults = tomllib.loads(cfg.read_text()).get("vaults", []) if cfg.exists() else []
-chosen = [v for v in vaults if v.get("default")] or vaults
-print(chosen[0]["path"] if chosen else "")
-PY
-)}"
+VAULT="${NOVIZNA_VAULT:-$(brain vault path)}"
 [ -d "$VAULT" ] || echo "vault not resolved — ask the user for its path"
 ```
+
+`brain vault path` prints an absolute path and exits 0, or prints nothing and exits 1.
+Exit 1 means **ask the user**, never "use a plausible default". Add `--project <name>`
+to select the vault that actually holds a project rather than the default one.
+
+This used to be a hand-rolled `tomllib` snippet reading `brains.toml` directly, and it was
+one of three independent copies of that lookup. The vault path has already moved once;
+each copy is a place the next move breaks. If `brain` is not on `$PATH`, set `$BRAIN_BIN`
+to its executable, or fall back to `$NOVIZNA_VAULT`.
 
 ### Vault layout
 
