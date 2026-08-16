@@ -58,7 +58,7 @@ adapters/           ← per-tool translation rules + Jinja templates
   opencode/         ← AGENTS.md + native slash commands
   cline/            ← .clinerules/ aggregate
   copilot/          ← .github/copilot-instructions.md + applyTo:
-  codex/            ← AGENTS.codex.md
+  codex/            ← hooks + MCP only (Codex reads the shared AGENTS.md)
   antigravity/      ← minimal system.md
 
 forge/              ← the CLI implementation

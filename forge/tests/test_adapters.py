@@ -124,13 +124,19 @@ def test_copilot_renders_main_plus_per_app(repo_root):
 # ---------------------------------------------------------------------------
 # Codex
 # ---------------------------------------------------------------------------
-def test_codex_renders_single_aggregate(repo_root):
+def test_codex_renders_no_root_instruction_file(repo_root):
+    """Codex reads the bench-root `AGENTS.md`, which OpenCode owns.
+
+    Decision 8 originally gave it `AGENTS.codex.md` on a filename that was
+    never verified. Codex 0.136.0's own base instructions define the contract
+    as the root `AGENTS.md` with no alternate filename and no config key for
+    one — so forge was rendering 10,437 B into a path nothing opens. The
+    adapter stays for hooks and MCP; only the three shared docs remain.
+    """
     rendered = render(repo_root, "codex")
-    # Root instruction file + the three shared docs it points at
-    # (AGENTS-TICKETING.md, AGENTS-HARNESS.md, AGENTS-OPERATING-MANUAL.md).
-    assert len(rendered) == 4
-    out = next(r for r in rendered if r.output_path.name == "AGENTS.codex.md")
-    assert len(out.content) < 20_000, "AGENTS.codex.md exceeds 20k budget"
+    assert {r.output_path.name for r in rendered} == {
+        "AGENTS-TICKETING.md", "AGENTS-HARNESS.md", "AGENTS-OPERATING-MANUAL.md",
+    }
 
 
 # ---------------------------------------------------------------------------

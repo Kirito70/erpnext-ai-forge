@@ -116,7 +116,7 @@ enabled_tools:
   - opencode           # Phase 3 — AGENTS.md aggregate + native slash commands
   - cline              # Phase 3 — .clinerules/ aggregate + per-app rules
   - copilot            # Phase 3 — .github/copilot-instructions.md + per-app applyTo
-  - codex              # Phase 3 — AGENTS.codex.md aggregate (Decision 8)
+  - codex              # hooks + MCP only; Codex reads the shared AGENTS.md
   - antigravity        # Phase 3 — minimal system.md (re-scope per Decision 6)
 
 # Security thresholds (tightened per v0.2 Decision 11 + Part B item 3)

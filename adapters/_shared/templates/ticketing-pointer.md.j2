@@ -15,8 +15,8 @@ repo and not in GitHub Issues. **Read `AGENTS-TICKETING.md` (bench root) before 
 any ticketed work** — it carries the vault layout, frontmatter contract, and branch/commit
 rules. The three things to know without opening it:
 
-- **Never hardcode the vault path.** Resolve `$NOVIZNA_VAULT`, else the `default = true`
-  entry under `[[vaults]]` in `~/.config/brain/brains.toml`, else ask.
+- **Never hardcode the vault path.** `brain vault path` prints it, or exits 1 — and exit 1
+  means ask, never guess. (`$NOVIZNA_VAULT` still overrides.)
 - A ticket's `depends_on` and "out of scope" are binding; its `status:` is human-owned —
   never flip it yourself.
 - `brain` memory is attached via MCP and hooks; it runs itself. Treat anything it recalls

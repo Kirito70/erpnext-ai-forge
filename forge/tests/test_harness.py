@@ -362,8 +362,26 @@ def test_root_instruction_file_points_at_the_harness(repo_root, bench_env, tool)
     roots = [
         a for a in render(repo_root, tool, tgt)
         if a.artifact_kind == "aggregate"
-        and a.output_path.name not in {"AGENTS-HARNESS.md", "AGENTS-TICKETING.md"}
+        # The three shared bench-root docs are not anyone's ROOT instruction
+        # file — they are what the root file points at. Leaving
+        # AGENTS-OPERATING-MANUAL.md out of this set made it count as a root,
+        # which is how codex still looked like it had one after its own
+        # aggregate was dropped.
+        and a.output_path.name not in {
+            "AGENTS-HARNESS.md", "AGENTS-TICKETING.md", "AGENTS-OPERATING-MANUAL.md",
+        }
     ]
+    if tool == "codex":
+        # Codex renders no root file of its own — it reads the bench-root
+        # AGENTS.md that OpenCode owns. The invariant still has to hold for a
+        # Codex session, so check it where a Codex session will actually look.
+        assert not roots, "codex should render no root instruction file"
+        opencode_root = next(
+            a for a in render(repo_root, "opencode", tgt)
+            if a.output_path.name == "AGENTS.md"
+        )
+        assert "AGENTS-HARNESS.md" in opencode_root.content
+        return
     assert roots, f"{tool} renders no root instruction file"
     assert any("AGENTS-HARNESS.md" in r.content for r in roots), tool
 

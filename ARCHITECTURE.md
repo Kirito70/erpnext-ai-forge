@@ -194,7 +194,7 @@ Start each artifact at **100**. Deductions per v0.2 Section 8.2. Thresholds:
 | OpenCode | `<bench>/AGENTS.md` + `<bench>/.opencode/commands/*.md` |
 | Cline | `<bench>/.clinerules/*.md` |
 | Copilot (GitHub + VS Code, single adapter) | `<bench>/.github/copilot-instructions.md` + `.github/instructions/*.instructions.md` + `.github/prompts/*.prompt.md` |
-| Codex | `<bench>/AGENTS.codex.md` (separate file, verified in Phase 3) |
+| Codex | `<bench>/AGENTS.md` (shared with OpenCode — see Decision 8) |
 | Antigravity | `<bench>/.antigravity/system.md` + minimal-capability target |
 
 **Per-app `CLAUDE.md` generation:** Bench-root `CLAUDE.md` carries only cross-cutting conventions and points to per-app docs. Each custom app gets its own `apps/<app>/CLAUDE.md` synthesized from the canonical layer (Decision 19).
@@ -282,7 +282,14 @@ Any file write under `apps/{frappe,erpnext,crm,hrms,lending,lms,education,helpde
 **Date:** 2026-05-23
 **Context:** Per v0.2 Decision 8.
 
-**Decision:** Codex gets `AGENTS.codex.md` (exact filename verified in Phase 3). OpenCode owns the bench-root `AGENTS.md`. No `<!-- FORGE:BEGIN/END -->` markers on shared files.
+**Decision:** ~~Codex gets `AGENTS.codex.md`~~ — **reversed 2026-08-17 (BRAIN-T8).** The
+"exact filename verified in Phase 3" was not verified. Codex 0.136.0's own base
+instructions, read out of the shipped binary, define the contract as *"Repos often contain
+AGENTS.md files ... The contents of the AGENTS.md file at the root of the repo ... are
+included with the developer message"* — no alternate filename and no config key for one.
+Codex has been reading OpenCode's `AGENTS.md` all along while forge rendered 10,437 B into a
+path nothing opens. Codex now reads the bench-root `AGENTS.md`; OpenCode still owns it. No
+`<!-- FORGE:BEGIN/END -->` markers on shared files.
 
 **Consequences:**
 - Markers create merge conflicts the first time the developer hand-edits one section.

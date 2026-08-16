@@ -11,7 +11,7 @@ scope: [agent:architect]
 # Ticketed Work & Memory — Agent Contract
 
 Every tool's root instruction file (`CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`,
-`.cursor/rules/`, `.clinerules/`, `AGENTS.codex.md`, `.antigravity/system.md`) points here.
+`.cursor/rules/`, `.clinerules/`, `.antigravity/system.md`) points here.
 Read this before starting any ticketed work.
 
 ## The ticketing system
