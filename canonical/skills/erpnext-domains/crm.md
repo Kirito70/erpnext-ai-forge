@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Work on novizna_crm — CRM Lead, CRM Deal, vendor connectors, ERPNext sync, or the frontend override system"
-scope: [agent:architect, agent:backend-specialist, agent:frontend-frappe-ui-specialist, agent:integrations-specialist]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:frontend-frappe-ui-specialist, agent:integrations-specialist]
 foundational: false
 domain: erpnext-domains
 security_score: 100

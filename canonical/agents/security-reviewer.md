@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
 trigger: "Mandatory review on backend, integrations, devops outputs. Optional on frontend (required if API calls added). Always for /review-security."
-scope: [agent:architect]
+scope: [agent:novizna-architect]
 foundational: false
 security_score: 100
 tools: [Read, Grep, Glob, Bash]

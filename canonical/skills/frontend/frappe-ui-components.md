@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Authoring Vue 3 SFCs inside apps/novizna_crm/frontend/ or wiring frontend code to Frappe whitelist methods"
-scope: [agent:architect, agent:frontend-frappe-ui-specialist, agent:qa-test-engineer]
+scope: [agent:novizna-architect, agent:frontend-frappe-ui-specialist, agent:qa-test-engineer]
 foundational: true
 domain: frontend
 security_score: 100

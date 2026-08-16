@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Investigating slow Frappe pages, list views, or reports backed by MariaDB"
-scope: [agent:architect, agent:backend-specialist]
+scope: [agent:novizna-architect, agent:backend-specialist]
 foundational: false
 domain: data
 security_score: 100

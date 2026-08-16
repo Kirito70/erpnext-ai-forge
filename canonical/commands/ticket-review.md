@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-07-31
-triggers_agents: [architect, security-reviewer, qa-test-engineer, code-reviewer, frappe-framework-reviewer, frontend-frappe-ui-specialist, frontend-quasar-specialist]
+triggers_agents: [novizna-architect, security-reviewer, qa-test-engineer, code-reviewer, frappe-framework-reviewer, frontend-frappe-ui-specialist, frontend-quasar-specialist]
 ---
 
 # /ticket-review

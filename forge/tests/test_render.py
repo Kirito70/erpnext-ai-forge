@@ -35,7 +35,7 @@ def test_render_claude_code_produces_artifacts(repo_root):
 
 def test_rendered_agent_has_frontmatter(repo_root):
     rendered = render(repo_root, "claude-code")
-    architect = next(r for r in rendered if r.artifact_id == "architect")
+    architect = next(r for r in rendered if r.artifact_id == "novizna-architect")
     content = architect.content
     # Frontmatter MUST be the very first thing in the file — Claude Code only
     # registers a subagent when line 1 is the opening `---`. A banner comment
@@ -43,7 +43,9 @@ def test_rendered_agent_has_frontmatter(repo_root):
     # below the frontmatter, not above it.
     assert content.startswith("---"), "agent frontmatter must start on line 1"
     assert "AUTO-GENERATED FROM erpnext-ai-forge" in content
-    assert "name: architect" in content
+    # `novizna-`, not `architect` — the bare name belongs to the user-level
+    # ECC agent, and two agents claiming one name is undefined behaviour.
+    assert "name: novizna-architect" in content
     assert "description:" in content
 
 

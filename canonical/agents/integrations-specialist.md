@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
 trigger: "Anything under apps/novizna_crm/novizna_crm/connectors/ or apps/invoice_ninja_integration/ or new vendor integration"
-scope: [agent:architect]
+scope: [agent:novizna-architect]
 foundational: false
 security_score: 100
 ---

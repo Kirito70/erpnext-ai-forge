@@ -5,7 +5,7 @@ version: 1.1.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-07-31
-scope: [agent:architect, agent:security-reviewer, agent:qa-test-engineer, agent:backend-specialist, agent:frontend-frappe-ui-specialist, agent:frontend-quasar-specialist, agent:integrations-specialist, agent:devops-deployment, agent:code-reviewer, agent:frappe-framework-reviewer]
+scope: [agent:novizna-architect, agent:security-reviewer, agent:qa-test-engineer, agent:backend-specialist, agent:frontend-frappe-ui-specialist, agent:frontend-quasar-specialist, agent:integrations-specialist, agent:devops-deployment, agent:code-reviewer, agent:frappe-framework-reviewer]
 ---
 
 # Peer Review Protocol
@@ -95,8 +95,8 @@ The architect never accepts on loop 3 by default. Human escalation is the next s
 | `frontend-frappe-ui-specialist` | `qa-test-engineer` | `security-reviewer` (if API calls added) |
 | `frontend-quasar-specialist` | `qa-test-engineer`, `security-reviewer` (offline-cache leak risk) | — |
 | `integrations-specialist` | `security-reviewer`, `qa-test-engineer` | `devops-deployment` |
-| `devops-deployment` | `security-reviewer` | `architect` |
-| `architect` (closing documentation sub-phase) | (self-reviewed; no peer) | — |
+| `devops-deployment` | `security-reviewer` | `novizna-architect` |
+| `novizna-architect` (closing documentation sub-phase) | (self-reviewed; no peer) | — |
 
 `security-reviewer` holds **veto** on any CRITICAL finding — cannot be overridden by majority.
 

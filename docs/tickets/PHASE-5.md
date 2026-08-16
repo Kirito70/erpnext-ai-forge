@@ -64,7 +64,7 @@ resolved before writing content:
   explicit "attack" step citing the concrete anti-pattern classes above.
   Explicitly never touches `status:`.
 - `canonical/agents/ticket-refiner.md` — new agent, `scope:
-  [agent:architect]`, `foundational: false`. No `tools:` frontmatter added
+  [agent:novizna-architect]`, `foundational: false`. No `tools:` frontmatter added
   (consistent with the current repo-wide convention that no canonical agent
   sets one yet — fixing that is explicitly PHASE-6 scope, not this ticket's).
 
@@ -100,7 +100,7 @@ resolved before writing content:
    code, pressure-tests the design, resolves cheap open questions itself,
    hardens the spec for a weaker implementer than the one refining it.
 4. **`canonical/agents/ticket-refiner.md`** — new agent, `scope:
-   [agent:architect]`, `foundational: false`. Cites Frappe-specific fact
+   [agent:novizna-architect]`, `foundational: false`. Cites Frappe-specific fact
    classes that have actually been wrong on this bench as its "classes of
    things to check" (the plan named `discovery/data/anti-pattern-findings.json`
    — known SQL-injection sites in `noviznaerp_payroll`, `src_override/` files —

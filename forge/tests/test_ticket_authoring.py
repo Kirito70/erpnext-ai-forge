@@ -54,7 +54,7 @@ def test_ticket_refiner_agent_exists(repo_root):
     agents = {a.id: a for a in load_agents(repo_root)}
     assert "ticket-refiner" in agents
     a = agents["ticket-refiner"]
-    assert a.scope == ["agent:architect"]
+    assert a.scope == ["agent:novizna-architect"]
     assert a.foundational is False
 
 
@@ -86,7 +86,7 @@ def test_skill_cross_references_point_at_real_files(repo_root):
         "../../policies/ticketing-contract.md",
         "../../policies/definition-of-done.md",
         "../../policies/review-protocol.md",
-        "../../agents/architect.md",
+        "../../agents/novizna-architect.md",
         "../../commands/write-ticket.md",
         "../../commands/refine-ticket.md",
         "../frappe-core/whitelist-api-patterns.md",

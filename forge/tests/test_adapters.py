@@ -151,7 +151,7 @@ def test_antigravity_renders_minimal_aggregate(repo_root):
     # Minimal target: respect 15k budget
     assert len(out.content) < 15_000, "system.md exceeds 15k budget"
     # Only the 3 inlined personas should appear as expanded persona sections
-    assert "Persona: `architect`" in out.content
+    assert "Persona: `novizna-architect`" in out.content
     assert "Persona: `backend-specialist`" in out.content
     assert "Persona: `security-reviewer`" in out.content
 
@@ -203,3 +203,20 @@ def test_every_adapter_writes_provenance_footer(repo_root, tool):
         if r.artifact_kind == "aggregate":
             assert "erpnext-ai-forge" in r.content
             assert "AUTO-GENERATED" in r.content
+
+
+def test_antigravity_inlines_exactly_what_its_config_declares(repo_root):
+    """The template used to restate `inlined_specialists_only` as a literal id
+    list. Renaming architect → novizna-architect updated the yaml, the literal
+    went stale, and the persona vanished from the output with nothing failing.
+    The yaml is now the only place the list exists; this pins that."""
+    from forge.loader import load_adapter_config
+
+    declared = load_adapter_config(repo_root, "antigravity")["context_loading"][
+        "inlined_specialists_only"
+    ]
+    out = next(r for r in render(repo_root, "antigravity")
+               if r.output_path.name == "system.md")
+    for agent_id in declared:
+        assert f"Persona: `{agent_id}`" in out.content, agent_id
+    assert out.content.count("### Persona:") == len(declared)

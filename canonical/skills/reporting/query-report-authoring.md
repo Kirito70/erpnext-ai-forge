@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Authoring or modifying a Query Report (SQL-only report) in any custom app"
-scope: [agent:architect, agent:backend-specialist]
+scope: [agent:novizna-architect, agent:backend-specialist]
 foundational: false
 domain: reporting
 security_score: 100

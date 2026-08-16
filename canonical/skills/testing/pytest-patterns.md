@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Testing pure-Python code that does not require the Frappe app/DB context — typically connector classes and helper modules"
-scope: [agent:architect, agent:backend-specialist, agent:integrations-specialist, agent:qa-test-engineer]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:integrations-specialist, agent:qa-test-engineer]
 foundational: true
 domain: testing
 security_score: 100

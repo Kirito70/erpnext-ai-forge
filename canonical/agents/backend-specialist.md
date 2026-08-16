@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
 trigger: "Python work in any custom app: DocType controllers, whitelist APIs, hooks, patches, fixtures, Script/Query Reports, Print Formats, schema/SQL"
-scope: [agent:architect]
+scope: [agent:novizna-architect]
 foundational: false
 security_score: 100
 ---

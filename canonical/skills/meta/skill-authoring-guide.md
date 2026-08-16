@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Authoring a new skill for the canonical layer, or deciding whether to split / merge existing skills"
-scope: [agent:architect]
+scope: [agent:novizna-architect]
 foundational: true
 domain: meta
 security_score: 100
@@ -100,7 +100,7 @@ If a skill exceeds 500 lines, split along the patterns it carries. For example: 
 1. **Every code example references a real custom app from this bench** — not `myapp`, not `example_app`. Pick from: `novizna_crm`, `novizna_core`, `novizna_pos`, `invoice_ninja_integration`, `noviznaerp_payroll`, `cargo_management`, `changemakers`, `erpnext_location`.
 2. **Every `Don't` example links to a discovery AP-id** when a standing finding exists in [`anti-pattern-findings.json`](../../../discovery/data/anti-pattern-findings.json).
 3. **At least 2 cross-references** in the References section — to other skills, policies, tools, or discovery JSON. Use relative paths.
-4. **Voice matches existing agent specs** — direct, second-person where appropriate, no fluff. Read `canonical/agents/architect.md` for the cadence.
+4. **Voice matches existing agent specs** — direct, second-person where appropriate, no fluff. Read `canonical/agents/novizna-architect.md` for the cadence.
 5. **A reader unfamiliar with this bench can identify which custom app each example came from** (Phase 1b exit criterion in v0.2 §10).
 
 ## F vs M Classification
@@ -173,4 +173,4 @@ Before opening the editor:
 - [`policies/security-scoring`](../../policies/security-scoring.yaml) — initial scoring
 - [`policies/review-protocol`](../../policies/review-protocol.md) — review output format
 - [`discovery/INVENTORY.md`](../../../discovery/INVENTORY.md) — bench facts to draw from
-- [`canonical/agents/architect.md`](../../agents/architect.md) — voice and structure reference
+- [`canonical/agents/novizna-architect.md`](../../agents/novizna-architect.md) — voice and structure reference

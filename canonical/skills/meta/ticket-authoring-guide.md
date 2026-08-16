@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-07-31
 trigger: "Authoring a new vault ticket via /write-ticket, or refining one via /refine-ticket"
-scope: [agent:architect, agent:ticket-refiner]
+scope: [agent:novizna-architect, agent:ticket-refiner]
 foundational: false
 domain: meta
 security_score: 100
@@ -44,7 +44,7 @@ sends a weaker implementer down a dead end they have no way to detect.
   for existing hook wiring, `api-surface.json` for existing whitelist
   endpoints, `override-map.json` for what's already overridden.
 - This is the **same pre-flight** the architect already runs (see
-  [architect §0](../../agents/architect.md)) — do not invent a second
+  [architect §0](../../agents/novizna-architect.md)) — do not invent a second
   verification mechanism. If a reference is missing from discovery, trigger a
   targeted re-scan before assuming it doesn't exist; only treat it as absent
   after the re-scan still misses.
@@ -153,5 +153,5 @@ If you can't answer these, the ticket isn't ready — send it through
 - [`ticketing-contract`](../../policies/ticketing-contract.md) — the schema this guide fills in
 - [`definition-of-done`](../../policies/definition-of-done.md) — the ledger this ticket's key must collision-check against
 - [`review-protocol`](../../policies/review-protocol.md) — the tiering that SPECIFY's negative-AC requirement feeds
-- [`architect`](../../agents/architect.md) — the §0 pre-flight this guide's VERIFY pass reuses
+- [`novizna-architect`](../../agents/novizna-architect.md) — the §0 pre-flight this guide's VERIFY pass reuses
 - [`write-ticket`](../../commands/write-ticket.md), [`refine-ticket`](../../commands/refine-ticket.md) — the commands that load this skill

@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Authoring a one-shot data migration or schema fix-up that runs on `bench migrate`"
-scope: [agent:architect, agent:backend-specialist, agent:devops-deployment]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:devops-deployment]
 foundational: true
 domain: frappe-core
 security_score: 100

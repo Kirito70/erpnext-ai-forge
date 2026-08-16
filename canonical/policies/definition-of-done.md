@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-07-30
-scope: [agent:architect, agent:qa-test-engineer]
+scope: [agent:novizna-architect, agent:qa-test-engineer]
 ---
 
 # Definition of Done — Ledger, Journal, Ceremony

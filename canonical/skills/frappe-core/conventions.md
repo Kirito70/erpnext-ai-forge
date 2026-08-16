@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Any backend or frontend work that touches DocType names, app modules, field IDs, or Frappe helper usage on the Novizna v16 bench"
-scope: [agent:architect, agent:backend-specialist, agent:frontend-frappe-ui-specialist, agent:qa-test-engineer]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:frontend-frappe-ui-specialist, agent:qa-test-engineer]
 foundational: true
 domain: frappe-core
 security_score: 100

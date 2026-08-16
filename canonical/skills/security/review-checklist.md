@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Every backend, integrations, or devops review; loaded for all security-reviewer invocations"
-scope: [agent:architect, agent:backend-specialist, agent:security-reviewer]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:security-reviewer]
 foundational: true
 domain: security
 security_score: 100

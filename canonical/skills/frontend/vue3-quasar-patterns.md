@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Any change under apps/novizna_pos/novizna-pos-ui/ — Quasar PWA work for the POS"
-scope: [agent:architect, agent:frontend-quasar-specialist, agent:qa-test-engineer]
+scope: [agent:novizna-architect, agent:frontend-quasar-specialist, agent:qa-test-engineer]
 foundational: true
 domain: frontend
 security_score: 100

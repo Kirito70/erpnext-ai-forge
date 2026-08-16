@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Work on novizna_pos — POS Invoice, POS Profile, POS Opening/Closing Entry, or any of the 33 novizna_pos whitelist endpoints"
-scope: [agent:architect, agent:backend-specialist, agent:frontend-quasar-specialist, agent:qa-test-engineer]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:frontend-quasar-specialist, agent:qa-test-engineer]
 foundational: true
 domain: erpnext-domains
 security_score: 100

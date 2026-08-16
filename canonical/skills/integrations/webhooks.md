@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Authoring or reviewing an inbound webhook receiver (EasyPost, 17Track, Invoice Ninja, Stripe-style)"
-scope: [agent:architect, agent:integrations-specialist, agent:security-reviewer]
+scope: [agent:novizna-architect, agent:integrations-specialist, agent:security-reviewer]
 foundational: true
 domain: integrations
 security_score: 100

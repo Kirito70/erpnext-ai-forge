@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
-triggers_agents: [architect, frontend-frappe-ui-specialist]
+triggers_agents: [novizna-architect, frontend-frappe-ui-specialist]
 ---
 
 # /override-frontend

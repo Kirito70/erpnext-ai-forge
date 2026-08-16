@@ -29,7 +29,7 @@ def test_load_agents(repo_root):
     agents = load_agents(repo_root)
     ids = {a.id for a in agents}
     assert ids == {
-        "architect",
+        "novizna-architect",
         "backend-specialist",
         "frontend-frappe-ui-specialist",
         "frontend-quasar-specialist",
@@ -44,7 +44,7 @@ def test_load_agents(repo_root):
 
 
 def test_architect_is_foundational(repo_root):
-    architect = next(a for a in load_agents(repo_root) if a.id == "architect")
+    architect = next(a for a in load_agents(repo_root) if a.id == "novizna-architect")
     assert architect.foundational is True
     assert architect.kind == "agent"
     assert architect.version != "0.0.0"

@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Authoring an E2E test for a critical user flow — POS invoice submission, CRM lead creation, restaurant order"
-scope: [agent:architect, agent:qa-test-engineer, agent:frontend-quasar-specialist, agent:frontend-frappe-ui-specialist]
+scope: [agent:novizna-architect, agent:qa-test-engineer, agent:frontend-quasar-specialist, agent:frontend-frappe-ui-specialist]
 foundational: true
 domain: testing
 security_score: 100

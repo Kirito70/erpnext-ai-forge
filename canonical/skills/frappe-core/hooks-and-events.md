@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Adding or modifying entries in any custom app's hooks.py — doc_events, scheduler_events, overrides, fixtures, boot_session, app_include_*"
-scope: [agent:architect, agent:backend-specialist, agent:integrations-specialist, agent:devops-deployment]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:integrations-specialist, agent:devops-deployment]
 foundational: false
 domain: frappe-core
 security_score: 100

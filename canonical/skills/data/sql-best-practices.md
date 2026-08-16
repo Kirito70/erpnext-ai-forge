@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Writing or reviewing any frappe.db.sql() call or raw SQL string in a custom app"
-scope: [agent:architect, agent:backend-specialist, agent:security-reviewer]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:security-reviewer]
 foundational: false
 domain: data
 security_score: 100

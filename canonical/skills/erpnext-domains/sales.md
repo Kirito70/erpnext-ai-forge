@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Work touching the Sales cycle DocTypes — Quotation, Sales Order, Delivery Note, Sales Invoice, Customer, or the CRM ↔ ERPNext bridge"
-scope: [agent:architect, agent:backend-specialist, agent:qa-test-engineer]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:qa-test-engineer]
 foundational: false
 domain: erpnext-domains
 security_score: 100

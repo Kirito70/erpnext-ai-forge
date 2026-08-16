@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-07-30
-scope: [agent:architect]
+scope: [agent:novizna-architect]
 ---
 
 # Ticketed Work & Memory — Agent Contract

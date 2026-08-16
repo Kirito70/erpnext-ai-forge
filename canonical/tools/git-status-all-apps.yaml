@@ -34,7 +34,7 @@ safety_checks:
     action: read_only
 
 allowed_callers:
-  - agent:architect
+  - agent:novizna-architect
   - agent:devops-deployment
   - agent:security-reviewer
   - command:/forge-sync

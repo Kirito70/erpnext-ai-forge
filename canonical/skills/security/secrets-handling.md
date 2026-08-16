@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Any code that touches site_config.json, frappe.conf, encryption_key, or any vendor secret"
-scope: [agent:architect, agent:security-reviewer, agent:integrations-specialist, agent:devops-deployment]
+scope: [agent:novizna-architect, agent:security-reviewer, agent:integrations-specialist, agent:devops-deployment]
 foundational: true
 domain: security
 security_score: 100

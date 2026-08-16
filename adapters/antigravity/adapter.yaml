@@ -69,7 +69,7 @@ artifacts:
 context_loading:
   specialists_inlined: true
   inlined_specialists_only:
-    - architect
+    - novizna-architect
     - backend-specialist
     - security-reviewer
   foundational_skills_inlined: false

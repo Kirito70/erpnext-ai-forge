@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-08-13
 trigger: "Working in a git worktree of any bench app (novizna_pos-f12/, novizna_restaurant-*/, …) — before running ANY build, lint, test or bench command, and before editing ANY build config"
-scope: [agent:architect, agent:frontend-quasar-specialist, agent:frontend-frappe-ui-specialist, agent:backend-specialist, agent:qa-test-engineer, agent:code-reviewer]
+scope: [agent:novizna-architect, agent:frontend-quasar-specialist, agent:frontend-frappe-ui-specialist, agent:backend-specialist, agent:qa-test-engineer, agent:code-reviewer]
 foundational: true
 domain: frontend
 security_score: 100

@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Work touching Employee, Salary Structure, Salary Slip, Payroll Entry, EOBI, biometric attendance, loans, or any noviznaerp_payroll DocType"
-scope: [agent:architect, agent:backend-specialist, agent:security-reviewer]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:security-reviewer]
 foundational: false
 domain: erpnext-domains
 security_score: 100

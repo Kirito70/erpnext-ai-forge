@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Investigating any production issue — failed request, missed scheduler tick, worker timeout, slow query, socket error"
-scope: [agent:architect, agent:backend-specialist, agent:integrations-specialist, agent:devops-deployment]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:integrations-specialist, agent:devops-deployment]
 foundational: true
 domain: debugging
 security_score: 100

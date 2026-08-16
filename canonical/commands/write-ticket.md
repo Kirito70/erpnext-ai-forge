@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-07-31
-triggers_agents: [architect]
+triggers_agents: [novizna-architect]
 ---
 
 # /write-ticket
@@ -38,7 +38,7 @@ else — that a weaker implementer can build from without guessing.
 ## Pipeline
 
 1. **Architect:** load [`ticket-authoring-guide`](../skills/meta/ticket-authoring-guide.md) and [`ticketing-contract`](../policies/ticketing-contract.md).
-2. **Architect:** run the five passes — **VERIFY** (ground every claim against `discovery/data/*.json`, reusing the [architect §0 pre-flight](../agents/architect.md)), **PLACE** (resolve `$NOVIZNA_VAULT` per the contract; collision-check the proposed key across the vault `tickets/` dir, the vault `INDEX.md`, and all three ledger files), **DECIDE** (lock schema/permission/patch decisions; escalate per [escalation-rules](../policies/escalation-rules.md) if a forbidden decision is required), **SPECIFY** (fill the mandatory sections — DocType/field table, whitelist signature, permission matrix, patch position + idempotency argument, negative ACs, whichever apply), **DEFEND** (self-check before handing off).
+2. **Architect:** run the five passes — **VERIFY** (ground every claim against `discovery/data/*.json`, reusing the [architect §0 pre-flight](../agents/novizna-architect.md)), **PLACE** (resolve `$NOVIZNA_VAULT` per the contract; collision-check the proposed key across the vault `tickets/` dir, the vault `INDEX.md`, and all three ledger files), **DECIDE** (lock schema/permission/patch decisions; escalate per [escalation-rules](../policies/escalation-rules.md) if a forbidden decision is required), **SPECIFY** (fill the mandatory sections — DocType/field table, whitelist signature, permission matrix, patch position + idempotency argument, negative ACs, whichever apply), **DEFEND** (self-check before handing off).
 3. **Architect:** if `--gap-of` was given — set `labels: [gap]`, `origin: <PARENT-KEY> (<today's date>)`, and back-reference the new ticket from the parent's journal `## REVIEW` entry (create the entry if this is the first gap raised against that ticket).
 4. **Architect:** write the ticket file to `$VAULT/wiki/<project>/tickets/<KEY>.md` with the frontmatter schema from `ticketing-contract`. Do not flip `status:` — a new ticket starts `To Do` and stays human-owned from that point on.
 5. **Architect:** add a ledger row to `LEDGER-proposed.md` for **every** ticket, not only gaps — `build_state: gap` when `--gap-of` was given, otherwise `build_state: proposed`.

@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Implementing or reviewing OAuth2 flows for any vendor integration (Zoho, Google, HubSpot, LinkedIn, Invoice Ninja)"
-scope: [agent:architect, agent:integrations-specialist, agent:security-reviewer]
+scope: [agent:novizna-architect, agent:integrations-specialist, agent:security-reviewer]
 foundational: true
 domain: integrations
 security_score: 100

@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Authoring or modifying a Print Format (Jinja or Designer) for any DocType"
-scope: [agent:architect, agent:backend-specialist, agent:security-reviewer]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:security-reviewer]
 foundational: false
 domain: reporting
 security_score: 100

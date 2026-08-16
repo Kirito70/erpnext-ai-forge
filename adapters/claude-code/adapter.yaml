@@ -155,7 +155,7 @@ artifacts:
   root_claude_md:
     strategy: aggregate
     sources:
-      - canonical/agents/architect.md
+      - canonical/agents/novizna-architect.md
       - canonical/policies/governance.md
       - canonical/policies/escalation-rules.md
       - discovery/INVENTORY.md   # for cross-app overview

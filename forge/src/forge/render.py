@@ -800,6 +800,13 @@ def render(
         for kind, spec in aggregate_entries:
             tmpl = env.get_template(spec["template"])
             content = tmpl.render(
+                # The adapter's own config, so a template never has to restate
+                # what adapter.yaml already declares. `inlined_specialists_only`
+                # was duplicated as a literal id list inside antigravity's
+                # template; renaming an agent updated the yaml, the template
+                # kept its stale literal, and the persona silently vanished
+                # from the rendered output with nothing failing.
+                adapter=adapter_cfg,
                 agents=all_agents,
                 commands=all_commands,
                 skills=all_skills,

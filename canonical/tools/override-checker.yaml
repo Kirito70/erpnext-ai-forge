@@ -42,6 +42,6 @@ failure_modes:
 
 allowed_callers:
   - agent:frontend-frappe-ui-specialist
-  - agent:architect
+  - agent:novizna-architect
   - command:/override-frontend
   - command:/diff-upstream

@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Designing background jobs, scheduler-driven syncs, or retry semantics for any integration or long-running operation"
-scope: [agent:architect, agent:integrations-specialist, agent:devops-deployment, agent:frontend-quasar-specialist]
+scope: [agent:novizna-architect, agent:integrations-specialist, agent:devops-deployment, agent:frontend-quasar-specialist]
 foundational: true
 domain: integrations
 security_score: 100

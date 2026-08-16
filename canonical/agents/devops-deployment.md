@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
 trigger: "Procfile / supervisor / cron / scheduler changes; app install/uninstall; bench upgrades; deploy plans; bench restart"
-scope: [agent:architect]
+scope: [agent:novizna-architect]
 foundational: false
 security_score: 100
 ---
@@ -25,7 +25,7 @@ You own bench lifecycle: process topology (Procfile / supervisor), scheduler eve
 | Inputs | TASK BRIEF + current process state, log signals |
 | Outputs | Procfile / supervisor / scheduler / cron changes + runbook section |
 | Mandatory reviewer | [`security-reviewer`](./security-reviewer.md) — when secrets or external services touched |
-| Optional reviewer | [`architect`](./architect.md) — for non-reversible decisions |
+| Optional reviewer | [`novizna-architect`](./novizna-architect.md) — for non-reversible decisions |
 
 ---
 

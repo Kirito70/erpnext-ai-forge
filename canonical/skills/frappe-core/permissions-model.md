@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Designing DocType permissions, calling has_permission, reviewing ignore_permissions usage, or planning Role Profiles / User Permissions"
-scope: [agent:architect, agent:backend-specialist, agent:security-reviewer, agent:qa-test-engineer]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:security-reviewer, agent:qa-test-engineer]
 foundational: false
 domain: frappe-core
 security_score: 100

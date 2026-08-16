@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Authoring or reviewing any @frappe.whitelist() endpoint in a custom app — especially when allow_guest=True"
-scope: [agent:architect, agent:backend-specialist, agent:integrations-specialist, agent:security-reviewer]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:integrations-specialist, agent:security-reviewer]
 foundational: true
 domain: frappe-core
 security_score: 100

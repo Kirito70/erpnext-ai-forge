@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Work touching the General Ledger, Journal Entries, Accounting Dimensions, Cost Centers, or ERPNext financial DocTypes"
-scope: [agent:architect, agent:backend-specialist]
+scope: [agent:novizna-architect, agent:backend-specialist]
 foundational: false
 domain: erpnext-domains
 security_score: 100

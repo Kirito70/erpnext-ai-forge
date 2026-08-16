@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
-scope: [agent:architect]
+scope: [agent:novizna-architect]
 ---
 
 # Escalation Rules
@@ -87,7 +87,7 @@ Every escalation appends an entry to `audit/<YYYY>/<MM>/forge-audit.jsonl` with:
   "action": "escalation",
   "trigger_id": "<1-10>",
   "artifact": "<path or id>",
-  "agent": "agent:architect",
+  "agent": "agent:novizna-architect",
   "human_responded_at": null,
   "resolution": null
 }

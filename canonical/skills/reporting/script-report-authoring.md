@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Authoring or modifying a Script Report in any custom app"
-scope: [agent:architect, agent:backend-specialist, agent:qa-test-engineer]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:qa-test-engineer]
 foundational: false
 domain: reporting
 security_score: 100

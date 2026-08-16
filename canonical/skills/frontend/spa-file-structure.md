@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-08-12
 trigger: "Creating, renaming or moving ANY page, view, or component in a Vue/SPA workspace of a managed app (novizna_pos, novizna_crm, or any future frontend)"
-scope: [agent:architect, agent:frontend-quasar-specialist, agent:frontend-frappe-ui-specialist, agent:code-reviewer, agent:qa-test-engineer, agent:ticket-refiner]
+scope: [agent:novizna-architect, agent:frontend-quasar-specialist, agent:frontend-frappe-ui-specialist, agent:code-reviewer, agent:qa-test-engineer, agent:ticket-refiner]
 foundational: true
 domain: frontend
 security_score: 100
