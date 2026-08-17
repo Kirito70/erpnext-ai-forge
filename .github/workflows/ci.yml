@@ -99,7 +99,11 @@ jobs:
         run: uv run mypy src/forge
 
       - name: forge validate (schema + caller refs)
-        run: uv run forge validate
+        # `--project forge` because the working-directory below is the repo
+        # root, which has no pyproject.toml — without it uv has no environment
+        # to find the `forge` script in and fails with "Failed to spawn".
+        # Every step after this one already passes it.
+        run: uv run --project forge forge validate
         working-directory: ${{ github.workspace }}    # forge needs repo root
 
       - name: forge score (canonical/)
