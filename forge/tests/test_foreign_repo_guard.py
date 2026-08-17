@@ -12,7 +12,7 @@ import pytest
 
 from forge.render import RenderedArtifact
 from forge.repo import is_foreign, remote_owner
-from forge.sync import _app_of_output, foreign_app_targets
+from forge.sync import app_of_output, foreign_app_targets
 
 
 def _artifact(path: Path) -> RenderedArtifact:
@@ -39,7 +39,7 @@ def _artifact(path: Path) -> RenderedArtifact:
     ],
 )
 def test_app_is_derived_from_the_output_path(path, app):
-    assert _app_of_output(Path(path)) == app
+    assert app_of_output(Path(path)) == app
 
 
 def test_owned_app_is_not_flagged(tmp_path, monkeypatch):

@@ -16,16 +16,15 @@ commits on your behalf.
 
 from __future__ import annotations
 
-import os
 import re
 from pathlib import Path
 
 from rich.console import Console
 
-from forge.loader import find_repo_root, load_forge_config
+from forge.loader import find_repo_root, load_target
 from forge.manifest import ManifestEntry, read_manifest, sha256_text, write_manifest
 from forge.render import render
-from forge.sync import detect_hand_edits
+from forge.sync import app_of_output, detect_hand_edits
 
 console = Console()
 
@@ -73,16 +72,6 @@ def _strip_generated_scaffolding(text: str) -> str:
     return body.strip() + "\n"
 
 
-def _app_for_output(path: Path) -> str | None:
-    """`<bench>/apps/<app>/CLAUDE.md` → `<app>`; anything else → None."""
-    parts = path.parts
-    if "apps" in parts:
-        idx = len(parts) - 1 - parts[::-1].index("apps")
-        if idx + 1 < len(parts) - 1:
-            return parts[idx + 1]
-    return None
-
-
 def _mark_adopted(output_path: Path) -> None:
     """Record ``output_path``'s current content as forge's own in the manifest.
 
@@ -104,18 +93,9 @@ def _mark_adopted(output_path: Path) -> None:
     write_manifest(output_path.parent, manifest)
 
 
-def _bench_root(repo_root: Path) -> Path:
-    cfg = load_forge_config(repo_root)
-    return Path(
-        cfg["bench"]["path"].replace(
-            "{{ env.FORGE_BENCH_PATH }}", os.environ.get("FORGE_BENCH_PATH", "")
-        )
-    )
-
-
 def run(tool: str, app: str | None, apply: bool) -> int:
     repo_root = find_repo_root()
-    bench_root = _bench_root(repo_root)
+    bench_root = load_target(repo_root).root
     if not bench_root.is_dir():
         console.print(f"[red]Bench path not found: {bench_root}. Set FORGE_BENCH_PATH.[/red]")
         return 2
@@ -129,7 +109,7 @@ def run(tool: str, app: str | None, apply: bool) -> int:
     adoptable: list[tuple[Path, str]] = []
     skipped: list[Path] = []
     for path in sorted(edits):
-        app_name = _app_for_output(path)
+        app_name = app_of_output(path)
         if app_name is None:
             skipped.append(path)
             continue

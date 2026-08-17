@@ -20,14 +20,13 @@ remote each one actually points at.
 
 from __future__ import annotations
 
-import os
 import re
 from pathlib import Path
 
 from rich.console import Console
 from rich.table import Table
 
-from forge.loader import find_repo_root, load_discovery, load_forge_config
+from forge.loader import find_repo_root, load_discovery, load_forge_config, load_target
 from forge.manifest import read_manifest, sha256_text
 from forge.repo import git_remote as _git_remote, is_foreign, remote_owner as _owner_of
 
@@ -35,15 +34,6 @@ console = Console()
 
 MANAGED_KEY = "managed_apps"
 _PER_APP_FILES = ("CLAUDE.md", ".forge-manifest.json")
-
-
-def _bench_root(repo_root: Path) -> Path:
-    cfg = load_forge_config(repo_root)
-    return Path(
-        cfg["bench"]["path"].replace(
-            "{{ env.FORGE_BENCH_PATH }}", os.environ.get("FORGE_BENCH_PATH", "")
-        )
-    )
 
 
 
@@ -93,7 +83,7 @@ def _discovered_apps(repo_root: Path) -> list[str]:
 def run_list(repo_root: Path | None = None) -> int:
     repo_root = repo_root or find_repo_root()
     managed = _read_managed(repo_root)
-    bench_root = _bench_root(repo_root)
+    bench_root = load_target(repo_root).root
     apps = sorted(set(_discovered_apps(repo_root)) | set(managed))
 
     # `bench.owned_remotes` is the authority on which orgs are ours; falling
@@ -205,7 +195,7 @@ def run_add(names: list[str], repo_root: Path | None = None) -> int:
 def run_remove(names: list[str], prune: bool, repo_root: Path | None = None) -> int:
     repo_root = repo_root or find_repo_root()
     managed = _read_managed(repo_root)
-    bench_root = _bench_root(repo_root)
+    bench_root = load_target(repo_root).root
 
     removed = [n for n in names if n in managed]
     unknown = [n for n in names if n not in managed]

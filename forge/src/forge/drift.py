@@ -157,6 +157,13 @@ def check_drift(
                 )
                 continue
 
+            if entry.write_once:
+                # A ledger: forge seeded the header and is forbidden from
+                # touching it again, so the recorded hash describes the file
+                # only at creation. Every row an agent appends is the file
+                # working as designed, not drift.
+                continue
+
             actual_sha = sha256_text(bench_file.read_text(errors="replace"))
             if actual_sha != entry.sha256:
                 report.findings.append(

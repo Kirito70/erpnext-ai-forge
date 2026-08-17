@@ -41,6 +41,27 @@ class ManifestEntry:
     silently discard one full round of hand-edit protection. An optional field
     parses old manifests unchanged, which is the whole point.
     """
+    write_once: bool = False
+    """True when forge seeds this file and then never rewrites it.
+
+    The ledgers are the case: forge writes the header if the file is absent and
+    is forbidden from touching it again, because agents append build-history
+    rows below. So the recorded sha256 describes the file only at the instant it
+    was created, and every legitimate row makes it "disagree" with the manifest
+    forever.
+
+    Both readers of that hash drew the wrong conclusion. `forge sync` reported
+    the ledger as hand-edited on every run and advised `forge adopt`, and
+    `forge validate` carried a permanent DRIFT finding. Neither could ever be
+    cleared, which is worse than useless: the ledger was the only drift finding
+    on the bench, so a real one would have arrived as the second line of a
+    warning everyone had already learned to skip.
+
+    Optional and defaulted for the same reason as `mode` — see its note. An old
+    manifest parses unchanged and its scaffolds simply keep the old behaviour
+    until the next sync rewrites the row.
+    """
+
     source_sha256: str | None = None
     """Hash of the CANONICAL SOURCE this row was rendered from.
 
@@ -81,6 +102,10 @@ class ManifestEntry:
             d["adapter"] = self.adapter
         if self.source_sha256 is not None:
             d["source_sha256"] = self.source_sha256
+        if self.write_once:
+            # Only when true, so every manifest that has no scaffold in it stays
+            # byte-identical to what the previous version wrote.
+            d["write_once"] = True
         return d
 
 
@@ -149,11 +174,24 @@ def build_manifest(
 
 
 def write_manifest(directory: Path, manifest: Manifest) -> Path:
-    """Write `.forge-manifest.json` into `directory` (atomic — temp + rename)."""
+    """Write `.forge-manifest.json` into `directory` (atomic — temp + rename).
+
+    A write that would change nothing is skipped, so that refreshing manifests
+    for every rendered directory (rather than only the ones that changed) does
+    not put every manifest's mtime back on the clock each sync.
+    """
     directory.mkdir(parents=True, exist_ok=True)
     target = directory / MANIFEST_FILENAME
+    desired = json.dumps(manifest.to_dict(), indent=2, sort_keys=True) + "\n"
+    if target.is_file():
+        try:
+            if target.read_text() == desired:
+                return target
+        except OSError:
+            pass  # unreadable — fall through and rewrite it
+
     tmp = target.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(manifest.to_dict(), indent=2, sort_keys=True) + "\n")
+    tmp.write_text(desired)
     tmp.replace(target)
     return target
 

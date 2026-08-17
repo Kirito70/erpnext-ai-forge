@@ -47,10 +47,10 @@
       "version": "1.0.0"
     }
   ],
-  "rendered_at": "2026-08-17T12:57:02+05:00",
+  "rendered_at": "2026-08-14T10:27:04+05:00",
   "rendered_by": "forge 0.1.0",
   "schema_version": 2,
-  "source_commit": "4bb84acb9cdc5f8b379fc7dc253ba4f096ddd576",
+  "source_commit": "89172e9b9236d01c2ea52cb6d8ee51ab32978cb1",
   "source_files": [
     {
       "adapter": "claude-code",

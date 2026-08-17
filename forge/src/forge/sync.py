@@ -687,6 +687,11 @@ def detect_hand_edits(
         target = art.output_path
         if not target.is_file():
             continue
+        if art.artifact_kind == "scaffold":
+            # Seeded once, then owned by whoever writes into it. The swap
+            # already refuses to touch these; reporting them as hand-edited
+            # asked the user to adopt build-history rows back into canonical.
+            continue
 
         out_dir = target.parent
         if out_dir not in manifest_cache:
@@ -714,7 +719,22 @@ def detect_hand_edits(
     return edited
 
 
-def _app_of_output(path: Path) -> str | None:
+def _owns_rows_in(out_dir: Path, tool: str) -> bool:
+    """True when `tool` already has output rows in this directory's manifest.
+
+    The test for "may this adapter refresh this manifest without changing who
+    owns what". A directory several adapters render into has one owner per row,
+    and that owner decides who may prune the row later.
+    """
+    manifest = read_manifest(out_dir)
+    if manifest is None:
+        return False
+    return any(
+        (e.adapter or manifest.adapter_name) == tool for e in manifest.outputs
+    )
+
+
+def app_of_output(path: Path) -> str | None:
     """`<bench>/apps/<app>/<file>` → `<app>`; anything else → None."""
     parts = path.parts
     if "apps" in parts:
@@ -753,7 +773,7 @@ def foreign_app_targets(
     foreign: dict[str, str] = {}
     seen: set[str] = set()
     for art in rendered:
-        app = _app_of_output(art.output_path)
+        app = app_of_output(art.output_path)
         if not app or app in seen:
             continue
         seen.add(app)
@@ -965,7 +985,7 @@ def sync_tool(
         still_managed = rendered
         if skip_apps:
             rendered = [
-                r for r in rendered if _app_of_output(r.output_path) not in skip_apps
+                r for r in rendered if app_of_output(r.output_path) not in skip_apps
             ]
 
         # Hand-edit guard: never overwrite a file someone edited in place.
@@ -992,7 +1012,7 @@ def sync_tool(
 
         protected = set(hand_edited)
         for staged in list(tool_staging.rglob("*")):
-            if staged.is_file() and _app_of_output(staged) in skip_apps:
+            if staged.is_file() and app_of_output(staged) in skip_apps:
                 staged.unlink()
 
         # Settings fragments are merged, not swapped. Protect them from the swap
@@ -1069,8 +1089,27 @@ def sync_tool(
 
         result.files_written = written
 
-        # Manifest per bench output dir touched
-        bench_output_dirs = {p.parent for p in written}
+        # Directories we wrote into, plus directories where this adapter
+        # already owns rows.
+        #
+        # Keying off `written` alone meant a converged bench could never have
+        # its manifests corrected: nothing is written, so no manifest is
+        # rewritten, so a row stays exactly as wrong as it was — which would
+        # have made the `write_once` flag below unreachable on the one bench
+        # that needed it.
+        #
+        # Refreshing every rendered directory instead is too much. Three
+        # adapters render the harness doc to the same root, and the manifest
+        # models one owner per row, so the last adapter to sync would quietly
+        # take ownership of rows another adapter wrote. Ownership decides which
+        # adapter may prune a row, so it must not drift on a no-op sync.
+        # Requiring an existing row keeps the current owner the owner.
+        already_owned = {
+            r.output_path.parent
+            for r in rendered
+            if _owns_rows_in(r.output_path.parent, tool)
+        }
+        bench_output_dirs = {p.parent for p in written} | already_owned
         for out_dir in bench_output_dirs:
             relevant = [r for r in rendered if r.output_path.parent == out_dir]
             entries = [
@@ -1094,6 +1133,7 @@ def sync_tool(
                     sha256=sha256_text(r.content),
                     mode=r.mode,
                     adapter=tool,
+                    write_once=r.artifact_kind == "scaffold",
                 )
                 for r in relevant
                 if r.output_path not in hand_edited
