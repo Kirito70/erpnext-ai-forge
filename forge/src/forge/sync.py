@@ -35,6 +35,7 @@ from forge.manifest import (
     Manifest,
     ManifestEntry,
     build_manifest,
+    is_from_a_newer_forge,
     merge_manifest,
     read_manifest,
     sha256_text,
@@ -143,6 +144,17 @@ def _assert_resolved_output_path(r: RenderedArtifact) -> None:
         raise ValueError(
             f"{r.tool}: output path for '{r.artifact_id}' is not absolute: {raw!r}. "
             f"Is FORGE_BENCH_PATH set?"
+        )
+    if ".." in r.output_path.parts:
+        # `Path.relative_to` prefix-matches on parts without normalising, so a
+        # `..` survives into the staged path and the write lands outside the
+        # staging root AND outside the bench. Refused rather than normalised:
+        # an `output:` that needs to climb out of the bench is a mistake in
+        # adapter.yaml, and silently rewriting it to somewhere plausible is the
+        # same "writes somewhere nobody intended" this function exists to stop.
+        raise ValueError(
+            f"{r.tool}: output path for '{r.artifact_id}' escapes the bench with "
+            f"'..': {raw!r}. Write an `output:` that resolves inside the target."
         )
 
 
@@ -322,17 +334,35 @@ def prune_harness(
     exactly the kind of surprise that costs trust in the tool, and the failure
     mode without pruning is mild: the wiring file is the only thing that invokes
     these scripts, so an orphan is inert.
+
+    Deletion obeys the same two rules as `prune_orphans`, for the same reason:
+    a file with no manifest row belongs to a human, and a file whose content no
+    longer matches its row carries edits forge never adopted. Skipping those
+    checks here made `--prune-harness` the back door around the hand-edit guard.
     """
     if not harness_dir.is_dir():
         return []
     expected = {
         r.output_path.name for r in rendered if r.artifact_kind == "harness-script"
     }
+    manifest = read_manifest(harness_dir)
+    recorded = {e.path: e.sha256 for e in manifest.outputs} if manifest else {}
+
     removed: list[Path] = []
     for path in sorted(harness_dir.iterdir()):
-        if path.is_file() and path.name not in expected:
-            path.unlink()
-            removed.append(path)
+        if not path.is_file() or path.name in expected:
+            continue
+        row = recorded.get(path.name)
+        if row is None:
+            continue  # never forge's to delete
+        try:
+            current = sha256_text(path.read_text(errors="replace"))
+        except OSError:
+            continue
+        if current != row:
+            continue  # hand-edited since; reported by find_orphans, not removed
+        path.unlink()
+        removed.append(path)
     return removed
 
 
@@ -480,6 +510,39 @@ def _carry_forward_orphan_rows(
     )
 
 
+def _carry_forward_hand_edited_rows(
+    manifest: Manifest,
+    previous: Manifest | None,
+    hand_edited: set[Path],
+    out_dir: Path,
+) -> None:
+    """Re-record the rows of files we refused to overwrite.
+
+    A hand-edited file is left out of `outputs` — forge did not write it, so
+    claiming it did would be a lie the next staleness check trips over. But
+    `merge_manifest` replaces the owning adapter's rows wholesale, so leaving it
+    out is also how the row disappears, and a file with no row is one forge has
+    no record of: `detect_hand_edits` adopts it and the next sync overwrites the
+    edit. Protection that lasts exactly one sync is worse than none, because the
+    warning already told someone their file was safe.
+
+    The row carried forward is the OLD one — what forge last wrote. Recording
+    the file's current bytes would make it match on the next run and stop being
+    reported, which is protection that erases itself by working.
+    """
+    if previous is None:
+        return
+    names = {p.name for p in hand_edited if p.parent == out_dir}
+    if not names:
+        return
+    have = {e.path for e in manifest.outputs}
+    manifest.outputs = sorted(
+        manifest.outputs
+        + [e for e in previous.outputs if e.path in names and e.path not in have],
+        key=lambda e: e.path,
+    )
+
+
 def _print_orphans(
     tool: str, orphans: list[Orphan], prune: bool, dry_run: bool
 ) -> None:
@@ -575,9 +638,19 @@ def detect_hand_edits(
     on the next sync". Someone fixing a wrong instruction in the file actually in
     front of them is doing the right thing; forge's job is to notice and route
     that edit back to canonical, not to punish it.
+
+    A manifest written by a NEWER forge is not the same as no manifest. Both
+    make `read_manifest` return None, but only one of them means "nothing is
+    managed here". A v1 manifest is the documented upgrade path and its files
+    really are adoptable; a schema above ours was written by a binary that knows
+    more than we do, so its rows may be protecting something we cannot see.
+    Treating that as unmanaged is how a schema bump on one machine wipes hand
+    edits on another. `drift.py` already reports the state as a finding; the
+    write path has more to lose, so it protects the whole directory instead.
     """
     edited: dict[Path, str] = {}
     manifest_cache: dict[Path, dict[str, str]] = {}
+    from_the_future: set[Path] = set()
 
     for art in rendered:
         target = art.output_path
@@ -587,9 +660,16 @@ def detect_hand_edits(
         out_dir = target.parent
         if out_dir not in manifest_cache:
             manifest = read_manifest(out_dir)
+            if manifest is None and is_from_a_newer_forge(out_dir):
+                from_the_future.add(out_dir)
             manifest_cache[out_dir] = (
                 {e.path: e.sha256 for e in manifest.outputs} if manifest else {}
             )
+        if out_dir in from_the_future:
+            # A record we are too old to read, and a file already on disk.
+            # Refuse the write rather than guess what it is.
+            edited[target] = sha256_text(target.read_text(errors="replace"))
+            continue
         recorded = manifest_cache[out_dir].get(target.name)
         if not recorded:
             continue  # never generated here, or a pre-v2 manifest — adopt it
@@ -1008,7 +1088,15 @@ def sync_tool(
                 # Fold into whatever is already there. Several adapters write
                 # the same bench-root dir; overwriting would strip their rows
                 # and with them their hand-edit protection.
-                manifest = merge_manifest(read_manifest(out_dir), manifest)
+                previous = read_manifest(out_dir)
+                manifest = merge_manifest(previous, manifest)
+                # Keep the row of anything we refused to overwrite. Without
+                # this the hand-edit guard disarms itself: the file is excluded
+                # from `outputs`, the merge drops the old row with it, and the
+                # next sync sees a file forge has no record of and adopts it.
+                _carry_forward_hand_edited_rows(
+                    manifest, previous, set(hand_edited), out_dir
+                )
                 # Carry forward rows for orphans we did NOT remove. The merge
                 # replaces this adapter's rows wholesale, so a reported-but-kept
                 # orphan would lose its row and become indistinguishable from a

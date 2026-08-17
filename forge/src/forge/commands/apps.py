@@ -28,6 +28,7 @@ from rich.console import Console
 from rich.table import Table
 
 from forge.loader import find_repo_root, load_discovery, load_forge_config
+from forge.manifest import read_manifest, sha256_text
 from forge.repo import git_remote as _git_remote, is_foreign, remote_owner as _owner_of
 
 console = Console()
@@ -219,16 +220,29 @@ def run_remove(names: list[str], prune: bool, repo_root: Path | None = None) -> 
     targets = removed + unknown
     pruned: list[Path] = []
     leftovers: list[Path] = []
+    kept_edits: list[Path] = []
     for name in targets:
+        app_dir = bench_root / "apps" / name
+        manifest = read_manifest(app_dir)
+        recorded = {e.path: e.sha256 for e in manifest.outputs} if manifest else {}
         for filename in _PER_APP_FILES:
-            path = bench_root / "apps" / name / filename
+            path = app_dir / filename
             if not path.is_file():
                 continue
-            if prune:
-                path.unlink()
-                pruned.append(path)
-            else:
+            if not prune:
                 leftovers.append(path)
+                continue
+            # Same two rules as `prune_orphans`: a file with no row is not
+            # forge's to delete, and one whose content has moved on carries
+            # edits forge never adopted. Unmanaging an app must not be the way
+            # to lose them — the manifest goes last, because deleting it first
+            # would destroy the evidence for the files after it.
+            row = recorded.get(filename)
+            if row is None or sha256_text(path.read_text(errors="replace")) != row:
+                kept_edits.append(path)
+                continue
+            path.unlink()
+            pruned.append(path)
 
     if pruned:
         console.print(f"[green]✓[/green] pruned {len(pruned)} generated file(s):")
@@ -237,6 +251,14 @@ def run_remove(names: list[str], prune: bool, repo_root: Path | None = None) -> 
         console.print(
             "    Those repos now have a deletion to commit."
         )
+    if kept_edits:
+        console.print(
+            f"[yellow]![/yellow] {len(kept_edits)} file(s) not deleted — forge has no "
+            f"record of writing them, or they changed since it did:"
+        )
+        for path in kept_edits:
+            console.print(f"    {path}")
+        console.print("    Delete by hand if you are sure. Forge will not.")
     if leftovers:
         console.print(
             f"[yellow]![/yellow] {len(leftovers)} generated file(s) left on disk — "

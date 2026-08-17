@@ -202,12 +202,46 @@ def merge_manifest(existing: Manifest | None, incoming: Manifest) -> Manifest:
     )
 
 
+def is_from_a_newer_forge(directory: Path) -> bool:
+    """Does this directory hold a manifest we are too old to read?
+
+    `read_manifest` returns None for "no manifest", "schema we outgrew" and
+    "schema we do not yet know" alike. Callers that only read can treat all
+    three the same; callers that DELETE or OVERWRITE cannot. A v1 manifest is
+    the documented upgrade path — its rows are genuinely gone, and adopting the
+    files is right. A version above ours was written by a forge that knows more
+    than we do, and its rows may be protecting something; guessing "unmanaged"
+    there is how a schema bump on one machine wipes hand edits on another.
+
+    Unparseable JSON counts as newer: a manifest we cannot read at all is not
+    evidence that nothing is managed here.
+    """
+    target = directory / MANIFEST_FILENAME
+    if not target.is_file():
+        return False
+    try:
+        data = json.loads(target.read_text())
+    except (OSError, json.JSONDecodeError):
+        return True
+    version = data.get("schema_version")
+    if not isinstance(version, int):
+        return True
+    return version > MANIFEST_SCHEMA_VERSION
+
+
 def read_manifest(directory: Path) -> Manifest | None:
     """Read a manifest if present, else None. Returns None on schema mismatch."""
     target = directory / MANIFEST_FILENAME
     if not target.is_file():
         return None
-    data = json.loads(target.read_text())
+    try:
+        data = json.loads(target.read_text())
+    except (OSError, json.JSONDecodeError):
+        # A manifest truncated mid-write used to take the whole sync down with
+        # it. None is the honest answer — "no record here" — and callers that
+        # write ask `is_from_a_newer_forge` before acting on it, which reads the
+        # same corruption as "protect", not "adopt".
+        return None
     if data.get("schema_version") != MANIFEST_SCHEMA_VERSION:
         return None
     return Manifest(
