@@ -17,7 +17,7 @@ weaker than whoever wrote it.
 
 ## Usage
 
-```
+```text
 /refine-ticket <KEY> [--focus verify|decide|specify|all]
 ```
 
@@ -30,7 +30,7 @@ weaker than whoever wrote it.
 
 ## Examples
 
-```
+```text
 /refine-ticket NPOS-D5
 /refine-ticket NPOS-D11 --focus specify
 ```

@@ -121,10 +121,10 @@ deductions:
     rationale: "Without it a hook continues past a failed command and exits 0, so a broken gate reports success."
 
 severities:
-  CRITICAL: { deduction_floor: 40, blocks_sync: true }
-  HIGH:     { deduction_floor: 20, blocks_sync: false }
-  MEDIUM:   { deduction_floor: 10, blocks_sync: false }
-  LOW:      { deduction_floor: 1,  blocks_sync: false }
+  CRITICAL: {deduction_floor: 40, blocks_sync: true}
+  HIGH: {deduction_floor: 20, blocks_sync: false}
+  MEDIUM: {deduction_floor: 10, blocks_sync: false}
+  LOW: {deduction_floor: 1, blocks_sync: false}
 
 calibration:
   scheduled: "After the first 10 skills are authored in Phase 1b, run `forge score canonical/skills/` and manually inspect any clusters of scores in unexpected bands. Adjust deductions if the distribution is too lenient or too punitive."

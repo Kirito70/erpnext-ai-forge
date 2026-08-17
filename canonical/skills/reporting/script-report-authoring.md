@@ -18,6 +18,7 @@ supersedes: []
 Script Reports are Python-driven reports that return `(columns, data, message?, chart?, report_summary?)`. They support arbitrary aggregation, computed columns, and chart blocks — used heavily in `noviznaerp_payroll` for loan/salary registers.
 
 ## When to Load
+
 - Adding a new Script Report under any custom app
 - Modifying an existing Script Report (e.g., `noviznaerp_payroll/.../report/loan_register/`)
 - Designing a report with computed columns or charts
@@ -34,7 +35,7 @@ Script Reports are Python-driven reports that return `(columns, data, message?, 
 
 ## File Layout
 
-```
+```text
 apps/<app>/<app>/<module>/report/<report_slug>/
     <report_slug>.json    # Report doc + filter spec
     <report_slug>.py      # execute() function
@@ -50,6 +51,7 @@ apps/<app>/<app>/<module>/report/<report_slug>/
 **When:** Authoring `Loan Register` (matches the existing `noviznaerp_payroll/.../report/loan_register/`).
 
 **Do:**
+
 ```python
 # loan_register.py
 import frappe
@@ -118,6 +120,7 @@ def _summary(data: list[dict]) -> list[dict]:
 ```
 
 **Don't (mirrors AP-001 in the current `loan_register.py:111`):**
+
 ```python
 frappe.db.sql(f"SELECT ... WHERE branch = '{filters.get('branch')}'")
 ```
@@ -125,6 +128,7 @@ frappe.db.sql(f"SELECT ... WHERE branch = '{filters.get('branch')}'")
 ### Pattern: Filter schema in `.js`
 
 **Do:**
+
 ```javascript
 // loan_register.js
 frappe.query_reports["Loan Register"] = {
@@ -144,6 +148,7 @@ frappe.query_reports["Loan Register"] = {
 **When:** A computed column should be clickable to navigate to a doc.
 
 **Do:** Use `fieldtype: "Link"` with `options: "<Target DocType>"` and emit the doc name as the value:
+
 ```python
 {"fieldname": "loan", "fieldtype": "Link", "options": "Loan"}
 # data row: {"loan": "LN-2026-00042", ...}  → renders as a hyperlink
@@ -156,6 +161,7 @@ frappe.query_reports["Loan Register"] = {
 **Do:** Use `frappe.get_list` instead of raw SQL when permission filtering is needed; the ORM applies User Permissions automatically. Reserve raw SQL for reports where you'll apply the filtering manually in `_fetch`.
 
 ## Common Pitfalls
+
 - Returning data as list-of-lists when columns expect dict access — column rendering breaks silently.
 - Forgetting `reqd: 1` on date filters → expensive queries with no bounds.
 - Building chart data with `Decimal` types — `flt()` casts to float.
@@ -163,6 +169,7 @@ frappe.query_reports["Loan Register"] = {
 - Long-running aggregations inline in `execute` — for very large data sets, materialize into a cached DocType nightly and serve from cache.
 
 ## References
+
 - [`reporting/query-report-authoring`](./query-report-authoring.md) — for the SQL-only alternative
 - [`data/sql-best-practices`](../data/sql-best-practices.md) — for parameterized `frappe.db.sql`
 - [`reporting/workflow-authoring`](./workflow-authoring.md) — when report state drives a workflow

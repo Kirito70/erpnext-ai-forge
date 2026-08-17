@@ -18,6 +18,7 @@ supersedes: []
 Query Reports are pure-SQL reports — no Python execute. Filters bind via `%(name)s` placeholders. Simpler than Script Reports; use when no computed logic is needed.
 
 ## When to Load
+
 - A simple "list of rows from a SQL query" report
 - Avoiding the overhead of a `.py` execute for trivial reports
 - Migrating a slow Script Report whose Python is just a SQL wrapper
@@ -34,7 +35,7 @@ Query Reports are pure-SQL reports — no Python execute. Filters bind via `%(na
 
 The Query Report lives **inside the Report DocType row in the DB**. The `.sql` and `.json` files are exported via fixtures or DocType JSON. Typical custom-app layout:
 
-```
+```text
 apps/<app>/<app>/<module>/report/<report_slug>/
     <report_slug>.json    # Report doc (report_type: "Query Report")
     <report_slug>.sql     # The SQL body (referenced from the Report doc)
@@ -47,6 +48,7 @@ apps/<app>/<app>/<module>/report/<report_slug>/
 **When:** "Open Parcels by Branch" for `cargo_management`.
 
 **Do:**
+
 ```sql
 -- apps/cargo_management/cargo_management/parcel_management/report/open_parcels_by_branch/open_parcels_by_branch.sql
 
@@ -68,6 +70,7 @@ ORDER BY p.posting_date DESC
 Column metadata is encoded inline as `"<Label>:<Fieldtype>[/<Options>]:<Width>"`. Frappe parses this from the SELECT alias.
 
 The Report doc declares filters matching the placeholder names:
+
 ```json
 {
   "doctype": "Report",
@@ -90,11 +93,13 @@ The Report doc declares filters matching the placeholder names:
 **When:** A filter may be empty.
 
 **Do:**
+
 ```sql
 WHERE (%(branch)s = '' OR p.branch = %(branch)s)
 ```
 
 **Don't:**
+
 ```sql
 WHERE p.branch = %(branch)s   -- breaks when filter is empty
 ```
@@ -104,6 +109,7 @@ WHERE p.branch = %(branch)s   -- breaks when filter is empty
 **When:** Listing parcel items per parcel.
 
 **Do:**
+
 ```sql
 SELECT
   p.name              AS "Parcel:Link/Parcel:160",
@@ -124,6 +130,7 @@ WHERE p.docstatus = 1
 **Do:** Move the SQL into a `.py` `execute()`'s `_fetch()` helper and add `chart` / `report_summary` blocks. See [`reporting/script-report-authoring`](./script-report-authoring.md).
 
 ## Common Pitfalls
+
 - Forgetting the column metadata in the alias — Frappe falls back to a `Data` column with a guessed label.
 - Missing `ref_doctype` on the Report doc — permission filtering doesn't apply.
 - Using `LIKE %(term)s` where the calling code passes the value with no wildcards — produces 0 rows; pass `%term%` from the filter side or use `CONCAT('%', %(term)s, '%')` in SQL.
@@ -131,6 +138,7 @@ WHERE p.docstatus = 1
 - Using upstream Frappe table aliases that change between minor versions — pin to `` `tab<DocType>` `` qualified names.
 
 ## References
+
 - [`reporting/script-report-authoring`](./script-report-authoring.md) — for when to upgrade
 - [`data/sql-best-practices`](../data/sql-best-practices.md) — for SQL hygiene
 - [`frappe-core/permissions-model`](../frappe-core/permissions-model.md) — for `ref_doctype` perm filtering

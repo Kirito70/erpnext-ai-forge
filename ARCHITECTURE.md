@@ -10,7 +10,7 @@
 
 `erpnext-ai-forge` is the canonical source of truth for AI-coding-agent configuration targeting the Novizna v16 ERPNext/Frappe bench. It is structured in three layers:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │  CANONICAL LAYER (tool-agnostic Markdown + YAML)                │
 │  canonical/{agents,skills,commands,tools,policies}              │
@@ -89,7 +89,7 @@ Per-tool capability constraints (no subagents, no slash commands, etc.) are hand
 
 ## 4. Sync Pipeline
 
-```
+```text
 discovery/ ──┐
 canonical/ ──┼──► forge render ──► .forge-staging/<tool>/
 adapters/ ───┘                              │
@@ -245,6 +245,7 @@ Any file write under `apps/{frappe,erpnext,crm,hrms,lending,lms,education,helpde
 | Security threat taxonomy (T1–T7: prompt injection, code exec, FS access, data exfil, API abuse, supply chain, social eng) | `shared/scoring/base-rubric.yaml` | **Not adopted now.** v0.2 uses a flat deduction table per Decision 11. Adopting the T1–T7 categorization is a candidate for the post-Phase-1b calibration pass. |
 
 **Consequences:**
+
 - We can evolve `erpnext-ai-forge`'s conventions independently of AI Forge churn.
 - Future merge with AI Forge (per v0.2 Decision 1, 3-month review checkpoint) is still possible. Copied schemas are byte-comparable for that merge.
 - We pay a duplication cost: schema drift between the two repos is possible and should be reconciled at each 3-month checkpoint.
@@ -259,6 +260,7 @@ Any file write under `apps/{frappe,erpnext,crm,hrms,lending,lms,education,helpde
 **Decision:** Render with a `# AUTO-GENERATED FROM erpnext-ai-forge vX.Y.Z — DO NOT EDIT` header and copy via `forge sync`. Write a `.forge-manifest.json` to each output directory.
 
 **Consequences:**
+
 - Symlinks rejected: break in sandboxed tools (Antigravity), opaque to indexers (Cursor).
 - Git submodules rejected: too operationally heavy for a single developer across many vibe-coding tools.
 - Manifest enables drift detection beyond byte-equality (compares against source commit hash).
@@ -273,6 +275,7 @@ Any file write under `apps/{frappe,erpnext,crm,hrms,lending,lms,education,helpde
 **Decision:** Phase 1a runs first to produce a working Claude Code setup with stub skills. Phase 1b runs partially in parallel with Phase 2 (adapter engine), since skill authoring does not depend on adapter renderer code.
 
 **Consequences:**
+
 - Earlier feedback on whether the agent/command shape works.
 - Risk: Phase 1b skills authored before Phase 2 adapter rendering may not survive the per-tool translation. Mitigated by golden tests in Phase 2.
 
@@ -292,6 +295,7 @@ path nothing opens. Codex now reads the bench-root `AGENTS.md`; OpenCode still o
 `<!-- FORGE:BEGIN/END -->` markers on shared files.
 
 **Consequences:**
+
 - Markers create merge conflicts the first time the developer hand-edits one section.
 - Separate files keep tool-specific contexts isolated.
 - Bench-root file count grows by one per added "AGENTS-style" tool — acceptable.
@@ -325,6 +329,7 @@ Per-tool char budgets (advisory in Phase 3; could become hard-enforced in a futu
 | Antigravity | 15,000 (provisional — re-scope when actual config surface is confirmed) |
 
 **Consequences:**
+
 - Aggregate templates inline specialist personas as **summary tables**, not full bodies. Full agent bodies stay at `canonical/agents/<id>.md` and the templates direct the model to ask the developer to expand if detail is needed.
 - Foundational skills are TOC-only on the non-Claude tools (inlining them all blew the budget — Cursor's `forge-main.mdc` was 183KB in the first draft).
 - Tools' canonical contracts surface in every adapter (so behavior is consistent), but each tool's actual integration mechanism (MCP, Cursor MCP, none) lives outside `forge sync`.
@@ -339,6 +344,7 @@ Per-tool char budgets (advisory in Phase 3; could become hard-enforced in a futu
 **Decision:** Score the **canonical sources** contributing to each render, not the staged rendered output.
 
 **Why:**
+
 - Skills legitimately discuss the deduction patterns by name. `security/review-checklist.md` mentions `curl ... | sh` to teach the rule. Scoring staging fires D-CURL-SHELL on that text inside `.forge-staging/<tool>/.claude/skills/security/review-checklist.md`.
 - The scorer already has `skip_if_path_matches: (canonical|docs)` for exactly this reason. But staging paths don't include `canonical/`.
 - Rendering is template substitution — it never introduces new anti-patterns. If the canonical source is clean, the rendered output is clean. Scoring canonical sources is sufficient AND eliminates the false-positive class entirely.
@@ -346,6 +352,7 @@ Per-tool char budgets (advisory in Phase 3; could become hard-enforced in a futu
 `_security_gate(rendered: list[RenderedArtifact])` walks every distinct `source_path` from the rendered set, runs `score_file()`, and aggregates findings. Block/warn thresholds come from `forge.config.yaml` `security:`.
 
 **Consequences:**
+
 - The gate runs the same scoring rules as `forge score --path canonical/` — single source of truth for scoring behavior.
 - Tests writing poisoned files to a fake repo had to be careful about path collisions: a file named `_outside-canonical.py` had "canonical" in its path and tripped the skip rule for D-CURL-SHELL. Document this caveat in the test.
 - Adapters can never sneak past the gate by emitting templates that introduce CRITICAL patterns at render time — those patterns would be in the canonical source.
@@ -368,6 +375,7 @@ The `_deprecated/` tree is NOT picked up by `load_agents`, `load_skills`, etc. �
 Manual purge after one MINOR cycle: `rm -rf canonical/_deprecated/<...>` and append a Removed entry to CHANGELOG. Automation can come later if the volume demands it.
 
 **Consequences:**
+
 - Frontmatter mutation reuses `python-frontmatter`'s `dumps()` round-trip. Comments above frontmatter are preserved by python-frontmatter; comments inside the YAML block are NOT preserved (this is a python-frontmatter limitation). No canonical file currently has in-frontmatter comments, so this is fine.
 - Deprecation is a write to `canonical/`, so the pre-commit hook's `forge score --staged` runs against the modified file. As long as the deprecated artifact was clean before, setting `status: deprecated` doesn't change its score.
 - `forge stats` can read `audit/<YYYY>/<MM>/forge-audit.jsonl` for deprecation-action entries (`forge deprecate` currently doesn't emit one — could be added).

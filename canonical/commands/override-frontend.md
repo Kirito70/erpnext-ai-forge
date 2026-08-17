@@ -14,7 +14,7 @@ Create a correctly-pathed `src_override/` pair for an upstream CRM file.
 
 ## Usage
 
-```
+```text
 /override-frontend <upstream-path>
 ```
 
@@ -26,7 +26,7 @@ Create a correctly-pathed `src_override/` pair for an upstream CRM file.
 
 ## Example
 
-```
+```text
 /override-frontend apps/crm/frontend/src/components/Leads/LeadsListHeader.vue
 ```
 

@@ -14,7 +14,7 @@ Run `forge sync` for the current tool, a specific tool, or all enabled tools.
 
 ## Usage
 
-```
+```text
 /forge-sync [--tool <name>|--all] [--dry-run] [--justify "<reason>"]
 ```
 
@@ -29,7 +29,7 @@ Run `forge sync` for the current tool, a specific tool, or all enabled tools.
 
 ## Examples
 
-```
+```text
 /forge-sync --tool claude-code --dry-run
 /forge-sync --all
 /forge-sync --tool cursor --justify "Accepted lower score on cursor-rules size cap"

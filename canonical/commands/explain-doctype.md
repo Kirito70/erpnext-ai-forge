@@ -14,7 +14,7 @@ Summarize a DocType's schema, hooks, permissions, and known callers.
 
 ## Usage
 
-```
+```text
 /explain-doctype <doctype-id>
 ```
 
@@ -26,7 +26,7 @@ Summarize a DocType's schema, hooks, permissions, and known callers.
 
 ## Example
 
-```
+```text
 /explain-doctype crm_lead_industry
 ```
 

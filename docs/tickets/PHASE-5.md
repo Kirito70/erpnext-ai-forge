@@ -69,6 +69,7 @@ resolved before writing content:
   sets one yet — fixing that is explicitly PHASE-6 scope, not this ticket's).
 
 ## Original planned scope (for reference — see "As-built record" above for
+
 ## what actually happened)
 
 1. **`canonical/skills/meta/ticket-authoring-guide.md`** — the five-pass

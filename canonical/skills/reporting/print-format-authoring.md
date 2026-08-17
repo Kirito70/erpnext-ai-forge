@@ -18,6 +18,7 @@ supersedes: []
 How to author Print Formats — both Jinja-based and Designer-based — for invoices, POS receipts, payroll slips, and parcel labels on this bench. Special attention to **XSS in Jinja `| safe` misuse** because every print format renders user data.
 
 ## When to Load
+
 - Adding a Print Format for any DocType
 - Modifying an existing format for `noviznaerp_payroll` salary slip, `novizna_pos` POS Invoice, or `cargo_management` parcel label
 - Reviewing Jinja for `| safe` misuse
@@ -40,6 +41,7 @@ How to author Print Formats — both Jinja-based and Designer-based — for invo
 **When:** Authoring a POS receipt for `novizna_pos`.
 
 **Do:**
+
 ```html
 {# Print Format: POS Invoice Thermal #}
 <div class="receipt">
@@ -71,9 +73,11 @@ How to author Print Formats — both Jinja-based and Designer-based — for invo
 `frappe.format_value` handles localization, currency symbol, and decimal precision uniformly.
 
 **Don't (XSS recurrence):**
+
 ```html
 <p>{{ doc.customer_notes | safe }}</p>
 ```
+
 `customer_notes` is user-supplied. `| safe` lets `<script>alert(1)</script>` execute when the format renders in the desk preview. Use the default (escaped) rendering, or sanitize explicitly with `frappe.utils.sanitize_html`.
 
 ### Pattern: Conditional sections
@@ -81,6 +85,7 @@ How to author Print Formats — both Jinja-based and Designer-based — for invo
 **When:** Optional tax breakdown.
 
 **Do:**
+
 ```html
 {%- if doc.taxes %}
 <h4>Taxes</h4>
@@ -100,6 +105,7 @@ How to author Print Formats — both Jinja-based and Designer-based — for invo
 **When:** Salary Slip with attendance table that may overflow.
 
 **Do:**
+
 ```html
 <div class="salary-summary">...</div>
 
@@ -123,6 +129,7 @@ How to author Print Formats — both Jinja-based and Designer-based — for invo
 **When:** Invoices need company letterhead with logo header + bank details footer.
 
 **Do:**
+
 - Create or update a `Letter Head` doc (name e.g., "Novizna Default")
 - Set `header` and `footer` HTML fields
 - On Sales Invoice → set `letter_head = "Novizna Default"`
@@ -135,6 +142,7 @@ How to author Print Formats — both Jinja-based and Designer-based — for invo
 **When:** A field's `fieldtype` is `Text Editor` and you want to render formatting.
 
 **Do:**
+
 ```html
 {{ frappe.utils.strip_html_tags(doc.description) }}      {# plain text #}
 {# OR for trusted internal content only: #}
@@ -152,6 +160,7 @@ Apply `| safe` only when the content's provenance is internal (controller-set, n
 - **CJK / RTL** — needs the appropriate font installed and declared.
 
 ## Common Pitfalls
+
 - `| safe` on a user-supplied field (XSS) — Security Reviewer flags as MEDIUM (or HIGH if the field is rendered in a multi-user UI like POS).
 - Hard-coded currency `$` symbols — breaks for non-USD; use `frappe.format_value` with the doc's currency.
 - Forgetting `<meta charset="utf-8">` in the format HTML — non-ASCII characters render as mojibake.
@@ -160,6 +169,7 @@ Apply `| safe` only when the content's provenance is internal (controller-set, n
 - Designer formats edited as raw JSON in git — easy to break the layout; prefer Jinja for any non-trivial format.
 
 ## References
+
 - [`reporting/script-report-authoring`](./script-report-authoring.md) — sibling reporting skill
 - [`security/review-checklist`](../security/review-checklist.md) — for the `| safe` XSS check
 - [`erpnext-domains/pos`](../erpnext-domains/pos.md) — POS-specific receipt patterns

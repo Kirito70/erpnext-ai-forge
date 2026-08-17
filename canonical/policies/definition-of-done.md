@@ -64,7 +64,7 @@ from all three while its vault ticket exists.
 
 ### Row format
 
-```
+```text
 | KEY | build_state | agent | started | finished | last commit | notes |
 ```
 

@@ -18,6 +18,7 @@ supersedes: []
 Vue 3 component and data-fetching patterns for the `novizna_crm` workspace. Use Frappe-UI primitives before writing custom HTML; use the `createResource` / `createListResource` data layer before raw `fetch`.
 
 ## When to Load
+
 - Adding any new Vue SFC under `apps/novizna_crm/frontend/src/` or `src_override/`
 - Wiring a frontend call to a Frappe whitelist method
 - Building list / form / dialog UI
@@ -40,6 +41,7 @@ Vue 3 component and data-fetching patterns for the `novizna_crm` workspace. Use 
 **When:** Fetching `CRM Lead Industry` rows for a filter dropdown.
 
 **Do:**
+
 ```vue
 <!-- apps/novizna_crm/frontend/src/components/Leads/LeadsIndustryFilter.vue -->
 <script setup>
@@ -76,6 +78,7 @@ const emit = defineEmits(['change'])
 **When:** Calling `novizna_crm.api.deals.get_deal_addresses`.
 
 **Do:**
+
 ```vue
 <script setup>
 import { createResource } from 'frappe-ui'
@@ -105,6 +108,7 @@ const addresses = createResource({
 **When:** "Import Leads" action.
 
 **Do:**
+
 ```vue
 <script setup>
 import { ref } from 'vue'
@@ -130,6 +134,7 @@ const showImport = ref(false)
 **When:** "Import Customers as Leads" button click.
 
 **Do:**
+
 ```javascript
 import { call, toast } from 'frappe-ui'
 
@@ -146,6 +151,7 @@ async function importNow(payload) {
 ### Pattern: `<FormControl>` for typed inputs
 
 **Do:**
+
 ```vue
 <FormControl type="text"    v-model="state.firstName" label="First Name" required />
 <FormControl type="email"   v-model="state.email"     label="Email" />
@@ -162,6 +168,7 @@ The `type="link"` variant uses `createListResource` internally for autocomplete.
 **When:** Several components need the same list of industries.
 
 **Do:**
+
 ```javascript
 // apps/novizna_crm/frontend/src/composables/useLeadIndustries.js
 import { createListResource } from 'frappe-ui'
@@ -181,6 +188,7 @@ export function useLeadIndustries() {
 Singleton resource → shared cache across all components consuming it.
 
 ## Common Pitfalls
+
 - Wiring `auto: true` then also calling `.reload()` in `onMounted` — double-fetches.
 - Mutating `resource.data` directly to "update locally" — breaks the cache. Call `.setData(...)` or `.reload()`.
 - Hard-coding a URL like `/api/method/foo` — breaks when the desk path or site name changes.
@@ -189,7 +197,8 @@ Singleton resource → shared cache across all components consuming it.
 - Forgetting that Frappe-UI components ship their own styles — wrapping them in extra `<div class="border rounded ...">` often double-borders.
 
 ## References
+
 - [`frontend/novizna-crm-override-system`](./novizna-crm-override-system.md) — where this component lives in the layer system
 - [`frappe-core/whitelist-api-patterns`](../frappe-core/whitelist-api-patterns.md) — for the backend the FUI calls go to
 - [`testing/frappe-unittest`](../testing/frappe-unittest.md) — for backend tests of the called whitelist methods
-- Frappe-UI docs (verify with `apps/crm/frontend/package.json` for the locked version): https://frappeui.com/
+- Frappe-UI docs (verify with `apps/crm/frontend/package.json` for the locked version): <https://frappeui.com/>

@@ -18,6 +18,7 @@ supersedes: []
 The single most important frontend rule in this bench. Per [Decision 16](../../../../erp/novizna-v16/novizna-v16/ULTRAPLAN-AI-FRAMEWORK-v0.2.md#section-11--decision-log), `novizna_crm` extends upstream `apps/crm/` via three layers and **only three layers**. Any file you write must land in exactly one of them.
 
 ## When to Load
+
 - Adding any file under `apps/novizna_crm/frontend/`
 - Changing existing CRM behavior (page, component, composable)
 - Reviewing a frontend PR for layer correctness
@@ -59,7 +60,8 @@ These 10 files are the entire override surface today. Any addition appears in th
 **When:** Adding a feature that has no counterpart in upstream CRM (e.g., LinkedIn lead enrichment panel).
 
 **Do:**
-```
+
+```text
 apps/novizna_crm/frontend/src/components/Leads/LinkedInEnrichmentPanel.vue
 ```
 
@@ -76,6 +78,7 @@ Then expose it through one of the extension points:
 **When:** Adjusting how the Activities tab renders.
 
 **Do:**
+
 ```bash
 # 1. Verify upstream exists at this path
 ls apps/crm/frontend/src/components/Activities/Activities.vue
@@ -97,7 +100,8 @@ yarn check-conflicts
 **When:** Your `src_override/pages/Lead.vue` has diverged so far from upstream that upstream updates are painful to merge.
 
 **Do:**
-```
+
+```text
 apps/novizna_crm/frontend/src/pages/NoviznaLead.vue     # the new heavily-customized version
 apps/novizna_crm/frontend/src/noviznaCrmRoutes.js       # route '/novizna-leads/:id' → NoviznaLead.vue
 # Delete src_override/pages/Lead.vue so upstream Lead.vue ships as-is for the original route
@@ -110,6 +114,7 @@ The rule: when the override-vs-upstream diff exceeds ~50% of lines changed, the 
 **When:** Adding a "Reports" link to the CRM sidebar.
 
 **Do (in `apps/novizna_crm/frontend/src/index.js`):**
+
 ```javascript
 import { ChartBarIcon } from '@heroicons/vue/24/outline'
 
@@ -125,6 +130,7 @@ The override in `src_override/components/Layouts/AppSidebar.vue` reads this arra
 ### Pattern: Routes via `noviznaCrmRoutes.js`
 
 **Do (in `apps/novizna_crm/frontend/src/noviznaCrmRoutes.js`):**
+
 ```javascript
 export default [
   { path: '/novizna-leads/:id', name: 'NoviznaLead',
@@ -135,6 +141,7 @@ export default [
 The override `src_override/router.js` merges this array with the upstream routes.
 
 ## Common Pitfalls
+
 - Editing `crm_build/...` and watching changes vanish on next `yarn dev`. The build wipes it every time.
 - Editing `novizna_crm/public/frontend/` (compiled output) — same fate.
 - Adding `src_override/...` without checking the upstream path exists → silently does nothing (Vite resolves to upstream).
@@ -143,6 +150,7 @@ The override `src_override/router.js` merges this array with the upstream routes
 - Importing from `apps/novizna_pos/novizna-pos-ui/` — different workspace, different upstream. Never cross.
 
 ## References
+
 - [`frontend/frappe-ui-components`](./frappe-ui-components.md) — for component-level patterns
 - [`tools/override-checker`](../../tools/override-checker.yaml) — the validator
 - [`tools/frontend-build`](../../tools/frontend-build.yaml) — for the build invocation

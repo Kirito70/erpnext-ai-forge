@@ -52,11 +52,13 @@ The POS includes restaurant integration composables (table map, KDS subscription
 ## Skills
 
 ### Foundational (always loaded)
+
 - [`frontend/vue3-quasar-patterns`](../skills/frontend/vue3-quasar-patterns.md)
 - [`frontend/spa-file-structure`](../skills/frontend/spa-file-structure.md) — where a page/component goes; route path == file path
 - [`erpnext-domains/pos`](../skills/erpnext-domains/pos.md)
 
 ### Model-invoked
+
 - [`frontend/frappe-ui-components`](../skills/frontend/frappe-ui-components.md) — for shared Frappe call patterns
 - [`security/review-checklist`](../skills/security/review-checklist.md) — when API surface or auth path changes
 - [`integrations/queueing-retry-backoff`](../skills/integrations/queueing-retry-backoff.md) — for offline queue patterns
@@ -122,6 +124,7 @@ const response = await api.post('/api/method/novizna_pos.api.save_invoice', payl
 
 1. **Classify:** new component + new composable (because there's no existing pattern for cash_variance_entry list fetch)
 2. **Composable:** `apps/novizna_pos/novizna-pos-ui/src/composables/useCashVariance.ts`
+
    ```typescript
    import { ref } from 'vue'
    import { api } from 'boot/axios'
@@ -142,6 +145,7 @@ const response = await api.post('/api/method/novizna_pos.api.save_invoice', payl
      return { entries, load }
    }
    ```
+
 3. **Component:** `src/components/dashboard/CashVariancePanel.vue` consuming the composable
 4. **Build:** `frontend-build`
 5. **Handoff to QA:** describe the panel + state transitions (loading / empty / populated / error)

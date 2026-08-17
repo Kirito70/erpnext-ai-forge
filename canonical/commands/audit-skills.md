@@ -14,7 +14,7 @@ Lint canonical agents / skills / commands / tools for drift, dead links, and sec
 
 ## Usage
 
-```
+```text
 /audit-skills [--scope <dir>]
 ```
 
@@ -26,7 +26,7 @@ Lint canonical agents / skills / commands / tools for drift, dead links, and sec
 
 ## Examples
 
-```
+```text
 /audit-skills
 /audit-skills --scope canonical/skills/integrations
 ```

@@ -18,6 +18,7 @@ supersedes: []
 How to write safe, fast, and reviewable SQL on this bench. Directly addresses the **11 known SQL-injection findings** in [AP-001](../../../discovery/data/anti-pattern-findings.json) — every new occurrence is a HIGH-severity blocker.
 
 ## When to Load
+
 - Writing `frappe.db.sql(...)` calls
 - Reviewing existing SQL for AP-001 recurrence
 - Optimizing a slow query against `tab<DocType>` tables
@@ -40,6 +41,7 @@ How to write safe, fast, and reviewable SQL on this bench. Directly addresses th
 **When:** Looking up loan details by loan name (the recurring AP-001 shape in `noviznaerp_payroll`).
 
 **Do:**
+
 ```python
 import frappe
 
@@ -55,6 +57,7 @@ row = frappe.db.sql(
 ```
 
 **Don't (AP-001 anti-pattern — 11 known occurrences):**
+
 ```python
 # apps/noviznaerp_payroll/noviznaerp_payroll/custom/loan_custom.py:137
 row = frappe.db.sql(f"""
@@ -69,6 +72,7 @@ Every f-string SQL in a custom app is a D-SQL-FSTRING deduction (-30, HIGH).
 **When:** Updating loan interest fields (matches `loan_interest_accrual_custom.py:57`).
 
 **Do:**
+
 ```python
 frappe.db.sql(
     """
@@ -82,6 +86,7 @@ frappe.db.sql(
 ```
 
 **Don't (AP-001 anti-pattern):**
+
 ```python
 frappe.db.sql(f"""
     UPDATE `tabLoan Interest Accrual`
@@ -97,6 +102,7 @@ Even when `amount` is "definitely a number", interpolation crosses the boundary;
 **When:** Fetching salary structures for several employees (`salary_structure_custom.py:11-12`).
 
 **Do:**
+
 ```python
 # Frappe accepts a list as a single binding for IN
 rows = frappe.db.sql(
@@ -111,6 +117,7 @@ rows = frappe.db.sql(
 ```
 
 **Don't:**
+
 ```python
 employees_csv = "','".join(employee_ids)
 frappe.db.sql(f"SELECT ... WHERE employee IN ('{employees_csv}')")  # AP-001 recurrence
@@ -121,6 +128,7 @@ frappe.db.sql(f"SELECT ... WHERE employee IN ('{employees_csv}')")  # AP-001 rec
 **When:** The query is a simple SELECT with filters and field projection.
 
 **Do:**
+
 ```python
 rows = frappe.get_all(
     "Salary Slip",
@@ -137,6 +145,7 @@ Frappe's query builder generates parameterized SQL automatically — no injectio
 **When:** Joining Salary Slip with its child Salary Detail rows.
 
 **Do:**
+
 ```python
 rows = frappe.db.sql(
     """
@@ -157,6 +166,7 @@ rows = frappe.db.sql(
 **When:** Need salary details for a list of employees.
 
 **Do:**
+
 ```python
 slips = frappe.get_all(
     "Salary Slip",
@@ -166,6 +176,7 @@ slips = frappe.get_all(
 ```
 
 **Don't:**
+
 ```python
 slips = []
 for emp in employee_ids:  # N round trips
@@ -177,6 +188,7 @@ for emp in employee_ids:  # N round trips
 ### Pattern: No `frappe.db.commit()` mid-transaction
 
 **Don't:**
+
 ```python
 def on_submit(doc, method):
     log_to_audit(doc)
@@ -187,6 +199,7 @@ def on_submit(doc, method):
 `frappe.db.commit()` is only legitimate inside scheduled tasks that batch independent units of work. Inside `doc_events` it forces partial-success states.
 
 ## Common Pitfalls
+
 - Forgetting `as_dict=True` and then using `row.field` (works only on dicts; tuples need `row[0]`).
 - Mixing positional and named bindings — pick one (`values={"a": 1}` OR `values=(1,)`).
 - Forgetting backticks around `tabDocType With Spaces` — MariaDB fails the parse.
@@ -195,6 +208,7 @@ def on_submit(doc, method):
 - Querying a non-indexed column on a large table — see [`data/mariadb-debugging`](./mariadb-debugging.md).
 
 ## References
+
 - [`data/mariadb-debugging`](./mariadb-debugging.md) — for performance follow-up
 - [`frappe-core/conventions`](../frappe-core/conventions.md) — for `get_value` / `get_list` / `get_all` semantics
 - [`security/review-checklist`](../security/review-checklist.md) — for the D-SQL-FSTRING deduction

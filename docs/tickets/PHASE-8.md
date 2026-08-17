@@ -26,6 +26,7 @@ the one file a build session needs to read.
 ## What this does — and deliberately does not do
 
 **Does:** checks ticket-key *coverage* across the two stores.
+
 - A ledger row whose key has no matching vault ticket → `orphan-ledger-row`.
 - A vault ticket marked `In Progress` or `Done` with no ledger row in any of
   the three files → `missing-ledger-row`.

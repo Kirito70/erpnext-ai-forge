@@ -18,6 +18,7 @@ supersedes: []
 Canonical naming, module layout, and helper-usage rules for this bench. Loaded for every backend task; loaded by Architect at pre-flight so brief drafts use the right vocabulary.
 
 ## When to Load
+
 - Drafting a DocType ID, app name, or module path
 - Choosing between `frappe.db.get_value` / `get_list` / `get_all`
 - Using `frappe.get_doc`, `new_doc`, or `delete_doc` semantics
@@ -56,6 +57,7 @@ Canonical naming, module layout, and helper-usage rules for this bench. Loaded f
 **When:** Reading one or more rows from a DocType table.
 
 **Do:**
+
 ```python
 # Single scalar — fastest
 status = frappe.db.get_value("CRM Lead", lead_name, "status")
@@ -80,11 +82,13 @@ all_leads = frappe.get_all(
 ```
 
 **Don't:**
+
 ```python
 # N+1 — one query per loop iteration
 for name in lead_names:
     status = frappe.db.get_value("CRM Lead", name, "status")  # one round trip each
 ```
+
 Fetch in bulk with `get_all(..., fields=[...])` instead.
 
 ### Pattern: get_doc / new_doc / delete_doc lifecycles
@@ -92,6 +96,7 @@ Fetch in bulk with `get_all(..., fields=[...])` instead.
 **When:** Creating, mutating, or removing a Frappe document.
 
 **Do:**
+
 ```python
 # New record — explicit dict insert; no name yet
 lead = frappe.get_doc({
@@ -116,6 +121,7 @@ frappe.delete_doc("CRM Lead", lead_name)
 **When:** Need date math, money formatting, string slugification, etc.
 
 **Do:**
+
 ```python
 from frappe.utils import (
     nowdate, add_days, getdate,          # date helpers
@@ -135,12 +141,14 @@ total = flt(invoice.grand_total, 2)
 **Don't:** `frappe.throw("Score must be between 0 and 100")` — won't be translatable; QA flags as a LOW finding.
 
 ## Common Pitfalls
+
 - Calling `get_all` in a user-triggered code path (skips perms — see [AP-003](../../../discovery/data/anti-pattern-findings.json) lineage).
 - Mutating a doc with `frappe.db.set_value` and expecting `on_update` to fire — it won't.
 - Using `frappe.local.conf` or `frappe.conf` in logs — see [`security/secrets-handling`](../security/secrets-handling.md).
 - Mixing snake_case and CamelCase DocType IDs in the same app — flags AP-006.
 
 ## References
+
 - [`frappe-core/doctype-authoring`](./doctype-authoring.md) — DocType JSON authoring
 - [`frappe-core/hooks-and-events`](./hooks-and-events.md) — controller lifecycle
 - [`data/sql-best-practices`](../data/sql-best-practices.md) — when reading via raw SQL

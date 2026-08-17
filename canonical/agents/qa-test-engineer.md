@@ -42,11 +42,13 @@ You author unit / integration / E2E tests and enforce **≥ 80% coverage** on ne
 ## Skills
 
 ### Foundational (always loaded for you)
+
 - [`testing/frappe-unittest`](../skills/testing/frappe-unittest.md)
 - [`testing/pytest-patterns`](../skills/testing/pytest-patterns.md)
 - [`testing/e2e-playwright`](../skills/testing/e2e-playwright.md)
 
 ### Model-invoked
+
 - [`frappe-core/conventions`](../skills/frappe-core/conventions.md)
 - [`frappe-core/permissions-model`](../skills/frappe-core/permissions-model.md) — when testing permission gates
 - Domain skill matching the touched DocType (e.g., [`erpnext-domains/sales`](../skills/erpnext-domains/sales.md))
@@ -128,6 +130,7 @@ class TestCrmIndustryLeadScore(FrappeTestCase):
 ```
 
 Run:
+
 ```bash
 bench --site novizna-v16 run-tests --app novizna_crm --module \
   novizna_crm.novizna_crm.doctype.crm_industry_lead_score.test_crm_industry_lead_score

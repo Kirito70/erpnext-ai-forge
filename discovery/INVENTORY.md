@@ -104,6 +104,7 @@ Vendor SDK wrappers at `apps/novizna_crm/novizna_crm/api/connectors/` (per Decis
 `google_sheets.py`, `hubspot.py`, `linkedin.py`, `zoho.py`
 
 Vendor endpoints touched:
+
 - **LinkedIn:** `api.linkedin.com/v2`
 - **Google:** OAuth, Drive v3, Sheets v4
 - **Zoho:** CRM v2, Sheet v2
@@ -111,6 +112,7 @@ Vendor endpoints touched:
 Orchestration (NOT in `connectors/`): `apps/novizna_crm/novizna_crm/api/{crm_import,universal_import,import_leads,connector_manager,leads,deals,erpnext_sync}.py`.
 
 Separate apps:
+
 - `invoice_ninja_integration` — has own DocTypes + custom fields on ERPNext doctypes
 - `cargo_management` — EasyPost + 17Track webhook integrations
 

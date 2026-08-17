@@ -58,14 +58,17 @@ forge validate --check-drift
 
 1. **Stop all syncs immediately.** Do not run `forge sync` while the leak is unconfirmed.
 2. **Search the audit log for what was logged:**
+
    ```bash
    forge audit tail --json -n 1000 | grep -iE "api[_-]?key|password|token|secret"
    ```
+
 3. **Confirm whether the leak hit:**
    - The audit JSONL log only (limited blast radius — local file)
    - A rendered bench file (`<bench>/.claude/...`, `<bench>/AGENTS.md`, etc.) — broader if the bench is in a tracked repo
 4. **Rotate the leaked credential immediately** in its source system (Zoho, HubSpot, GitHub, etc.).
 5. **Purge the value from the audit log.** Since the log is append-only by design, the cleanest fix is:
+
    ```bash
    # Identify the offending line
    grep -n "<leaked-substring>" audit/<YYYY>/<MM>/forge-audit.jsonl
@@ -73,6 +76,7 @@ forge validate --check-drift
    sed -i.bak 's/<leaked-substring>/REDACTED/g' audit/<YYYY>/<MM>/forge-audit.jsonl
    # Verify, then remove the .bak
    ```
+
 6. **If the leak hit a rendered bench file**, run `forge sync --tool <t>` to overwrite. If the bench file was committed to a remote repo, additional history rewrite (`git filter-repo`) is required — but **do not push --force** without explicit approval.
 7. **Investigate the source:** which agent / tool / template emitted the secret value? Add a guard to whatever produced it; update [`security/secrets-handling`](../canonical/skills/security/secrets-handling.md) with the new pattern.
 
@@ -94,13 +98,17 @@ forge audit tail --json | grep -iE "api[_-]?key|password|token" | head
 
 1. **Identify the failing adapter** from the printed message. Note that no bench file was modified — `.forge-staging/` carries the in-flight render.
 2. **Inspect the staging dir** to see what was about to be written:
+
    ```bash
    ls -la <bench>/.forge-staging/<failing-tool>/
    ```
+
 3. **Run the failing adapter in isolation** with verbose error output:
+
    ```bash
    forge render --tool <failing-tool> --out /tmp/forge-debug-<tool>/
    ```
+
 4. **Common causes:**
    - Template references a frontmatter field that doesn't exist on some artifacts (`StrictUndefined` raises)
    - Adapter.yaml `output:` path uses unresolved `{{ ... }}` placeholder
@@ -123,15 +131,19 @@ forge sync --all --dry-run
 ### Procedure
 
 1. **Restore from the per-sync backup:**
+
    ```bash
    diff <bench>/.claude/settings.json <bench>/.claude/settings.json.forge-backup
    # If the backup is what you want:
    cp <bench>/.claude/settings.json.forge-backup <bench>/.claude/settings.json
    ```
+
 2. **Look up the conflict log entries** to see what forge overrode:
+
    ```bash
    forge audit tail --grep "scalar.*conflict" -n 20
    ```
+
 3. **If forge's merge logic is at fault**, decide: should the conflict resolution flip (developer-wins instead of forge-wins) for that key? Edit `forge/src/forge/settings_merge.py` if needed and add a test case.
 
 ### Verify
@@ -148,14 +160,18 @@ jq . <bench>/.claude/settings.json
 ### Procedure
 
 1. **Check whether monthly tar+gpg backups exist:**
+
    ```bash
    ls -la "$FORGE_AUDIT_BACKUP_DIR"
    ```
+
 2. **Restore from the most recent backup:**
+
    ```bash
    cd <repo>
    gpg --decrypt "$FORGE_AUDIT_BACKUP_DIR/forge-audit-<YYYYMM>-<HHMM>.tar.gpg" | tar -xC audit/
    ```
+
 3. **If no backup exists** (bug, missing config, never invoked) — audit history before the loss is unrecoverable. Going forward:
    - Set `FORGE_AUDIT_BACKUP_DIR` and `FORGE_AUDIT_GPG_RECIPIENT` in `.env`
    - Run `forge audit backup` monthly (manual cadence today; a future Phase 5 cron can automate)
@@ -177,10 +193,12 @@ forge audit tail -n 10
 
 1. **Confirm versions match.** Local forge may be `pip install -e ../forge/` (live source); CI is `pip install -e forge/` from the PR's snapshot. Discrepancies here are common.
 2. **Reproduce locally with the CI flags:**
+
    ```bash
    forge score --path canonical/ --fail-below 80
    forge validate
    ```
+
 3. **If a new deduction rule was added** (commit to `forge/src/forge/scoring.py`) that flagged previously-clean content: either fix the canonical content, or update the rule's `skip_if_path_matches`. Document in CHANGELOG under **Security**.
 
 ### Verify

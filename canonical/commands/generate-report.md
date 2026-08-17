@@ -14,7 +14,7 @@ Scaffold a Script Report or Query Report.
 
 ## Usage
 
-```
+```text
 /generate-report <Report Name> --type script|query --doctype <Reference DocType> [--app <custom-app>]
 ```
 
@@ -29,7 +29,7 @@ Scaffold a Script Report or Query Report.
 
 ## Examples
 
-```
+```text
 /generate-report "Aged Receivables by Branch" --type script --doctype "Sales Invoice"
 /generate-report "Cargo Manifests by Status" --type query --doctype "Cargo Manifest" --app cargo_management
 ```

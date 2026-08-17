@@ -18,6 +18,7 @@ supersedes: []
 The schema rules for new DocTypes, plus the decision matrix for "DocType vs Custom Field vs Property Setter" used across all 8 custom apps.
 
 ## When to Load
+
 - Scaffolding a new DocType in `novizna_crm`, `noviznaerp_payroll`, etc.
 - Deciding whether to add a Custom Field vs a fresh DocType
 - Adding a child table or Link/Dynamic Link field
@@ -52,7 +53,7 @@ Never edit upstream DocType JSON directly — that violates the `D-EDIT-UPSTREAM
 
 **Do:** Use [`doctype-scaffolder`](../../tools/doctype-scaffolder.yaml) or scaffold manually under the correct module:
 
-```
+```text
 apps/novizna_crm/novizna_crm/novizna_crm/doctype/crm_lead_industry/
     crm_lead_industry.json
     crm_lead_industry.py
@@ -103,6 +104,7 @@ class CRMLeadIndustry(Document):
 **When:** A DocType needs an embedded list (e.g., line items).
 
 **Do:**
+
 ```json
 // Parent field
 { "fieldname": "items", "fieldtype": "Table", "options": "Cargo Parcel Item", "label": "Items" }
@@ -123,11 +125,13 @@ Access in controller: `for item in self.items: ...`.
 ### Pattern: Link vs Dynamic Link
 
 **Do (Link — type known at design time):**
+
 ```json
 { "fieldname": "lead", "fieldtype": "Link", "options": "CRM Lead" }
 ```
 
 **Do (Dynamic Link — type chosen per row):**
+
 ```json
 { "fieldname": "reference_doctype", "fieldtype": "Link", "options": "DocType" },
 { "fieldname": "reference_name", "fieldtype": "Dynamic Link", "options": "reference_doctype" }
@@ -140,6 +144,7 @@ The Frappe `Comment`, `ToDo`, and `File` DocTypes use this pattern.
 **When:** New transactional DocType that needs human-readable IDs.
 
 **Do:**
+
 ```json
 "autoname": "naming_series:",
 "fields": [
@@ -157,6 +162,7 @@ The Frappe `Comment`, `ToDo`, and `File` DocTypes use this pattern.
 **When:** The doc needs ledger-like immutability after submit.
 
 **Do:**
+
 ```json
 { "is_submittable": 1, "allow_amend": 1, "track_changes": 1 }
 ```
@@ -164,6 +170,7 @@ The Frappe `Comment`, `ToDo`, and `File` DocTypes use this pattern.
 Then controllers implement `on_submit` / `on_cancel` / `on_update_after_submit` as needed.
 
 ## Common Pitfalls
+
 - Setting `unique: 1` on a non-mandatory field — NULLs collide on MariaDB.
 - Forgetting `in_list_view: 1` on child table fields — they won't show in the parent's table grid.
 - Adding fields to a custom DocType during a hot patch without bumping `track_changes` first.
@@ -171,6 +178,7 @@ Then controllers implement `on_submit` / `on_cancel` / `on_update_after_submit` 
 - Creating Custom Fields ad-hoc through the UI without re-exporting fixtures (loses on next migrate from another env).
 
 ## References
+
 - [`frappe-core/conventions`](./conventions.md) — naming rules
 - [`frappe-core/permissions-model`](./permissions-model.md) — for permission block design
 - [`frappe-core/migration-patches`](./migration-patches.md) — when DocType changes need data backfill

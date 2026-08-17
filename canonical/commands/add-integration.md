@@ -14,7 +14,7 @@ Scaffold a new vendor integration: connector class + Settings DocType + optional
 
 ## Usage
 
-```
+```text
 /add-integration <vendor> --auth oauth2|api-key|basic [--webhook] [--scheduler <cron>]
 ```
 
@@ -29,7 +29,7 @@ Scaffold a new vendor integration: connector class + Settings DocType + optional
 
 ## Example
 
-```
+```text
 /add-integration pipedrive --auth oauth2 --webhook --scheduler "0 2 * * *"
 ```
 

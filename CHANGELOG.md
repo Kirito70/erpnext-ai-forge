@@ -40,6 +40,7 @@ The checked-in discovery snapshot was also 2.5 months stale (2026-05-26) and pre
 **Not affected:** the write guard itself. `is_upstream or is_foreign` covers all 14 unowned apps exactly; only discovery used the incomplete half.
 
 ### Tests
+
 - 390 passing, 2 skipped (was 389). New: `test_third_party_app_is_not_custom`, verified to fail without the fix.
 - `ruff check forge/src` and `mypy forge/src/forge` clean; `forge validate` schema-valid.
 
@@ -57,6 +58,7 @@ The checked-in discovery snapshot was also 2.5 months stale (2026-05-26) and pre
 - **§2.6 Draft the PLAN** — architect synthesizes advisory responses into a structured document: Problem Statement → Approach → Risks (per specialist) → Dependencies / execution order → Acceptance Criteria → Revision-loop budget → Phase Gates (Complex / Cross-cutting only).
 
 **Gating rule** (added to the Complexity table):
+
 - **Trivial** → skip §2.5 + §2.6, delegate from TASK BRIEF alone
 - **Standard / Complex** → planning consultation required
 - **Cross-cutting** → planning consultation mandatory + phase gates
@@ -70,10 +72,12 @@ The checked-in discovery snapshot was also 2.5 months stale (2026-05-26) and pre
 Front-loading specialist input cuts downstream revision loops — the most expensive part of the workflow. The cost is one extra short consultation round per non-trivial task; the savings are CRITICAL/HIGH findings caught at plan time rather than after implementation. The advisory-mode prompt is deliberately slim (≤ 150 words, no code) so the cost stays bounded — full specialist bodies and skill loading happen only at the actual delegation step.
 
 ### Tests / scoring
+
 - 146 tests still passing.
 - `architect.md` scores 100/100 after the update.
 
 ### Version
+
 - VERSION 0.6.2 → 0.6.3 (PATCH — agent content refinement, no schema or contract change).
 
 ---
@@ -86,7 +90,7 @@ The OpenCode adapter now renders agents, commands, skills, and tools as **first-
 
 **New OpenCode output shape** (70 files total — same count as Claude Code):
 
-```
+```text
 <bench>/
   AGENTS.md                          # slim index (was: full aggregate)
   .opencode/
@@ -98,6 +102,7 @@ The OpenCode adapter now renders agents, commands, skills, and tools as **first-
 ```
 
 **adapters/opencode/adapter.yaml** updated:
+
 - Bumped `adapter_version: 0.2.0`
 - `capabilities`: `subagents: true`, `skills: true` (were both false in v0.1.0)
 - New `output_paths`: `agents_dir`, `skills_dir`, `tools_dir`
@@ -106,20 +111,24 @@ The OpenCode adapter now renders agents, commands, skills, and tools as **first-
 - `context_loading.specialists_inlined: false` + `on_demand_skills_strategy: native_skill_discovery` — OpenCode loads agents/skills on demand the same way Claude Code does
 
 **adapters/opencode/templates/** — 3 new + 1 rewritten:
+
 - `agent.md.j2` (new) — frontmatter + body per agent, mirroring claude-code/agent.md.j2
 - `skill.md.j2` (new) — frontmatter + body per skill
 - `tool-reference.md.j2` (new) — reference doc per tool
 - `AGENTS.md.j2` (rewritten) — was a 7.6 KB monolithic aggregate; now a 10 KB index with tables pointing at every `.opencode/<kind>/<id>.md` file
 
 ### Changed — renderer
+
 - `forge/src/forge/render.py` no longer hardcodes the tools-doc output directory to `bench_claude_root/tools`. Adapters can now declare their own `tools_dir` via `output_paths.tools_dir`. The Claude Code default still applies when an adapter doesn't override.
 
 ### Tests
+
 - `test_opencode_renders_agents_md_plus_17_commands` replaced by `test_opencode_renders_full_artifact_set` (asserts 8 + 17 + 30 + 14 + 1) and `test_opencode_writes_to_dot_opencode_tree` (asserts each artifact kind lands under its `.opencode/<kind>/` directory).
 - `test_adapter_char_budget_documented[opencode-20000]` parametrize entry removed — OpenCode no longer has a single-file budget.
 - 146 tests passing.
 
 ### Version
+
 - VERSION 0.6.1 → 0.6.2 (PATCH — adapter feature parity, no breaking changes; existing canonical content renders unchanged into the new shape).
 
 ---
@@ -139,6 +148,7 @@ The OpenCode adapter now renders agents, commands, skills, and tools as **first-
 - `.pre-commit-config.yaml` header comment updated to mention `uvx pre-commit install` and note the local `forge` hooks assume the venv is on PATH (use `uv run --project forge forge ...` otherwise).
 
 ### Notes
+
 - 146 tests still pass on Python 3.14.3 under uv-managed venv.
 - The Python code itself is unchanged. `forge test` uses `sys.executable -m pytest`, which resolves to the uv-managed venv's Python correctly under `uv run forge test`.
 - VERSION 0.6.0 → 0.6.1 (PATCH — tooling refinement, content refinement, no public API change).
@@ -172,13 +182,16 @@ The OpenCode adapter now renders agents, commands, skills, and tools as **first-
   - `test_first_deprecation_cycle_completes_cleanly` exercises the full lifecycle (mark → move → supersedes set → manual purge → clean state with historical trace preserved). **This satisfies the v0.2 §10 Phase 5 exit criterion.**
 
 ### Changed
+
 - `forge/src/forge/cli.py` — `stats` command wired up; `deprecate` command replaced its "not yet implemented" skeleton with the real implementation
 - ARCHITECTURE.md §9 "Out of Scope (Phase 0)" updated — every Phase 0-deferred item is now implemented; the v0.2 roadmap is complete
 - VERSION 0.5.0 → 0.6.0 (MINOR — `forge stats` + `forge deprecate` are new public surface)
 - PROJECT-STATUS.md reflects all 5 phases done; iteration work going forward is calibration cadence, not roadmap-driven
 
 ### Notes on the roadmap milestone
+
 The v0.2 ULTRAPLAN roadmap had 5 phases (0 through 4 plus 5 "iteration"). All 5 are complete as of this tag. Going forward:
+
 - Skill calibration after first 10 real-bench tasks (per [`security-scoring.yaml`](../canonical/policies/security-scoring.yaml) `calibration:` block)
 - Periodic `/audit-skills` runs (quarterly per [`governance.md`](../canonical/policies/governance.md) §5)
 - 3-month AI Forge convention checkpoint (next: 2026-08-23 per ADR-001)
@@ -215,12 +228,14 @@ The framework is feature-complete per the original plan. Future MINOR bumps will
 122 tests total, 100% passing.
 
 ### Changed
+
 - `forge/src/forge/sync.py` imports `Finding` and `score_file` from `forge.scoring`
 - `forge audit tail` API signature gained `action`, `grep`, `as_json` parameters (backwards-compatible — existing callers continue working)
 - `VERSION` 0.4.0 → 0.5.0 (MINOR — new sync gate semantics)
 - `PROJECT-STATUS.md` reflects Phase 4 completion; only Phase 5 (iteration metrics) remains
 
 ### Security
+
 - The Phase 4 exit criterion from v0.2 §10 is satisfied: an intentionally poisoned canonical source carrying a CRITICAL deduction is now blocked at sync time before any bench file is touched, and the rejection is recorded in the audit JSONL with finding-level detail.
 - All 80–94 score artifacts now require typed justification per [Decision 11](../../erp/novizna-v16/novizna-v16/ULTRAPLAN-AI-FRAMEWORK-v0.2.md#section-11--decision-log). Justifications are logged to audit JSONL alongside the per-file scores so a future review can reconstruct why a not-fully-clean artifact shipped.
 
@@ -242,12 +257,14 @@ All 6 non-Claude adapters from v0.2 Decision 5 are now implemented. `forge.confi
 | `antigravity` | `<bench>/.antigravity/system.md` (architect + 2 specialists only) | 15k | Minimal (Decision 6) |
 
 ### Added — renderer enhancements
+
 - **`strategy: aggregate`** in render.py — renders the full canonical set (agents, commands, skills, tools) into one output file via a single template. Used by every non-Claude adapter.
 - **`strategy: aggregate_per_app`** — renders one output per custom app (Cursor, Cline, Copilot use this for `globs:` / `applyTo:` scoped per-app context files).
 - **Iterative output_paths resolution** — adapter.yaml can declare arbitrary path keys (e.g., `rules_dir`, `instructions_dir`) and they're resolved in dependency order so later entries can reference earlier ones.
 - Per-app aggregate passes the full app dict (not just the name), so adapter.yaml output strings like `forge-{{ app.name }}.mdc` resolve correctly.
 
 ### Tests
+
 - 25 new tests in `test_adapters.py`, 118 total, 100% passing:
   - Per-adapter render smoke (file counts, char budgets, expected output names)
   - Parametrized capability matrix check (all 7 adapters expose required keys)
@@ -255,12 +272,15 @@ All 6 non-Claude adapters from v0.2 Decision 5 are now implemented. `forge.confi
   - Provenance footer check (every aggregate output carries `erpnext-ai-forge` + `AUTO-GENERATED`)
 
 ### Changed
+
 - `forge.config.yaml` `enabled_tools` flipped from `[claude-code]` to all 7 adapters
 - `VERSION` 0.3.1 → 0.4.0 (MINOR — six new adapters)
 - `PROJECT-STATUS.md` reflects Phase 3 completion
 
 ### Notes on context-loading strategy (v0.2 §4.0)
+
 The renderer correctly implements the per-tool strategies:
+
 - **Claude Code:** Task tool spawns specialists in fresh contexts; skills loaded on demand
 - **Cursor / Cline / Copilot:** specialists inlined as persona summary tables; foundational skills as TOC (not inlined — would exceed budget); on-demand skills as a separate TOC the developer expands
 - **OpenCode / Codex:** same as no-subagent tools but using `AGENTS.md` / `AGENTS.codex.md` as host file
@@ -271,6 +291,7 @@ The renderer correctly implements the per-tool strategies:
 ## [0.3.1] — 2026-05-24
 
 ### Added — Phase 2.x deferred pieces
+
 - **`forge commit`** — scoped Conventional Commits helper (`forge/src/forge/commit_helper.py`):
   - Infers commit scope from staged file paths against `forge.config.yaml` `commits.scopes` (canonical/agents → `agents`, canonical/skills → `skills`, forge/ → `forge`, etc.). Multi-scope changes resolve to `scaffold` when no single scope reaches 60% share.
   - Infers commit type (`feat`/`fix`/`refactor`/`docs`/`test`/`perf`/`chore`) from body text via keyword heuristics.
@@ -290,18 +311,21 @@ The renderer correctly implements the per-tool strategies:
   - Skips `.forge-staging/` (transient sync artifacts).
 
 ### Changed
+
 - `forge/src/forge/commands/discover.py` — wired to the real walker (was Phase 0 stub printing snapshot freshness only).
 - `forge/src/forge/commands/commit.py` — wired to `commit_helper.propose()` and `check_message()`.
 - `forge/src/forge/commands/validate.py` — `--check-drift` flag now invokes `drift.check_drift()` and rolls drift findings into the issues list.
 - Removed `test_discover_runs` from `test_cli_smoke.py` and `test_discover_prints_snapshot` / `test_discover_app_lookup` from `test_cli_integration.py` — discover writes into the host repo's `discovery/data/` tree, which would clobber the Phase 0 hand-authored snapshot. Behavior is covered by `test_discover_bench.py` against isolated fake benches.
 
 ### Tests
+
 - 30 new tests, 93 total, 100% passing:
   - `test_commit_helper.py` (16 tests) — scope inference, type inference, check_message validation, propose
   - `test_discover_bench.py` (8 tests) — stack detection, hooks parsing, DocType/whitelist listing, anti-pattern scanning, end-to-end with fake bench
   - `test_drift.py` (6 tests) — clean bench, hand-edit detection, missing file, staleness, staging dir skipped
 
 ### Fixed
+
 - `infer_type_from_body` no longer mis-classifies "Update the README" as `feat` (the word "new" in "new install steps" was suppressing the docs branch). Doc-noun signals now win unconditionally.
 
 ---
@@ -309,6 +333,7 @@ The renderer correctly implements the per-tool strategies:
 ## [0.3.0] — 2026-05-24
 
 ### Added — Phase 1b (canonical skill content)
+
 - **30 skill modules** across 10 domain directories (`canonical/skills/`), ~5,274 lines total. All grounded in real bench facts from `discovery/data/*.json`:
   - `frappe-core/` — 6 skills (conventions, doctype-authoring, hooks-and-events, whitelist-api-patterns, permissions-model, migration-patches)
   - `frontend/` — 3 skills (frappe-ui-components, novizna-crm-override-system, vue3-quasar-patterns)
@@ -324,6 +349,7 @@ The renderer correctly implements the per-tool strategies:
 - Every "Don't" example links to a discovery AP-id when it mirrors a standing finding
 
 ### Added — Phase 2 (forge sync engine)
+
 - `forge/src/forge/loader.py` — parses canonical/ Markdown + frontmatter + tools YAML + discovery JSON into typed dataclasses
 - `forge/src/forge/models.py` — `CanonicalArtifact`, `ToolSpec`, `DiscoverySnapshot`, `ForgeContext`
 - `forge/src/forge/render.py` — Jinja-based renderer; consumes adapter.yaml, produces `RenderedArtifact` list
@@ -335,6 +361,7 @@ The renderer correctly implements the per-tool strategies:
 - All 8 CLI commands wired to real implementations (no more "not yet implemented")
 
 ### Added — Tests
+
 - 63 tests, 100% passing:
   - `test_loader.py` (14 tests) — frontmatter, discovery, tools, adapter config
   - `test_render.py` (6 tests) — Claude Code renders 8 agents + 17 commands + 30 skills + 14 tools + 8 per-app CLAUDE.md + root CLAUDE.md
@@ -346,6 +373,7 @@ The renderer correctly implements the per-tool strategies:
   - `test_cli_integration.py` (5 tests) — end-to-end validate/render/score/sync against real canonical
 
 ### Changed
+
 - AUTO-GENERATED markers in Jinja templates switched from `{# ... #}` (stripped by Jinja) to `<!-- ... -->` (preserved in output)
 - `command.md.j2` description derives from frontmatter `trigger` when no explicit `description` is set
 - `tool-reference.md.j2` uses `spec.get(...)` for optional dict fields (description, type, required)
@@ -354,6 +382,7 @@ The renderer correctly implements the per-tool strategies:
 - `PROJECT-STATUS.md` updated to reflect Phase 1b + Phase 2 completion
 
 ### Security
+
 - Per-extension filtering ensures `.py`-only patterns (D-SQL-FSTRING, D-IGNORE-PERMISSIONS, D-GUEST-WHITELIST) don't fire on pedagogical "Don't" examples in canonical Markdown
 - `canonical/` documentation that names a deduction by literal string (e.g., "curl ... | sh") is exempt from triggering that same deduction
 
@@ -362,6 +391,7 @@ The renderer correctly implements the per-tool strategies:
 ## [0.2.0] — 2026-05-24
 
 ### Added
+
 - **Canonical layer** populated for Phase 1a (~50 files):
   - 4 policies (`security-scoring.yaml`, `review-protocol.md`, `escalation-rules.md`, `governance.md`)
   - 14 tool specs (bench-{migrate,clear-cache,restart,console,logs}, doctype-scaffolder, fixture-exporter, patch-generator, override-checker, frontend-build, mariadb-query, api-endpoint-tester, git-status-all-apps, fixture-differ)
@@ -378,6 +408,7 @@ The renderer correctly implements the per-tool strategies:
 - `mariadb-query` upgraded to grant-based read-only user with sqlglot parser fallback (Part B item 5)
 
 ### Changed
+
 - `VERSION` bumped 0.1.0 → 0.2.0 (MINOR — new agents, skills schema, commands, tools)
 
 ---
@@ -385,6 +416,7 @@ The renderer correctly implements the per-tool strategies:
 ## [0.1.0] — 2026-05-23
 
 ### Added
+
 - Phase 0 repo scaffold per [`ULTRAPLAN-AI-FRAMEWORK-v0.2.md`](../../erp/novizna-v16/novizna-v16/ULTRAPLAN-AI-FRAMEWORK-v0.2.md)
 - Full directory tree (`canonical/`, `adapters/`, `forge/`, `discovery/`, `audit/`, `docs/`)
 - Root docs: `README.md`, `PROJECT-STATUS.md`, `ARCHITECTURE.md` (with ADR-001), `LICENSE`, `VERSION`
@@ -394,6 +426,7 @@ The renderer correctly implements the per-tool strategies:
 - GitHub Actions CI placeholder (`forge validate`, `forge score`, golden tests)
 
 ### Security
+
 - `.gitignore` excludes `.env`, `secrets/`, `audit/*.jsonl`, `discovery/data/*.private.json`
 - Pre-commit hooks: `gitleaks`, `markdownlint`, `yamllint`, `forge score --staged`
 - Security scoring thresholds: auto-accept ≥95, warn 80–94 (typed justification), block <80, external skills ≥98

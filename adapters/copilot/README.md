@@ -4,7 +4,7 @@ Per [Decision 7](../../../../erp/novizna-v16/novizna-v16/ULTRAPLAN-AI-FRAMEWORK-
 
 ## Output
 
-```
+```text
 <bench>/.github/
   copilot-instructions.md                  # main always-loaded
   instructions/

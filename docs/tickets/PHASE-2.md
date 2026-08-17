@@ -201,7 +201,7 @@ Modified: `forge/src/forge/models.py`, `loader.py`, `render.py`, `sync.py`,
 - Replaced the plan's proposed `D-SHELL-UNQUOTED-PATH-VAR` rule with
   `D-SHELL-NO-STRICT-MODE` in PHASE-0 (documented there) — relevant here because
   it's this ticket's scripts that first exercise it.
-- The plan's `forge diff --tool ... ` preview step before the settings merge was
+- The plan's `forge diff --tool ...` preview step before the settings merge was
   followed as specified and did catch the harness_dir bug above before it
   reached a real sync attempt.
 

@@ -49,12 +49,14 @@ The 10 currently-overridden files are listed in [override-map.json](../../discov
 ## Skills
 
 ### Foundational (always loaded)
+
 - [`frontend/novizna-crm-override-system`](../skills/frontend/novizna-crm-override-system.md)
 - [`frontend/spa-file-structure`](../skills/frontend/spa-file-structure.md) — where a page/component goes (within the bucket the override system picks)
 - [`frontend/frappe-ui-components`](../skills/frontend/frappe-ui-components.md)
 - [`frappe-core/conventions`](../skills/frappe-core/conventions.md)
 
 ### Model-invoked
+
 - [`frappe-core/whitelist-api-patterns`](../skills/frappe-core/whitelist-api-patterns.md) — when wiring up a new API call
 - [`security/review-checklist`](../skills/security/review-checklist.md) — when API surface expands
 
@@ -106,6 +108,7 @@ The 10 currently-overridden files are listed in [override-map.json](../../discov
 
 1. **Classify:** Needs an override (LeadsListHeader) + a net-new component (the filter dropdown)
 2. **Net-new:** `apps/novizna_crm/frontend/src/components/Leads/LeadsIndustryFilter.vue`
+
    ```vue
    <script setup>
    import { createListResource } from 'frappe-ui'
@@ -119,6 +122,7 @@ The 10 currently-overridden files are listed in [override-map.json](../../discov
    </script>
    <template>...</template>
    ```
+
 3. **Override:** `apps/novizna_crm/frontend/src_override/components/Leads/LeadsListHeader.vue`
    - Copy upstream `apps/crm/frontend/src/components/Leads/LeadsListHeader.vue`
    - Slot in `<LeadsIndustryFilter @change="..." />` next to the existing filters

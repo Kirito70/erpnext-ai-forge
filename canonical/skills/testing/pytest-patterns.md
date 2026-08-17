@@ -18,6 +18,7 @@ supersedes: []
 When to reach for pytest instead of `FrappeTestCase`, and how to mock the Frappe boundary cleanly. Used heavily for vendor connectors (Zoho, HubSpot, LinkedIn, Google) where the test should not require a live DB.
 
 ## When to Load
+
 - Testing a vendor connector class
 - Testing a pure-Python helper (no `frappe.get_doc`, no DB)
 - Testing an OAuth refresh flow with a mocked HTTP layer
@@ -39,6 +40,7 @@ When to reach for pytest instead of `FrappeTestCase`, and how to mock the Frappe
 **When:** Testing `ZohoConnector.fetch_leads`.
 
 **Do:**
+
 ```python
 # apps/novizna_crm/novizna_crm/api/connectors/test_zoho.py
 from unittest.mock import MagicMock
@@ -95,6 +97,7 @@ def test_get_refreshes_when_expired(connector, requests_mock, monkeypatch):
 **When:** Validating a CSV parser's edge cases.
 
 **Do:**
+
 ```python
 import pytest
 from novizna_crm.api.universal_import import parse_csv_row
@@ -112,12 +115,14 @@ def test_email_validation(row, expected):
 ### Pattern: Coverage measurement
 
 **Do:**
+
 ```bash
 cd apps/novizna_crm
 pytest --cov=novizna_crm.api.connectors --cov-report=term-missing --cov-fail-under=80
 ```
 
 CI integration:
+
 ```yaml
 # .github/workflows/test.yml (if/when CI is added)
 - run: pytest --cov=novizna_crm --cov-fail-under=80
@@ -128,6 +133,7 @@ CI integration:
 **When:** The code under test calls `frappe.db.get_value` once and doesn't otherwise need Frappe.
 
 **Do:**
+
 ```python
 def test_helper_uses_db_get_value(monkeypatch):
     monkeypatch.setattr("frappe.db.get_value",
@@ -141,6 +147,7 @@ def test_helper_uses_db_get_value(monkeypatch):
 ### Pattern: Skipping a test under partial bench
 
 **Do:**
+
 ```python
 import pytest
 
@@ -163,6 +170,7 @@ Skips the test cleanly if `frappe` isn't on the path (e.g., running pytest from 
 See [`testing/frappe-unittest`](./frappe-unittest.md) for the FrappeTestCase path.
 
 ## Common Pitfalls
+
 - Forgetting `requests_mock` fixture in the signature — the real vendor gets called.
 - `monkeypatch.setattr("frappe.X", ...)` after the SUT has already imported the original — Python caches the import; patch via the SUT's module if it does `from frappe import X`.
 - Real `time.sleep` in retry tests — slow CI. Patch `time.sleep` to a no-op for retry tests.
@@ -171,6 +179,7 @@ See [`testing/frappe-unittest`](./frappe-unittest.md) for the FrappeTestCase pat
 - Hitting a real vendor in CI "to verify the contract" — that's an integration test, run on a schedule, not per commit.
 
 ## References
+
 - [`testing/frappe-unittest`](./frappe-unittest.md) — for DocType / DB tests
 - [`integrations/oauth-patterns`](../integrations/oauth-patterns.md) — the SUT shape for connector tests
 - [`integrations/queueing-retry-backoff`](../integrations/queueing-retry-backoff.md) — retry behavior to assert

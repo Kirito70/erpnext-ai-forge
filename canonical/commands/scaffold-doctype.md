@@ -14,7 +14,7 @@ Generate a new DocType with JSON definition, controller stub, test stub, and a s
 
 ## Usage
 
-```
+```text
 /scaffold-doctype <Label> --app <custom-app> --module <module> --fields "<field-spec>" [--submittable] [--child]
 ```
 
@@ -25,13 +25,13 @@ Generate a new DocType with JSON definition, controller stub, test stub, and a s
 | `<Label>` | yes | DocType display label (will be converted to snake_case ID) |
 | `--app` | yes | Custom app target. One of: `novizna_crm`, `novizna_core`, `novizna_pos`, `invoice_ninja_integration`, `noviznaerp_payroll`, `cargo_management`, `changemakers`, `erpnext_location` |
 | `--module` | yes | Module within the app (must exist in `modules.txt`) |
-| `--fields` | yes | Field spec: `"<name>:<Type>[/<Options>],..."` (e.g. `"manifest_no:Data,branch:Link/Branch,status:Select/Open|Closed|Void"`) |
+| `--fields` | yes | Field spec: `"<name>:<Type>[/<Options>],..."` (e.g. `"manifest_no:Data,branch:Link/Branch,status:Select/Open\|Closed\|Void"`) |
 | `--submittable` | no | Boolean — DocType is submittable |
 | `--child` | no | Boolean — DocType is a child table |
 
 ## Example
 
-```
+```text
 /scaffold-doctype "Cargo Manifest" --app cargo_management --module logistics \
   --fields "manifest_no:Data,branch:Link/Branch,status:Select/Open|Closed|Void"
 ```

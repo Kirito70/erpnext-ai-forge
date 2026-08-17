@@ -18,6 +18,7 @@ supersedes: []
 How to write a new skill that passes review and integrates cleanly with the canonical layer. Loaded by Architect whenever the skill catalogue is extended.
 
 ## When to Load
+
 - A new skill is being added under `canonical/skills/<domain>/`
 - An existing skill has grown past 500 lines (governance cap) and needs splitting
 - A skill is being deprecated or merged
@@ -51,7 +52,7 @@ supersedes: []                   # IDs of skills this replaces, for the deprecat
 
 ## Body Structure
 
-```markdown
+````markdown
 # <Skill Title>
 
 <1–2 sentence purpose. State who loads it and when.>
@@ -71,21 +72,27 @@ supersedes: []                   # IDs of skills this replaces, for the deprecat
 ```python
 # bench-grounded example using REAL app paths/DocTypes from discovery
 ```
+
 **Don't:**
+
 ```python
 # anti-pattern, with AP-id link if applicable
 ```
 
 ### Pattern: <name>
+
 ... (3–6 patterns per skill)
 
 ## Common Pitfalls
+
 - <Pitfall 1 with link to discovery AP-id if standing finding>
 - <Pitfall 2>
 
 ## References
+
 - <link to 2+ other skills/policies/tools/discovery files via relative paths>
-```
+
+````
 
 ## Length Budget
 
@@ -160,6 +167,7 @@ Before opening the editor:
 - [ ] Identified which standing AP-ids the `Don't` blocks will reference
 
 ## Common Pitfalls
+
 - Generic Frappe content with no bench grounding — fails Phase 1b exit criterion.
 - `Don't` blocks without AP-id linkage when a standing finding exists.
 - Frontmatter `scope` referencing an agent ID that doesn't exist.
@@ -169,6 +177,7 @@ Before opening the editor:
 - "Verify this URL exists" sections that cite hallucinated docs URLs — verify or omit.
 
 ## References
+
 - [`policies/governance`](../../policies/governance.md) — versioning, deprecation, calibration
 - [`policies/security-scoring`](../../policies/security-scoring.yaml) — initial scoring
 - [`policies/review-protocol`](../../policies/review-protocol.md) — review output format

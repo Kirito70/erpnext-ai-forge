@@ -4,7 +4,7 @@ Renders canonical erpnext-ai-forge content into Cline's `.clinerules/` directory
 
 ## Output
 
-```
+```text
 <bench>/.clinerules/
   00-forge-main.md            # always-loaded — architect + personas + skill TOC
   10-app-novizna_crm.md       # per-app context

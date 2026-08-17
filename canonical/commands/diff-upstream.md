@@ -14,7 +14,7 @@ Show the diff between a `src_override/` file and its upstream counterpart in `ap
 
 ## Usage
 
-```
+```text
 /diff-upstream <override-path>
 ```
 
@@ -26,7 +26,7 @@ Show the diff between a `src_override/` file and its upstream counterpart in `ap
 
 ## Example
 
-```
+```text
 /diff-upstream apps/novizna_crm/frontend/src_override/components/Leads/LeadsListHeader.vue
 ```
 

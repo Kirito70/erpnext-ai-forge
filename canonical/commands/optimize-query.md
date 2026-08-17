@@ -14,7 +14,7 @@ Profile a slow query, propose indexes or refactor.
 
 ## Usage
 
-```
+```text
 /optimize-query <sql-or-file:line>
 ```
 
@@ -26,7 +26,7 @@ Profile a slow query, propose indexes or refactor.
 
 ## Examples
 
-```
+```text
 /optimize-query "SELECT * FROM `tabSales Invoice` WHERE customer = 'X' AND posting_date > '2025-01-01'"
 /optimize-query apps/novizna_crm/novizna_crm/api/deals.py:142
 ```

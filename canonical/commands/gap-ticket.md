@@ -17,7 +17,7 @@ under review.
 
 ## Usage
 
-```
+```text
 /gap-ticket "<subject>" --origin <PARENT-KEY>
 ```
 
@@ -30,7 +30,7 @@ under review.
 
 ## Examples
 
-```
+```text
 /gap-ticket "Payment Entry rounding drifts on split settlement" --origin NPOS-D5
 ```
 

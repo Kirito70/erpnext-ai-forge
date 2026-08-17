@@ -108,11 +108,13 @@ phases start merging into `settings.json` and installing executable scripts.
 ## Files touched
 
 New:
+
 - `forge/src/forge/commands/diff.py`
 - `forge/tests/test_diff.py`, `forge/tests/test_file_modes.py`,
   `forge/tests/test_scoring_shell.py`
 
 Modified:
+
 - `forge/src/forge/render.py` (mode field)
 - `forge/src/forge/sync.py` (chmod-before-rename, manifest merge call site)
 - `forge/src/forge/manifest.py` (merge_manifest, adapter field)
@@ -127,6 +129,7 @@ Modified:
 - `forge/tests/test_manifest.py` (extended with merge tests)
 
 ## Bugs found while building this (not pre-existing — introduced and caught
+
 ## within this ticket's own work)
 
 - First `D-SHELL-RM-RF` regex missed the quoted form `rm -rf "$BENCH"/x` — the

@@ -18,6 +18,7 @@ supersedes: []
 How to find and fix slow queries against `tab<DocType>` tables on this bench's MariaDB instance. Covers slow query log, `EXPLAIN`, indexing rules, and Frappe's auto-index conventions.
 
 ## When to Load
+
 - A list view, Report, or whitelist endpoint is slow
 - A new query is being designed against a large table (Sales Invoice, Salary Slip, GL Entry)
 - A scheduled task is timing out
@@ -40,6 +41,7 @@ How to find and fix slow queries against `tab<DocType>` tables on this bench's M
 **When:** A page is taking >2s and you suspect a query.
 
 **Do:**
+
 ```bash
 # Verify the log path from MariaDB config
 mysql -u root -p -e "SHOW VARIABLES LIKE 'slow_query_log_file';"
@@ -58,6 +60,7 @@ The bench's `bench-logs` tool can surface app-side timings; this skill is the Ma
 **When:** A query in `noviznaerp_payroll/.../loan_register/loan_register.py:111` is slow.
 
 **Do:**
+
 ```sql
 EXPLAIN SELECT name, total_payment, status
 FROM `tabLoan`
@@ -113,6 +116,7 @@ The idempotent guard is critical — patches re-run on interruption. See [`frapp
 **When:** `ORDER BY posting_date DESC` shows `Using filesort` in EXPLAIN.
 
 **Do:** Add an index that includes the ORDER BY column **last**:
+
 - Query: `WHERE customer = X ORDER BY posting_date DESC`
 - Index: `(customer, posting_date)` — MariaDB walks the index in reverse for the matching `customer`, no filesort needed.
 
@@ -132,6 +136,7 @@ This is MariaDB's default `utf8mb4_unicode_ci` collation. Email lookups silently
 - **`name` column** is the PRIMARY KEY — never needs a separate index.
 
 ## Common Pitfalls
+
 - Adding an index then forgetting `bench migrate` — DocType JSON change isn't synced.
 - Adding indexes to small tables (<10k rows) — adds write cost with no read benefit.
 - Indexing low-cardinality columns (e.g., `status` with 3 values) alone — MariaDB ignores low-selectivity single-column indexes. Pair with a high-cardinality column in a composite.
@@ -140,8 +145,9 @@ This is MariaDB's default `utf8mb4_unicode_ci` collation. Email lookups silently
 - Forgetting that `LIMIT 1` doesn't help if there's no `ORDER BY` on an indexed column (MariaDB picks the first matching row, which may be from any disk position).
 
 ## References
+
 - [`data/sql-best-practices`](./sql-best-practices.md) — for query authoring rules
 - [`frappe-core/migration-patches`](../frappe-core/migration-patches.md) — for adding indexes idempotently
 - [`tools/mariadb-query`](../../tools/mariadb-query.yaml) — for read-only EXPLAIN runs
 - [`debugging/bench-logs`](../debugging/bench-logs.md) — for app-side timing
-- MariaDB EXPLAIN docs: https://mariadb.com/kb/en/explain/
+- MariaDB EXPLAIN docs: <https://mariadb.com/kb/en/explain/>

@@ -48,9 +48,11 @@ all — that's the architect's and the human's call. You decide whether it is
 ## Skills
 
 ### Foundational (always loaded for you)
+
 - [`meta/ticket-authoring-guide`](../skills/meta/ticket-authoring-guide.md)
 
 ### Model-invoked
+
 - Domain skill matching the ticket's touched DocType or app (e.g.,
   [`erpnext-domains/pos`](../skills/erpnext-domains/pos.md) for a POS ticket)
 - [`frappe-core/permissions-model`](../skills/frappe-core/permissions-model.md) — when the ticket touches permissions

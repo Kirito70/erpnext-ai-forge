@@ -14,7 +14,7 @@ Generate missing tests until the target reaches ≥ 80% line coverage.
 
 ## Usage
 
-```
+```text
 /write-tests <path> [--type unit|integration|e2e]
 ```
 
@@ -27,7 +27,7 @@ Generate missing tests until the target reaches ≥ 80% line coverage.
 
 ## Examples
 
-```
+```text
 /write-tests apps/novizna_crm/novizna_crm/api/leads.py
 /write-tests apps/novizna_pos/novizna-pos-ui/src/composables/useCart.ts --type unit
 ```

@@ -18,6 +18,7 @@ supersedes: []
 The GL/Journal/Dimension model used by `erpnext` and consumed by `noviznaerp_payroll`, `invoice_ninja_integration`, and `cargo_management`. Loaded when work touches financial DocTypes or posts to the General Ledger.
 
 ## When to Load
+
 - Adding a controller hook that posts to GL
 - Authoring an accounting report (Trial Balance, P&L derivative)
 - Adding an Accounting Dimension or Cost Center
@@ -52,6 +53,7 @@ The GL/Journal/Dimension model used by `erpnext` and consumed by `noviznaerp_pay
 **When:** `noviznaerp_payroll` posts an EOBI deduction JE on Salary Slip submission.
 
 **Do:**
+
 ```python
 import frappe
 from frappe import _
@@ -96,6 +98,7 @@ income_account = frappe.db.get_value("Company", company, "default_income_account
 ```
 
 **Don't:**
+
 ```python
 income_account = "Sales - NVZ"  # breaks for any other company / abbreviation
 ```
@@ -105,6 +108,7 @@ income_account = "Sales - NVZ"  # breaks for any other company / abbreviation
 **When:** Need to slice GL by Branch (not built-in).
 
 **Do (one-time, via UI or fixture):**
+
 1. Create an `Accounting Dimension` with `document_type = "Branch"`.
 2. ERPNext auto-adds a `branch` field to every transactional DocType.
 3. New GL Entries carry the dimension; reports can filter on it.
@@ -114,6 +118,7 @@ income_account = "Sales - NVZ"  # breaks for any other company / abbreviation
 ### Pattern: Cost Center default cascade
 
 **Order ERPNext picks Cost Center for a GL row:**
+
 1. Explicit on the line item
 2. Item's default cost center (per company)
 3. Parent doc's cost center
@@ -149,6 +154,7 @@ Always include `is_cancelled = 0` (cancelled rows still exist with offsetting en
 **When:** Sales Invoice in EUR for a USD-base company.
 
 **Do:** Let ERPNext compute via `Sales Invoice.conversion_rate`; never compute manually. The GL Entry gets:
+
 - `debit` / `credit` (in account currency, usually base)
 - `debit_in_account_currency` / `credit_in_account_currency` (in transaction currency)
 
@@ -183,6 +189,7 @@ def execute() -> None:
 This pattern is destructive — pair with a `bench backup` and human approval.
 
 ## Common Pitfalls
+
 - Inserting directly into `tabGL Entry` — bypasses cancellation logic.
 - Forgetting `Cost Center` on a line → balance check failure on submit.
 - Reporting on `tabGL Entry` without `is_cancelled = 0` filter — sees both original and reversal rows.
@@ -191,6 +198,7 @@ This pattern is destructive — pair with a `bench backup` and human approval.
 - Posting JEs from `doc_events:on_validate` instead of `on_submit` — fires before the parent is committed.
 
 ## References
+
 - [`erpnext-domains/sales`](./sales.md) — for SI / SO that drive GL
 - [`erpnext-domains/hr-payroll`](./hr-payroll.md) — payroll-driven JEs (EOBI, salary)
 - [`frappe-core/hooks-and-events`](../frappe-core/hooks-and-events.md) — for `on_submit` hook placement

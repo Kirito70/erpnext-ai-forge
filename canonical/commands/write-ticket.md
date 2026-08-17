@@ -15,7 +15,7 @@ else — that a weaker implementer can build from without guessing.
 
 ## Usage
 
-```
+```text
 /write-ticket "<subject>" [--epic <EPIC-X>] [--type Story|Task|Bug|Spike] [--gap-of <PARENT-KEY>]
 ```
 
@@ -30,7 +30,7 @@ else — that a weaker implementer can build from without guessing.
 
 ## Examples
 
-```
+```text
 /write-ticket "Add section metadata to the masters registry" --epic EPIC-D
 /write-ticket "Payment Entry rounding drifts on split settlement" --type Bug --gap-of NPOS-D5
 ```

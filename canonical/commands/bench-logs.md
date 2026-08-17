@@ -14,7 +14,7 @@ Tail / grep bench log files with automatic secret redaction.
 
 ## Usage
 
-```
+```text
 /bench-logs [--source frappe|worker|scheduler|web.error|web.access] [--tail <n>] [--grep <regex>]
 ```
 
@@ -28,7 +28,7 @@ Tail / grep bench log files with automatic secret redaction.
 
 ## Examples
 
-```
+```text
 /bench-logs --grep "Zoho" --source worker
 /bench-logs --source scheduler --tail 500
 /bench-logs --source web.error --grep "500"

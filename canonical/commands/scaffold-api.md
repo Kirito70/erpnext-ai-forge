@@ -14,7 +14,7 @@ Generate a `@frappe.whitelist()` method with input validation, permission check,
 
 ## Usage
 
-```
+```text
 /scaffold-api <module.method> [--guest] --inputs "<input-spec>" [--rate-limit <n>/min]
 ```
 
@@ -29,7 +29,7 @@ Generate a `@frappe.whitelist()` method with input validation, permission check,
 
 ## Example
 
-```
+```text
 /scaffold-api novizna_crm.api.leads.bulk_assign --inputs "lead_ids:list,owner:str"
 ```
 

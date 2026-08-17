@@ -35,7 +35,7 @@ per-checkout.
 
 ## The trap: Python is always the bench copy
 
-```
+```text
 env/lib/python3.*/site-packages/__editable__.novizna_pos-0.0.1.pth  ->  apps/novizna_pos
 ```
 
@@ -84,7 +84,7 @@ mkdir -p "$WT/.quasar" && cp "$MAIN/.quasar/tsconfig.json" "$WT/.quasar/"
 
 ## What runs where
 
-```
+```text
 WORKTREE (novizna_pos-f12/)          BENCH (apps/novizna_pos/)
 -----------------------------        --------------------------------
 git branch / commit / rebase         bench --site … run-tests

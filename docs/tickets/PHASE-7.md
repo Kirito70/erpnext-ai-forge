@@ -79,12 +79,14 @@ scoring: re-ran `forge score --path canonical/skills` after the refactor,
 still 100 across all 31 files.
 
 ## Original planned scope (for reference — see "As-built record" above for
+
 ## what actually happened)
 
 - **`canonical/skills-lock.json`** — new file, one entry per *externally
   sourced* skill only. Schema (compatible with the lockfile shape already used
   by the two reference repos this pattern is drawn from, so nothing needs
   re-deriving):
+
   ```json
   { "version": 1, "skills": { "<id>": {
       "source": "owner/repo", "sourceType": "github",
@@ -94,6 +96,7 @@ still 100 across all 31 files.
       "importedAt": "2026-07-30", "securityScore": 98,
       "reviewedBy": "m.tayyab9736@gmail.com", "reviewedAt": "2026-07-30" }}}
   ```
+
 - **Only skills with `provenance: external` in frontmatter need an entry.**
   Confirmed at plan time: all 30 skills currently in `canonical/skills/` are
   internally authored — **zero churn on day one**. Re-verify this count/status

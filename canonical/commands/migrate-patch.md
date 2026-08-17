@@ -14,7 +14,7 @@ Create a correctly-numbered, idempotent Frappe patch and add it to `patches.txt`
 
 ## Usage
 
-```
+```text
 /migrate-patch <app> <description>
 ```
 
@@ -27,7 +27,7 @@ Create a correctly-numbered, idempotent Frappe patch and add it to `patches.txt`
 
 ## Example
 
-```
+```text
 /migrate-patch novizna_crm "backfill industry on existing leads"
 ```
 

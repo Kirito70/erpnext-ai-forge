@@ -126,6 +126,7 @@ nothing new) plus the two new agents built in this ticket.
     noted follow-up).
 
 ## Original planned scope (for reference — see "As-built record" above for
+
 ## what actually happened)
 
 ### New commands
@@ -163,6 +164,7 @@ nothing new) plus the two new agents built in this ticket.
   knowledge.
 
 ### Risk tiers (set lane *count*; the existing pairings table sets *which*
+
 ### lanes — these compose, tiering does not replace `review-protocol.md` §4)
 
 | Tier | Trigger (highest applicable wins) | Lanes |
@@ -175,6 +177,7 @@ Rule: **escalate, never de-escalate** — any CRITICAL/HIGH finding at tier 1/2
 forces a tier-3 re-run after the fix, not a downgrade.
 
 ### Ownership guard on ticket writes (applies to both `/gap-ticket` and, once
+
 ### built, `/write-ticket` from PHASE-5)
 
 Resolution order, reusing **existing** ownership machinery
@@ -202,6 +205,7 @@ New `forge validate` check: no ledger or ticket output path may resolve inside
 an `upstream_apps` entry or a foreign-remote app.
 
 ### Review protocol acceptance criterion (ALREADY DONE in PHASE-4, listed here
+
 ### only because it's part of this ticket's original scope statement)
 
 The "gates run and observed to pass" row in `review-protocol.md` §2 was

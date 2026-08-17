@@ -14,7 +14,7 @@ Walk through a `hooks.py` entry and trace its full dispatch chain.
 
 ## Usage
 
-```
+```text
 /explain-hook <app> <hook-name>
 ```
 
@@ -27,7 +27,7 @@ Walk through a `hooks.py` entry and trace its full dispatch chain.
 
 ## Examples
 
-```
+```text
 /explain-hook novizna_pos doc_events
 /explain-hook invoice_ninja_integration scheduler_events
 ```

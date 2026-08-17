@@ -51,7 +51,7 @@ different names for the same concept.
 
 ### The three levels
 
-```
+```text
 src/pages/<area>/<category>/<entity>/
 ```
 
@@ -78,7 +78,7 @@ is a page no user can reach.
 
 Everything used only by that entity, and nothing else:
 
-```
+```text
 src/pages/pos/manage/catalog/items/
   ItemsPage.vue              # register / list
   ItemsPage.spec.ts
@@ -128,7 +128,7 @@ single consumer moves down to it.
 
 These mirror the same category segment, one level deep:
 
-```
+```text
 src/services/catalog/items.ts
 src/stores/catalog/items.ts
 src/composables/catalog/useItemPricing.ts

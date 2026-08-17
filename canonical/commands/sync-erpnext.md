@@ -14,7 +14,7 @@ Run the existing `novizna_crm.api.erpnext_sync` workflow with safety checks.
 
 ## Usage
 
-```
+```text
 /sync-erpnext [--dry-run] [--scope customers|quotations|all]
 ```
 
@@ -27,7 +27,7 @@ Run the existing `novizna_crm.api.erpnext_sync` workflow with safety checks.
 
 ## Example
 
-```
+```text
 /sync-erpnext --dry-run --scope customers
 ```
 

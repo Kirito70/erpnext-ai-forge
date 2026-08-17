@@ -18,6 +18,7 @@ supersedes: []
 The standard testing harness for any code that touches Frappe ORM, DocTypes, or whitelist endpoints. Enforces the project-wide **≥80% line coverage on new code** rule.
 
 ## When to Load
+
 - Adding a controller (`validate`, `on_submit`, etc.)
 - Adding or modifying a whitelist endpoint
 - Adding a patch (migration test variant)
@@ -34,7 +35,7 @@ The standard testing harness for any code that touches Frappe ORM, DocTypes, or 
 
 ## File Layout
 
-```
+```text
 apps/<app>/<app>/<module>/doctype/<id>/
     <id>.json
     <id>.py
@@ -43,7 +44,8 @@ apps/<app>/<app>/<module>/doctype/<id>/
 ```
 
 For non-DocType modules:
-```
+
+```text
 apps/<app>/<app>/api/
     deals.py
     test_deals.py
@@ -56,6 +58,7 @@ apps/<app>/<app>/api/
 **When:** Testing `CRM Lead Industry`'s self-parenting guard.
 
 **Do:**
+
 ```python
 # apps/novizna_crm/novizna_crm/novizna_crm/doctype/crm_lead_industry/test_crm_lead_industry.py
 import frappe
@@ -85,6 +88,7 @@ class TestCRMLeadIndustry(FrappeTestCase):
 ```
 
 Run:
+
 ```bash
 bench --site novizna-v16 run-tests --app novizna_crm \
   --module novizna_crm.novizna_crm.doctype.crm_lead_industry.test_crm_lead_industry
@@ -95,6 +99,7 @@ bench --site novizna-v16 run-tests --app novizna_crm \
 **When:** Testing `novizna_crm.api.deals.get_deal_addresses`.
 
 **Do:**
+
 ```python
 import frappe
 from frappe.tests.utils import FrappeTestCase
@@ -127,6 +132,7 @@ class TestGetDealAddresses(FrappeTestCase):
 ### Pattern: Submittable doc test (cash_variance_entry)
 
 **Do:**
+
 ```python
 class TestCashVarianceEntry(FrappeTestCase):
     def test_submit_then_amend(self) -> None:
@@ -153,6 +159,7 @@ class TestCashVarianceEntry(FrappeTestCase):
 **When:** Verifying an idempotent patch.
 
 **Do:**
+
 ```python
 from frappe.tests.utils import FrappeTestCase
 from noviznaerp_payroll.patches.v16_0_0.\
@@ -180,6 +187,7 @@ class TestBackfillEOBIPolicy(FrappeTestCase):
 ### Pattern: Coverage measurement
 
 **Do:**
+
 ```bash
 bench --site novizna-v16 run-tests --app novizna_crm --coverage
 # Outputs: coverage.xml + console summary
@@ -191,6 +199,7 @@ coverage report --fail-under=80
 A producer that ships a new module with <80% line coverage on that file → QA returns REQUEST_CHANGES.
 
 ## Common Pitfalls
+
 - Tests that don't roll back — DB pollution leaks into the next test. `FrappeTestCase` rolls back automatically; raw `unittest.TestCase` does not.
 - `frappe.db.commit()` inside a test — defeats rollback. Don't.
 - `assertRaises(Exception)` (too broad) — assert specific exception types.
@@ -199,6 +208,7 @@ A producer that ships a new module with <80% line coverage on that file → QA r
 - Tests that depend on `frappe.session.user = "Administrator"` left over from a previous test — always set explicitly.
 
 ## References
+
 - [`testing/pytest-patterns`](./pytest-patterns.md) — for non-Frappe / connector tests
 - [`testing/e2e-playwright`](./e2e-playwright.md) — for critical user flows
 - [`frappe-core/conventions`](../frappe-core/conventions.md) — test file colocation

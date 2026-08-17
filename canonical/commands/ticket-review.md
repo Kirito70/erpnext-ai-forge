@@ -17,7 +17,7 @@ hook; the proof it ran is the journal `## REVIEW` entry.
 
 ## Usage
 
-```
+```text
 /ticket-review <KEY>
 ```
 
@@ -29,7 +29,7 @@ hook; the proof it ran is the journal `## REVIEW` entry.
 
 ## Examples
 
-```
+```text
 /ticket-review NPOS-D5
 ```
 

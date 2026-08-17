@@ -18,7 +18,7 @@ The frontend uses a **three-layer merge** system. Never edit files in the wrong 
 
 ### Layers
 
-```
+```text
 Layer 1: apps/crm/frontend/src/          ← UPSTREAM (read-only, never touch)
                    ↓
              crm_build/src/              ← GENERATED workspace (never touch, wiped on every dev/build)
@@ -74,7 +74,7 @@ export const customSidebarItems = [
 
 ### How it wires together
 
-```
+```text
 src/index.js
   └─ NoviznaPlugin.install()
        ├─ router.addRoute(route) for each custom route
@@ -114,7 +114,7 @@ Page components go in `frontend/src/pages/`.
 
 ## File Structure
 
-```
+```text
 frontend/
   src/                          ← NEW files (don't exist in upstream CRM)
     index.js                    ← NoviznaPlugin definition + customSidebarItems
@@ -163,7 +163,7 @@ novizna_crm/public/frontend/    ← compiled output (gitignored)
 
 ## Backend Structure
 
-```
+```text
 novizna_crm/
   hooks.py                            ← app config: doc_events, scheduler_events, after_install
   api/
@@ -186,6 +186,7 @@ novizna_crm/
 ### Custom Fields Added
 
 **CRM Lead:**
+
 - `lead_category` — Select: Hot / Warm / Cold / Unqualified
 - `region` — Link → Territory
 - `import_source` — Select: CSV Upload / HubSpot / Salesforce / ERPNext / Web Form (read-only)
@@ -193,6 +194,7 @@ novizna_crm/
 - `erpnext_customer` — Link → Customer
 
 **CRM Deal:**
+
 - `quotation_ref` — Link → Quotation (read-only)
 - `sales_order_ref` — Link → Sales Order (read-only)
 - `deal_region` — Link → Territory
@@ -252,6 +254,7 @@ def after_lead_insert(doc, method):
 ### Hooks Pattern
 
 Doc events in `hooks.py`:
+
 ```python
 doc_events = {
     "CRM Lead": {
@@ -265,6 +268,7 @@ doc_events = {
 ```
 
 Scheduled tasks:
+
 ```python
 scheduler_events = {
     "daily": ["novizna_crm.api.erpnext_sync.sync_erpnext_customers"]
@@ -401,6 +405,7 @@ This prevents overriding a file that upstream has renamed/moved.
    - Include `"module": "Novizna Crm"`
    - Include `"permissions"` array
 5. Migrate:
+
    ```bash
    bench --site novizna-v16 migrate
    bench clear-cache
@@ -414,12 +419,14 @@ This prevents overriding a file that upstream has renamed/moved.
 2. Add the field object to the `"custom_fields"` array
 3. Must include `"sync_on_migrate": 1` at the top level
 4. Migrate:
+
    ```bash
    bench --site novizna-v16 migrate
    bench clear-cache
    ```
 
 Example field object:
+
 ```json
 {
   "dt": "CRM Lead",
@@ -465,7 +472,7 @@ bench --site novizna-v16 console
 
 Use Conventional Commits format:
 
-```
+```text
 <type>(<scope>): <description>
 
 [optional body]
@@ -484,7 +491,8 @@ Use Conventional Commits format:
 Scopes for this project: `sidebar`, `import`, `leads`, `deals`, `erpnext-sync`, `doctype`, `build`, `hooks`
 
 Examples:
-```
+
+```text
 feat(sidebar): add Reports link to custom sidebar items
 fix(import): handle empty rows in CSV preview
 chore(build): merge xlsx dep into crm_build package.json

@@ -14,7 +14,7 @@ Run the full Security Reviewer checklist over a path (uncommitted changes, a spe
 
 ## Usage
 
-```
+```text
 /review-security [--path <p>] [--staged-only]
 ```
 
@@ -27,7 +27,7 @@ Run the full Security Reviewer checklist over a path (uncommitted changes, a spe
 
 ## Examples
 
-```
+```text
 /review-security
 /review-security --path apps/novizna_crm
 /review-security --path apps/noviznaerp_payroll/noviznaerp_payroll/custom/loan_custom.py --staged-only

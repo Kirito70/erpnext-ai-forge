@@ -7,13 +7,13 @@
     {
       "adapter": "claude-code",
       "path": "AGENTS-HARNESS.md",
-      "sha256": "247332bb0221024c48edf82356d0df0ae60e7991f12c284753ee93a2bd4f8a02",
+      "sha256": "319743fb284f97810b9d1f1d1c38c5e5abfa5a6b4595c99f4f5b96860b91d5b8",
       "version": "0.1.0"
     },
     {
       "adapter": "claude-code",
       "path": "AGENTS-OPERATING-MANUAL.md",
-      "sha256": "3c04bcea7a8fb4f3a732ac80e6064cd7912c86c26f7888194029d0c7652ea378",
+      "sha256": "f25e28446546cbf0ee0df8101dcdd2504615472dcffa909aec084e32011fbacc",
       "version": "0.1.0"
     }
   ],
@@ -25,7 +25,7 @@
     {
       "adapter": "claude-code",
       "path": "canonical",
-      "sha256": "3c04bcea7a8fb4f3a732ac80e6064cd7912c86c26f7888194029d0c7652ea378",
+      "sha256": "f25e28446546cbf0ee0df8101dcdd2504615472dcffa909aec084e32011fbacc",
       "version": "0.1.0"
     }
   ],

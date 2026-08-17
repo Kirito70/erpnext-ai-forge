@@ -165,7 +165,7 @@ and the files are now partway there.
 per-domain directory. The remaining delta to the target is the `manage/<category>/` prefix and
 dropping the `PosManage` filename prefix, not another flattening pass:
 
-```
+```text
 today    pages/Pos/items/PosManageItemsPage.vue
 target   pages/Pos/manage/catalog/items/ItemsPage.vue
 ```
@@ -175,7 +175,8 @@ target   pages/Pos/manage/catalog/items/ItemsPage.vue
   `records`, `reports`. A group that exists on disk but not in that file is a page no user
   can reach from the sidebar.
 - **Target shape** — area / category / entity:
-  ```
+
+  ```text
   pages/Pos/manage/catalog/items/ItemsPage.vue
   pages/Pos/manage/catalog/items/ItemRecordPage.vue
   pages/Pos/manage/catalog/items/ItemRecordPage.pricing.spec.ts
@@ -185,6 +186,7 @@ target   pages/Pos/manage/catalog/items/ItemsPage.vue
   pages/Pos/manage/catalog/uom-conversions/…
   pages/Pos/manage/pricing/price-lists/…
   ```
+
   Register + record pages share one entity folder, and the redundant `PosManage` prefix drops
   once inside it — the path already said "pos", "manage" and "items".
 - **The category tier exists only where the nav has groups.** Till-side pages (`cart`,
@@ -213,9 +215,11 @@ Rules that outlived the tickets that introduced them. Per-ticket history lives i
 always-loaded file is the wrong place for a changelog.
 
 ### Build
+
 - **Never ship a POS build without running `yarn build`.**
 
 ### Masters registry
+
 - **`enabled` is the inverse of `disabled`.** Doctypes carrying `enabled` (Brand, UOM, Price
   List) set `disable_field=None`; disabling goes through `update_master(enabled=0)`, never
   `disable_master`. Reaching for `disable_master` on one of these silently does nothing.
@@ -229,6 +233,7 @@ always-loaded file is the wrong place for a changelog.
   reflexive "must be positive" validator makes the feature undeliverable.
 
 ### Frontend
+
 - **`ReportViewer.vue` is the one component that renders every report.** Never add a
   per-report bespoke view; the filter bar is generated from the catalog entry.
 - **`ReceiptPreviewPanel.vue` renders in a sandboxed iframe (`sandbox=""`, no
@@ -238,6 +243,7 @@ always-loaded file is the wrong place for a changelog.
   than hand-writing an editor.
 
 ### Dates
+
 - **Dates are LOCAL calendar dates, never UTC.** `toISOString().slice(0,10)` returns the
   *previous* day for local midnight in PKT (UTC+5). Use the exported `toLocalIsoDate`
   (local `getFullYear`/`getMonth`/`getDate`, zero-padded) for any date logic. This shipped as
@@ -251,6 +257,7 @@ that section is component detail recoverable from `RecordTransactions.vue` /
 `useRecordTransactions.ts` and `git log`.)*
 
 ### Where the rest went
+
 Per-ticket detail — field lists, refusal wording, test-pack contents, endpoint signatures —
 is in each ticket's vault file. Ask `brain_ticket` (`action: "show"`, or `brain ticket show
 <KEY>`) instead of reading it here; it is richer there and it does not cost every session.

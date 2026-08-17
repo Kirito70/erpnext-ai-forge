@@ -14,7 +14,7 @@ Scaffold a Jinja-based Print Format for a DocType.
 
 ## Usage
 
-```
+```text
 /generate-print-format <DocType> "<Format Name>" [--app <custom-app>] [--letterhead <name>]
 ```
 
@@ -29,7 +29,7 @@ Scaffold a Jinja-based Print Format for a DocType.
 
 ## Example
 
-```
+```text
 /generate-print-format "Sales Invoice" "Cargo Branded" --app cargo_management --letterhead "Novizna Cargo"
 ```
 

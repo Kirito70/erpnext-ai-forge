@@ -47,11 +47,9 @@ scripts/harness/check-file.sh path/to/file.py
 Read the `RESULT:` line. `RESULT: GREEN` or `RESULT: RED` is the answer — a quiet
 exit is not.
 
-
 ## Gates on this target (self — `python_cli`)
 
-
-**quick**
+### quick
 
 | Gate | Command | Verified? |
 |------|---------|-----------|
@@ -59,24 +57,18 @@ exit is not.
 | `mypy` | `uv run --project forge mypy forge/src/forge` | VERIFIED |
 | `forge-validate` | `uv run --project forge forge validate --no-check-drift` | VERIFIED |
 
-
-
-**full**
+### full
 
 | Gate | Command | Verified? |
 |------|---------|-----------|
 | `pytest` | `uv run --project forge pytest forge/tests -q` | VERIFIED |
 | `forge-score` | `uv run --project forge forge score --path canonical/ --fail-below 80` | VERIFIED |
 
-
-
-**per-file (on edit)**
+### per-file (on edit)
 
 | Gate | Applies to | Command | Verified? |
 |------|-----------|---------|-----------|
 | `python-lint` | `*.py` | `uv run --project forge ruff check --fix {file}` | VERIFIED |
-
-
 
 A gate marked **UNVERIFIED** has not yet been run against this target — the command
 is a best guess from documentation, not something anyone has watched succeed. If one
@@ -84,7 +76,6 @@ fails in a way that looks like the *command* is wrong rather than the *code*, sa
 that is a finding about the harness, not about your change. Fixing it means editing
 `canonical/harness/gates.yaml` in erpnext-ai-forge and re-syncing, never editing the
 generated script.
-
 
 ## Rules for agents
 

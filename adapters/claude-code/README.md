@@ -17,7 +17,7 @@ Renders canonical agents / commands / skills / tools into `<bench>/.claude/` for
 
 ## What `forge sync --tool claude-code` Produces
 
-```
+```text
 <bench>/
 ├── CLAUDE.md                              # cross-cutting only (rendered)
 ├── apps/<custom-app>/CLAUDE.md            # per-app (rendered × 8 custom apps)

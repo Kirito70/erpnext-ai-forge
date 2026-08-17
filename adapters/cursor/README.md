@@ -4,7 +4,7 @@ Renders canonical erpnext-ai-forge content into Cursor MDC rule files.
 
 ## Output
 
-```
+```text
 <bench>/.cursor/rules/
   forge-main.mdc                      # alwaysApply: true — architect + all specialists inlined
   forge-novizna_crm.mdc                # globs: apps/novizna_crm/**/*
