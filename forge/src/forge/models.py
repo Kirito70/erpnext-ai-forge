@@ -14,6 +14,8 @@ from typing import Any, Literal
 
 ArtifactKind = Literal["agent", "skill", "command", "tool", "policy", "harness"]
 SkillClassification = Literal["F", "M"]
+Provenance = Literal["internal", "external"]
+PROVENANCE_VALUES: tuple[str, ...] = ("internal", "external")
 
 
 @dataclass
@@ -36,10 +38,17 @@ class CanonicalArtifact:
     body: str
     raw_frontmatter: dict[str, Any]
     domain: str | None = None  # only set for skills
-    provenance: str = "internal"
+    provenance: Provenance = "internal"
     """`internal` (authored in this repo) or `external` (imported from
     elsewhere). Only `external` artifacts need a `canonical/skills-lock.json`
-    entry — see forge/src/forge/skills_lock.py."""
+    entry — see forge/src/forge/skills_lock.py.
+
+    Closed on purpose. Three call sites ask this field three different
+    questions — `!= "external"` to skip the lockfile check, `== "external"` to
+    pick the source, `== "internal"` to pick the label — so a third value does
+    not land somewhere consistent, it lands in the gap between them: a skill
+    written `External` was exempt from verification while still displaying as
+    external. Validated in `loader.py`, where the frontmatter is read."""
     source_url: str | None = None
     source_ref: str | None = None
 

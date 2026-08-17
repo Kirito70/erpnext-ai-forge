@@ -44,17 +44,17 @@ def _ledger(target_root: Path, filename: str, rows: list[str]) -> Path:
 
 def test_explicit_path_wins(tmp_path):
     (tmp_path / "vault").mkdir()
-    assert resolve_vault_path(tmp_path / "vault") == tmp_path / "vault"
+    assert resolve_vault_path(tmp_path / "vault")[0] == tmp_path / "vault"
 
 
 def test_explicit_nonexistent_path_is_none(tmp_path):
-    assert resolve_vault_path(tmp_path / "nope") is None
+    assert resolve_vault_path(tmp_path / "nope")[0] is None
 
 
 def test_env_var_used_when_no_explicit_path(tmp_path, monkeypatch):
     (tmp_path / "vault").mkdir()
     monkeypatch.setenv("NOVIZNA_VAULT", str(tmp_path / "vault"))
-    assert resolve_vault_path(None) == tmp_path / "vault"
+    assert resolve_vault_path(None)[0] == tmp_path / "vault"
 
 
 def test_no_resolution_is_none_not_a_guess(monkeypatch, tmp_path):
@@ -63,7 +63,7 @@ def test_no_resolution_is_none_not_a_guess(monkeypatch, tmp_path):
     monkeypatch.delenv("NOVIZNA_VAULT", raising=False)
     monkeypatch.setattr("forge.ledger_sync._brain_bin", lambda: None)
     monkeypatch.setattr("forge.ledger_sync._BRAINS_CONFIG", tmp_path / "nonexistent.toml")
-    assert resolve_vault_path(None) is None
+    assert resolve_vault_path(None)[0] is None
 
 
 def test_brain_answer_is_used_when_available(monkeypatch, tmp_path):
@@ -74,7 +74,7 @@ def test_brain_answer_is_used_when_available(monkeypatch, tmp_path):
     monkeypatch.setattr(
         "forge.ledger_sync.subprocess.run",
         lambda *a, **k: subprocess.CompletedProcess(a[0], 0, f"{tmp_path / 'vault'}\n", ""))
-    assert resolve_vault_path(None) == tmp_path / "vault"
+    assert resolve_vault_path(None)[0] == tmp_path / "vault"
 
 
 @pytest.mark.parametrize("result", [
@@ -93,7 +93,7 @@ def test_brain_failures_fall_back_rather_than_propagate(monkeypatch, tmp_path, r
     monkeypatch.setattr("forge.ledger_sync._brain_bin", lambda: "/fake/brain")
     monkeypatch.setattr("forge.ledger_sync.subprocess.run", lambda *a, **k: result)
     monkeypatch.setattr("forge.ledger_sync._BRAINS_CONFIG", cfg)
-    assert resolve_vault_path(None) == tmp_path / "vault"
+    assert resolve_vault_path(None)[0] == tmp_path / "vault"
 
 
 def test_brain_crash_is_not_an_exception(monkeypatch, tmp_path):
@@ -104,7 +104,7 @@ def test_brain_crash_is_not_an_exception(monkeypatch, tmp_path):
     monkeypatch.setattr("forge.ledger_sync._brain_bin", lambda: "/fake/brain")
     monkeypatch.setattr("forge.ledger_sync.subprocess.run", boom)
     monkeypatch.setattr("forge.ledger_sync._BRAINS_CONFIG", tmp_path / "nonexistent.toml")
-    assert resolve_vault_path(None) is None
+    assert resolve_vault_path(None)[0] is None
 
 
 # --- parsing ------------------------------------------------------------------
@@ -112,13 +112,13 @@ def test_brain_crash_is_not_an_exception(monkeypatch, tmp_path):
 def test_parse_vault_tickets(tmp_path):
     _ticket(tmp_path, "novizna-pos", "NPOS-D5", "In Progress")
     _ticket(tmp_path, "novizna-pos", "NPOS-D6", "To Do")
-    tickets = parse_vault_tickets(tmp_path, "novizna-pos")
+    tickets, _ = parse_vault_tickets(tmp_path, "novizna-pos")
     assert set(tickets) == {"NPOS-D5", "NPOS-D6"}
     assert tickets["NPOS-D5"].status == "In Progress"
 
 
 def test_parse_vault_tickets_missing_project_dir_is_empty(tmp_path):
-    assert parse_vault_tickets(tmp_path, "nonexistent-project") == {}
+    assert parse_vault_tickets(tmp_path, "nonexistent-project") == ({}, [])
 
 
 def test_parse_ledger_rows_across_all_three_files(tmp_path):
@@ -147,13 +147,13 @@ def test_to_do_with_no_row_is_not_a_finding(tmp_path):
     """Most of a backlog is untouched at any time — flagging all of it would
     bury the findings that actually matter."""
     _ticket(tmp_path, "p", "X-1", "To Do")
-    tickets = parse_vault_tickets(tmp_path, "p")
+    tickets, _ = parse_vault_tickets(tmp_path, "p")
     assert reconcile(tickets, {}) == []
 
 
 def test_in_progress_with_no_row_is_a_finding(tmp_path):
     _ticket(tmp_path, "p", "X-1", "In Progress")
-    tickets = parse_vault_tickets(tmp_path, "p")
+    tickets, _ = parse_vault_tickets(tmp_path, "p")
     findings = reconcile(tickets, {})
     assert len(findings) == 1
     assert findings[0].problem == "missing-ledger-row"
@@ -162,7 +162,7 @@ def test_in_progress_with_no_row_is_a_finding(tmp_path):
 
 def test_done_with_no_row_is_also_a_finding(tmp_path):
     _ticket(tmp_path, "p", "X-1", "Done")
-    tickets = parse_vault_tickets(tmp_path, "p")
+    tickets, _ = parse_vault_tickets(tmp_path, "p")
     findings = reconcile(tickets, {})
     assert any(f.problem == "missing-ledger-row" for f in findings)
 
@@ -179,7 +179,7 @@ def test_covered_active_ticket_is_clean(tmp_path):
     from forge.ledger_sync import LedgerRow
 
     _ticket(tmp_path, "p", "X-1", "In Progress")
-    tickets = parse_vault_tickets(tmp_path, "p")
+    tickets, _ = parse_vault_tickets(tmp_path, "p")
     rows = {"X-1": LedgerRow(key="X-1", build_state="in_progress",
                              ledger_file="LEDGER-pending.md", raw_line="")}
     assert reconcile(tickets, rows) == []
@@ -190,7 +190,7 @@ def test_status_and_build_state_are_never_compared_to_each_other(tmp_path):
     must NOT be a finding — that would require comparing the two fields, which
     the design deliberately forbids. Only presence/absence of a row matters."""
     _ticket(tmp_path, "p", "X-1", "Done")
-    tickets = parse_vault_tickets(tmp_path, "p")
+    tickets, _ = parse_vault_tickets(tmp_path, "p")
     from forge.ledger_sync import LedgerRow
     rows = {"X-1": LedgerRow(key="X-1", build_state="todo",
                              ledger_file="LEDGER-pending.md", raw_line="")}
@@ -233,7 +233,7 @@ def test_fix_is_idempotent_via_full_reconcile_cycle(tmp_path):
     the actual guarantee the CLI's --fix relies on."""
     _ticket(tmp_path, "p", "X-1", "In Progress")
     _ledger(tmp_path, "LEDGER-pending.md", [])
-    tickets = parse_vault_tickets(tmp_path, "p")
+    tickets, _ = parse_vault_tickets(tmp_path, "p")
 
     findings = reconcile(tickets, parse_ledger_rows(tmp_path))
     assert len(findings) == 1

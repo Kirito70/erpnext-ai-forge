@@ -82,39 +82,47 @@ def _ask_brain() -> Path | None:
     return p if p.is_dir() else None
 
 
-def resolve_vault_path(explicit: Path | None = None) -> Path | None:
+def resolve_vault_path(
+    explicit: Path | None = None,
+) -> tuple[Path | None, str | None]:
     """`--vault-path` > `$NOVIZNA_VAULT` > brain > brains.toml default > None.
 
-    None means "ask the user — do not guess", per the contract. This function
-    never falls back to a guessed path.
+    Returns the path AND which source answered, because those are different
+    facts and the caller reports on both. None means "ask the user — do not
+    guess", per the contract. This function never falls back to a guessed path.
 
     The brains.toml read below is a fallback for benches without brain
     installed, not a second opinion: when brain answers, its answer is used.
+    But every brain failure — absent, crashed, timed out, erroring on a
+    corrupted registry — collapses to the same None, so an operator with a
+    transiently broken brain gets brains.toml's default silently. That default
+    can be stale, and reconciling the wrong vault looks exactly like reconciling
+    the right one. Naming the source is what makes the difference visible.
     """
     if explicit is not None:
-        return explicit if explicit.is_dir() else None
+        return (explicit, "--vault-path") if explicit.is_dir() else (None, None)
 
     env_path = os.environ.get("NOVIZNA_VAULT")
     if env_path:
         p = Path(env_path)
-        return p if p.is_dir() else None
+        return (p, "$NOVIZNA_VAULT") if p.is_dir() else (None, None)
 
     from_brain = _ask_brain()
     if from_brain is not None:
-        return from_brain
+        return from_brain, "brain"
 
     if _BRAINS_CONFIG.is_file():
         try:
             data = tomllib.loads(_BRAINS_CONFIG.read_text())
         except (tomllib.TOMLDecodeError, OSError):
-            return None
+            return None, None
         vaults = data.get("vaults", [])
         chosen = [v for v in vaults if v.get("default")] or vaults
         if chosen and chosen[0].get("path"):
             p = Path(chosen[0]["path"])
-            return p if p.is_dir() else None
+            return (p, "brains.toml") if p.is_dir() else (None, None)
 
-    return None
+    return None, None
 
 
 @dataclass(frozen=True)
@@ -140,28 +148,36 @@ class ReconcileFinding:
     detail: str
 
 
-def parse_vault_tickets(vault_path: Path, project: str) -> dict[str, VaultTicket]:
-    """Every ticket under `wiki/<project>/tickets/*.md`, keyed by its id.
+def parse_vault_tickets(
+    vault_path: Path, project: str
+) -> tuple[dict[str, VaultTicket], list[Path]]:
+    """Tickets under `wiki/<project>/tickets/*.md`, and the files that failed.
 
-    A ticket file missing or unparsable is skipped rather than raising — one
-    malformed file in a project's backlog must not stop reconciliation of
-    every other ticket.
+    A malformed file is skipped rather than raising — one bad ticket must not
+    stop reconciliation of every other. But it is RETURNED rather than dropped:
+    reconciliation only judges tickets it can see, so a ticket whose YAML broke
+    produces neither a missing-row nor an orphan-row finding, and the command
+    prints agreement while having silently ignored exactly the ticket someone
+    ran it to catch. An unparsable ticket is the most interesting one in the
+    directory, not the least.
     """
     tickets_dir = vault_path / "wiki" / project / "tickets"
     if not tickets_dir.is_dir():
-        return {}
+        return {}, []
 
     out: dict[str, VaultTicket] = {}
+    unreadable: list[Path] = []
     for path in sorted(tickets_dir.glob("*.md")):
         try:
             post = frontmatter.load(path)
         except Exception:
+            unreadable.append(path)
             continue
         fm: dict[str, Any] = post.metadata or {}
         key = str(fm.get("id") or path.stem)
         status = str(fm.get("status", "To Do"))
         out[key] = VaultTicket(key=key, status=status, source_path=path)
-    return out
+    return out, unreadable
 
 
 _ROW_RE = re.compile(r"^\|\s*([^\|]+?)\s*\|\s*([^\|]+?)\s*\|")

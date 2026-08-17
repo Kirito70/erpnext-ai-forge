@@ -378,7 +378,10 @@ class Orphan:
 
 
 def find_orphans(
-    rendered: list[RenderedArtifact], bench_root: Path, tool: str
+    rendered: list[RenderedArtifact],
+    bench_root: Path,
+    tool: str,
+    still_managed: list[RenderedArtifact] | None = None,
 ) -> list[Orphan]:
     """Outputs this adapter recorded writing but no longer produces.
 
@@ -396,11 +399,18 @@ def find_orphans(
       removed.** It carries edits forge never adopted; the hand-edit guard
       protects those on write, and a prune must not be the back door around it.
 
+    `still_managed` is the render BEFORE any app was dropped for ownership.
+    An app skipped at the foreign-write prompt is missing from `rendered`, and
+    absence there otherwise means "no longer produced" — so without this,
+    answering "no, do not write to that repo" queued its existing files for
+    deletion, and `--prune` carried it out. Declining a write must never be the
+    thing that removes what is already there.
+
     Must run BEFORE the manifest is rewritten: `merge_manifest` replaces the
     owning adapter's rows wholesale, so the record of the old path is gone the
     moment the new manifest lands.
     """
-    produced = {r.output_path for r in rendered}
+    produced = {r.output_path for r in (still_managed if still_managed else rendered)}
     orphans: list[Orphan] = []
 
     for manifest_path in _iter_manifests(bench_root):
@@ -945,6 +955,10 @@ def sync_tool(
         # organisation without someone saying yes to it.
         foreign = foreign_app_targets(rendered, bench_root, forge_cfg, target)
         skip_apps = _confirm_foreign_writes(foreign, assume_yes) if foreign else set()
+        # Kept so orphan detection can tell "we chose not to write this" from
+        # "this is no longer produced". They look identical in `rendered`, and
+        # only one of them should ever lead to a deletion.
+        still_managed = rendered
         if skip_apps:
             rendered = [
                 r for r in rendered if _app_of_output(r.output_path) not in skip_apps
@@ -1024,7 +1038,9 @@ def sync_tool(
         # Before the manifest is rewritten — `merge_manifest` replaces this
         # adapter's rows wholesale, taking the record of any moved output with
         # it. Reported by default; removed only when asked.
-        result.orphans = find_orphans(rendered, bench_root, tool)
+        result.orphans = find_orphans(
+            rendered, bench_root, tool, still_managed=still_managed
+        )
         _print_orphans(tool, result.orphans, prune, dry_run=False)
         if prune:
             result.files_pruned = prune_orphans(result.orphans, tool, bench_root)

@@ -11,18 +11,20 @@ import os
 import subprocess
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import frontmatter
 import yaml
 
 from forge.models import (
+    PROVENANCE_VALUES,
     CanonicalArtifact,
     DiscoverySnapshot,
     HarnessConfig,
     HarnessScript,
     HarnessSpec,
     HookSpec,
+    Provenance,
     Target,
     ToolSpec,
 )
@@ -140,6 +142,25 @@ def file_commit(repo_root: Path, file_path: Path) -> str | None:
 # ---------------------------------------------------------------------------
 # Canonical artifact loaders
 # ---------------------------------------------------------------------------
+def _provenance_of(fm: dict[str, Any], path: Path) -> Provenance:
+    """Read `provenance:`, refusing anything outside the two-value domain.
+
+    This is a security control, so it fails closed at the boundary rather than
+    coercing. `skills_lock.verify()` skips anything that is not exactly
+    `external`, so `External` or a typo would exempt a skill from the lockfile
+    check while `forge skills list` still labelled it external — the two
+    disagreeing because the value was never constrained.
+    """
+    raw = fm.get("provenance", "internal")
+    if raw not in PROVENANCE_VALUES:
+        raise ValueError(
+            f"{path}: provenance must be one of {' | '.join(PROVENANCE_VALUES)}, "
+            f"got {raw!r}. An external skill needs a canonical/skills-lock.json "
+            f"entry; a value this does not recognise would silently skip that check."
+        )
+    return cast("Provenance", raw)
+
+
 def _parse_markdown_artifact(
     path: Path, kind: str, repo_root: Path
 ) -> CanonicalArtifact:
@@ -174,7 +195,7 @@ def _parse_markdown_artifact(
         body=post.content,
         raw_frontmatter=fm,
         domain=fm.get("domain"),
-        provenance=str(fm.get("provenance", "internal")),
+        provenance=_provenance_of(fm, path),
         source_url=fm.get("source_url"),
         source_ref=fm.get("source_ref"),
     )
