@@ -90,12 +90,37 @@ def merge_settings_json(
     return merged, conflicts
 
 
+def settings_text(merged: dict[str, Any]) -> str:
+    """The exact bytes `write_settings_with_backup` will write.
+
+    Exposed so a caller can decide whether a write would change anything
+    without re-deriving the serialisation and drifting from it.
+    """
+    return json.dumps(merged, indent=2, sort_keys=True) + "\n"
+
+
 def write_settings_with_backup(
     bench_settings_path: Path,
     merged: dict[str, Any],
 ) -> Path | None:
     """Write `merged` to `bench_settings_path`. If a prior file exists, write
-    a sibling `.forge-backup` first. Returns the backup path (or None)."""
+    a sibling `.forge-backup` first. Returns the backup path (or None).
+
+    A write that would change nothing is skipped entirely, because the backup
+    is a single fixed path that every write overwrites. Writing
+    unconditionally meant the sync after a real change copied the
+    already-merged file over the backup — destroying the one artifact that
+    could recover a human's pre-merge settings, which is the whole reason this
+    function does not go through the atomic swap.
+    """
+    desired = settings_text(merged)
+    if bench_settings_path.is_file():
+        try:
+            if bench_settings_path.read_text() == desired:
+                return None
+        except OSError:
+            pass  # unreadable — fall through and rewrite it
+
     backup_path: Path | None = None
     if bench_settings_path.is_file():
         backup_path = bench_settings_path.with_suffix(
@@ -105,6 +130,6 @@ def write_settings_with_backup(
 
     bench_settings_path.parent.mkdir(parents=True, exist_ok=True)
     tmp = bench_settings_path.with_suffix(bench_settings_path.suffix + ".tmp")
-    tmp.write_text(json.dumps(merged, indent=2, sort_keys=True) + "\n")
+    tmp.write_text(desired)
     tmp.replace(bench_settings_path)
     return backup_path

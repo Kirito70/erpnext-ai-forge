@@ -48,6 +48,7 @@ from forge.scoring import Finding, score_file
 from forge.settings_merge import (
     ScalarConflict,
     merge_settings_json,
+    settings_text,
     write_settings_with_backup,
 )
 
@@ -313,10 +314,13 @@ def _merge_settings_fragments(
     for path, fragments in by_path.items():
         merged, path_conflicts = merge_settings_json(path, fragments)
         path.parent.mkdir(parents=True, exist_ok=True)
+        # Asked before the write, because after it the answer is always "no".
+        changed = not path.is_file() or path.read_text() != settings_text(merged)
         this_backup = write_settings_with_backup(path, merged)
         backup = backup or this_backup
         conflicts.extend(path_conflicts)
-        written.append(path)
+        if changed:
+            written.append(path)
 
     return written, conflicts, backup
 
