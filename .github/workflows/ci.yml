@@ -66,6 +66,15 @@ jobs:
     name: forge validate + score + test
     runs-on: ubuntu-latest
     needs: [gitleaks]      # don't waste a runner if secrets leaked
+    # Job-level, not per-step: `forge.config.yaml` interpolates these into the
+    # target definitions, so ANY command that loads a target needs them —
+    # validate, score, skills verify and sync alike. Only the sync step set
+    # them, so validate died in Jinja on an undefined name before it could
+    # check anything. A developer does not see this because forge auto-loads
+    # `.env`, which a runner has no equivalent of.
+    env:
+      FORGE_BENCH_PATH: ${{ github.workspace }}/.ci-fake-bench
+      FORGE_PRIMARY_SITE: ci-site
     defaults:
       run:
         working-directory: forge      # uv operates on forge/pyproject.toml
@@ -121,9 +130,6 @@ jobs:
         run: uv run pytest tests/ -v
 
       - name: forge sync --all-targets --dry-run (every adapter, every target)
-        env:
-          FORGE_BENCH_PATH: ${{ github.workspace }}/.ci-fake-bench
-          FORGE_PRIMARY_SITE: ci-site
         run: |
           # `.claude` as well as `apps` so the legacy bench-root inference in
           # sync.py has both signals it looks for.
