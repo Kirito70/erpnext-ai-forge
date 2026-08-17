@@ -80,6 +80,15 @@ jobs:
         working-directory: forge      # uv operates on forge/pyproject.toml
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Provenance is "the commit that last touched this source", which is a
+          # question about history. The default depth-1 clone has none, and git
+          # does not say so — `git log -1 -- canonical/policies/` returns the one
+          # commit it has, so every artifact is attributed to whatever HEAD is.
+          # On a PR build that is GitHub's synthetic merge commit, dated at run
+          # time, so the self-sync check compared a real stamp against a fresh
+          # one and could never agree.
+          fetch-depth: 0
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
