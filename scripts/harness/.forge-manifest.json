@@ -8,21 +8,21 @@
       "adapter": "claude-code",
       "mode": 493,
       "path": "check-file.sh",
-      "sha256": "a4b0efae3cd9705d77ac74a6ef12dbb7f086b4ce9ef6811786bb2fd2b5bccf25",
+      "sha256": "82cb982c6c05591f43faf2cb563ec381b082c8be6fb216830ca4f9c2b0931482",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "mode": 420,
       "path": "common.sh",
-      "sha256": "5a9c5f01e12d033d3b573b42859e2a790fac4cc7605960b9343357277817d488",
+      "sha256": "c9f5ed9e44e6abd8df3bcfebc8539b936c89982c15d7340425583635d9389d62",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "mode": 493,
       "path": "gates.sh",
-      "sha256": "e9e0f41af6ef21f1b00463df4e92f82d79f347ad36a8e09cc28716b0f88c37b2",
+      "sha256": "636cd010b42ab0c2f2eb2f5ff81d657a5bcf9f66a257604b010e8a3c87e2fe7d",
       "version": "1.0.0"
     },
     {
@@ -47,45 +47,51 @@
       "version": "1.0.0"
     }
   ],
-  "rendered_at": "2026-08-03T20:30:43.658041+00:00",
+  "rendered_at": "2026-08-17T12:57:02+05:00",
   "rendered_by": "forge 0.1.0",
   "schema_version": 2,
-  "source_commit": "eaeaf2469069212a0f6015544423bd09aead7cde",
+  "source_commit": "4bb84acb9cdc5f8b379fc7dc253ba4f096ddd576",
   "source_files": [
     {
       "adapter": "claude-code",
       "path": "canonical/harness/scripts/check-file.sh.j2",
-      "sha256": "a4b0efae3cd9705d77ac74a6ef12dbb7f086b4ce9ef6811786bb2fd2b5bccf25",
+      "sha256": "82cb982c6c05591f43faf2cb563ec381b082c8be6fb216830ca4f9c2b0931482",
+      "source_sha256": "7d2fa4cafca2b81b9939f45f3606d6eff1bcef8c7a8efead5d0b10694470f537",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "path": "canonical/harness/scripts/common.sh.j2",
-      "sha256": "5a9c5f01e12d033d3b573b42859e2a790fac4cc7605960b9343357277817d488",
+      "sha256": "c9f5ed9e44e6abd8df3bcfebc8539b936c89982c15d7340425583635d9389d62",
+      "source_sha256": "5194e132369a7cbd3d3999228bc6885e7e625007564c75900465f62f5ce6f690",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "path": "canonical/harness/scripts/gates.sh.j2",
-      "sha256": "e9e0f41af6ef21f1b00463df4e92f82d79f347ad36a8e09cc28716b0f88c37b2",
+      "sha256": "636cd010b42ab0c2f2eb2f5ff81d657a5bcf9f66a257604b010e8a3c87e2fe7d",
+      "source_sha256": "6af00a6a79c84472ea63e3a622ab18f0544b0f896513d2440f2635e9dd13532a",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "path": "canonical/harness/scripts/hook-posttooluse.sh.j2",
       "sha256": "470bf41af3592ae2e85d1ca094ee70a2bbd1d3309131dc85b6ab2b880a5319a0",
+      "source_sha256": "3794eb21c2370876d863ecbec3beec32a0dde3c443bec832d80994442e1fff6c",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "path": "canonical/harness/scripts/hook-stop.sh.j2",
       "sha256": "308ef74ef72843cc12b3e3f42c4df2690b4a1b2149a710bf608c64247a28fa38",
+      "source_sha256": "07e2a9c08adb6cc61579916814c7730315e047cb633ed4c0c26b714457a3d416",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "path": "canonical/harness/scripts/typecheck.sh.j2",
       "sha256": "24b2b59d1abbb390e137042238c24b4e594ac46cd13d8d102345b6b262820e32",
+      "source_sha256": "9575bd43f95316dc3c2bdaccf87492dc2ddfdc421aabecb999b74b0244beacb7",
       "version": "1.0.0"
     }
   ],

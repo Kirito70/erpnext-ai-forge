@@ -20,6 +20,21 @@ case "$MODE" in
   *) printf 'usage: gates.sh [quick|full|all]\n' >&2; exit 2 ;;
 esac
 
+# The `full` gates are per-app (`bench run-tests --app X`, a frontend build in
+# X's workspace), so they need a subject. Unlike check-file.sh this script is
+# not handed one — and the gate table's {app}/{app_dir}/{js_dir} placeholders
+# all expand to helpers that read $FILE. Referencing it undefined under `set -u`
+# aborted the whole run at the first full gate, which is why `gates.sh full`
+# has never completed.
+#
+# Explicit second argument wins; otherwise infer from what the working tree has
+# changed. Never guessed: an empty subject skips the per-app gates loudly.
+FILE="${2:-}"
+if [ -z "$FILE" ] && [ "$MODE" != "quick" ]; then
+  FILE="$(_changed_app_path)"
+  [ -n "$FILE" ] && note "gates: subject inferred from working tree -> $FILE"
+fi
+
 failed=0
 declare -a RESULTS=()
 

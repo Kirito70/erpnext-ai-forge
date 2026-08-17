@@ -29,7 +29,7 @@ for FILE in "$@"; do
   case "$FILE" in
     *.py)
       if ! run_to 120 \
-           uv run --project forge ruff check --fix "$FILE" 2>&1 | cap; then
+           uv run --project forge ruff check --fix "$(_abs_of "$FILE")" 2>&1 | cap; then
         fail_block "python-lint failed on $FILE"
         rc=1
       fi

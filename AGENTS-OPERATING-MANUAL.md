@@ -181,6 +181,29 @@ from all three while its vault ticket exists.
 
 Header and column order are machine-parsed. Do not reformat them.
 
+### Who writes each transition
+
+Every state needs exactly one writer, or rows stall in a state nothing can move
+them out of. Six of the twelve had none: a ticket could be authored and reviewed
+but never legitimately *started*, and `/ticket-review` was told to move a row
+"from `LEDGER-pending.md`" that nothing had ever put there.
+
+| transition | written by | when |
+|---|---|---|
+| — → `proposed` / `gap` | `/write-ticket` | the ticket is authored |
+| `proposed` → `todo` | `/refine-ticket` | refinement passes and the work is accepted into the plan |
+| `todo` → `claimed` / `in_progress` | `brain ticket start <KEY>` | an agent picks the ticket up |
+| `in_progress` → `blocked` | the working agent | a gate fails for reasons outside this ticket's scope |
+| `blocked` → `in_progress` | the working agent | the blocker clears |
+| `in_progress` → `gates_green` | the working agent | `gates.sh full` passes |
+| `gates_green` → `reviewed` → `done` | `/ticket-review` | review accepts; journal entry written |
+| any → `abandoned` | human decision, recorded by the agent | the work will not be done |
+
+`brain ticket start` and `brain ticket done` perform the move mechanically —
+delete from the old file, append to the new — for any project, whatever its
+store. Prefer them to hand-editing a ledger: hand edits are how keys end up in
+two files at once, which is the one invariant this design cannot lose.
+
 ---
 
 ## 3. The journal
@@ -243,4 +266,4 @@ Halt, present options, and wait. Do not choose for the user:
 
 ---
 
-<sub>Synced from `canonical/policies/` in erpnext-ai-forge v0.1.0 (eaeaf24) at 2026-08-03T20:30:44.458640+00:00. Shared by all seven tool adapters — do not hand-edit.</sub>
+<sub>Synced from `canonical/policies/` in erpnext-ai-forge v0.1.0 (4bb84ac) at 2026-08-17T12:57:02+05:00. Shared by all seven tool adapters — do not hand-edit.</sub>

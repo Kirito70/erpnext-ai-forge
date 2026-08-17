@@ -1,31 +1,31 @@
 {
   "adapter": {
-    "name": "codex",
+    "name": "claude-code",
     "version": "0.1.0"
   },
   "outputs": [
     {
-      "adapter": "codex",
+      "adapter": "claude-code",
       "path": "AGENTS-HARNESS.md",
-      "sha256": "c54d52d895748266133c8c0b4c7dddb48ee94a8fe1f83267c936c499bfdf092b",
+      "sha256": "02f03c8f8490203eb1f40cb835640adb0266cede44d294e9b6ef99fb7eea313b",
       "version": "0.1.0"
     },
     {
-      "adapter": "codex",
+      "adapter": "claude-code",
       "path": "AGENTS-OPERATING-MANUAL.md",
-      "sha256": "61eff357ca568aaacb548693acfa66949c2f31804741828a0568ac370c12880c",
+      "sha256": "395265f09d8391c219660cbddb22adc3cc786cd4bfa37a90d2791605b8a372ac",
       "version": "0.1.0"
     }
   ],
-  "rendered_at": "2026-08-03T20:30:45.094533+00:00",
+  "rendered_at": "2026-08-17T12:57:02+05:00",
   "rendered_by": "forge 0.1.0",
   "schema_version": 2,
-  "source_commit": "eaeaf2469069212a0f6015544423bd09aead7cde",
+  "source_commit": "4bb84acb9cdc5f8b379fc7dc253ba4f096ddd576",
   "source_files": [
     {
-      "adapter": "codex",
+      "adapter": "claude-code",
       "path": "canonical",
-      "sha256": "61eff357ca568aaacb548693acfa66949c2f31804741828a0568ac370c12880c",
+      "sha256": "395265f09d8391c219660cbddb22adc3cc786cd4bfa37a90d2791605b8a372ac",
       "version": "0.1.0"
     }
   ],
