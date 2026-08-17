@@ -23,6 +23,7 @@ from jinja2 import ChoiceLoader, Environment, FileSystemLoader, StrictUndefined,
 
 from forge import __version__ as forge_version
 from forge.loader import (
+    commit_date,
     file_last_commit,
     load_adapter_config,
     load_agents,
@@ -240,13 +241,32 @@ def _managed_apps_for(target: Target) -> set[str] | None:
 
 
 
+def _fallback_stamp(repo_root: Path, commit: str) -> datetime:
+    """The stamp for artifacts with no single source file to date them by.
+
+    The committer date of HEAD, not the moment render ran. Aggregates are built
+    from many sources and cannot name one, but they can still be dated by
+    something that only moves when the repo does. `datetime.now()` here meant
+    two renders of the same commit disagreed, which is enough on its own to
+    make every downstream idempotency claim false.
+
+    Falls back to wall-clock only in a repo with no commits, where there is
+    nothing else to use and nothing yet to be idempotent about.
+    """
+    stamp = commit_date(repo_root, commit)
+    if stamp is None:
+        return datetime.now(timezone.utc)
+    return datetime.fromisoformat(stamp)
+
+
 def _build_forge_context(
     repo_root: Path, forge_cfg: dict[str, Any], target: Target
 ) -> ForgeContext:
+    head = repo_head_commit(repo_root) or "uncommitted"
     return ForgeContext(
         version=forge_version,
-        source_commit=repo_head_commit(repo_root) or "uncommitted",
-        rendered_at=datetime.now(timezone.utc),
+        source_commit=head,
+        rendered_at=_fallback_stamp(repo_root, head),
         bench_path=target.root,
         # Only a Frappe target has a site. Templates that interpolate it are
         # bench-only; a profile that has none renders an empty string rather
@@ -376,12 +396,15 @@ def render(
     if "agents" in adapter_cfg.get("artifacts", {}) and _target_wants(target, "agents"):
         tmpl = env.get_template(adapter_cfg["artifacts"]["agents"]["template"])
         for agent in load_agents(repo_root):
+            src_commit, src_at = _source_provenance(
+                repo_root, agent.source_path, forge_ctx
+            )
             content = tmpl.render(
                 artifact=_artifact_to_template_dict(agent),
                 forge={
                     "version": forge_ctx.version,
-                    "source_commit": forge_ctx.source_commit,
-                    "rendered_at": forge_ctx.rendered_at.isoformat(),
+                    "source_commit": src_commit,
+                    "rendered_at": src_at,
                 },
                 bench={"primary_site": forge_ctx.primary_site},
             )
@@ -403,12 +426,15 @@ def render(
     if "commands" in adapter_cfg.get("artifacts", {}) and _target_wants(target, "commands"):
         tmpl = env.get_template(adapter_cfg["artifacts"]["commands"]["template"])
         for cmd in load_commands(repo_root):
+            src_commit, src_at = _source_provenance(
+                repo_root, cmd.source_path, forge_ctx
+            )
             content = tmpl.render(
                 artifact=_artifact_to_template_dict(cmd),
                 forge={
                     "version": forge_ctx.version,
-                    "source_commit": forge_ctx.source_commit,
-                    "rendered_at": forge_ctx.rendered_at.isoformat(),
+                    "source_commit": src_commit,
+                    "rendered_at": src_at,
                 },
                 bench={"primary_site": forge_ctx.primary_site},
             )
@@ -432,12 +458,15 @@ def render(
     if skills_cfg:
         tmpl = env.get_template(skills_cfg["template"])
         for skill in load_skills(repo_root):
+            src_commit, src_at = _source_provenance(
+                repo_root, skill.source_path, forge_ctx
+            )
             content = tmpl.render(
                 artifact=_artifact_to_template_dict(skill),
                 forge={
                     "version": forge_ctx.version,
-                    "source_commit": forge_ctx.source_commit,
-                    "rendered_at": forge_ctx.rendered_at.isoformat(),
+                    "source_commit": src_commit,
+                    "rendered_at": src_at,
                 },
                 bench={"primary_site": forge_ctx.primary_site},
             )
@@ -483,12 +512,15 @@ def render(
                 resolve_path(output_paths_cfg.get("bench_claude_root", "")) / "tools"
             )
         for tool_spec in load_tools(repo_root):
+            src_commit, src_at = _source_provenance(
+                repo_root, tool_spec.source_path, forge_ctx
+            )
             content = tmpl.render(
                 artifact=_tool_to_template_dict(tool_spec),
                 forge={
                     "version": forge_ctx.version,
-                    "source_commit": forge_ctx.source_commit,
-                    "rendered_at": forge_ctx.rendered_at.isoformat(),
+                    "source_commit": src_commit,
+                    "rendered_at": src_at,
                 },
                 bench={"primary_site": forge_ctx.primary_site},
             )
@@ -508,18 +540,25 @@ def render(
     # --- Bench-root CLAUDE.md ---
     if "root_claude_md" in adapter_cfg.get("artifacts", {}) and _target_wants(target, "root_claude_md"):
         tmpl = env.get_template("claude-md-root.j2")
+        # Representative source. It must name a file that exists: `_source_hash`
+        # returns None for one it cannot read, and a manifest row without that
+        # hash opts out of the staleness check entirely — so a stale path here
+        # does not fail, it silently stops checking. `architect.md` was renamed
+        # to `novizna-architect.md` in aa89c28 and this was left behind.
+        root_source = repo_root / "canonical" / "agents" / "novizna-architect.md"
+        root_commit, root_at = _source_provenance(repo_root, root_source, forge_ctx)
         content = tmpl.render(
             forge={
                 "version": forge_ctx.version,
-                "source_commit": forge_ctx.source_commit,
-                "rendered_at": forge_ctx.rendered_at.isoformat(),
+                "source_commit": root_commit,
+                "rendered_at": root_at,
             },
             bench={"primary_site": forge_ctx.primary_site},
         )
         rendered.append(
             RenderedArtifact(
                 tool=tool,
-                source_path=repo_root / "canonical" / "agents" / "architect.md",
+                source_path=root_source,
                 output_path=resolve_path(output_paths_cfg.get("root_claude_md", "")),
                 content=content,
                 source_commit=forge_ctx.source_commit,
@@ -865,13 +904,20 @@ def render(
                 if managed is not None and app_name not in managed:
                     continue
                 notes = app_notes.get(app_name)
+                # Same source as the dedicated per-app block above, so the two
+                # renderings of one app agree instead of dating from different
+                # things.
+                app_commit, app_at = _source_provenance(
+                    repo_root, repo_root / "canonical" / "apps" / f"{app_name}.md",
+                    forge_ctx,
+                )
                 content = tmpl.render(
                     app=app_data,
                     app_notes=notes.body.strip() if notes else "",
                     forge={
                         "version": forge_ctx.version,
-                        "source_commit": forge_ctx.source_commit,
-                        "rendered_at": forge_ctx.rendered_at.isoformat(),
+                        "source_commit": app_commit,
+                        "rendered_at": app_at,
                     },
                     bench={"primary_site": forge_ctx.primary_site},
                 )

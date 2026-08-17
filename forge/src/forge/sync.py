@@ -593,15 +593,23 @@ def _remove_if_empty(directory: Path, stop_at: Path) -> None:
 
 def _swap_into_bench(
     tool_staging: Path, bench_root: Path, protected: set[Path] | None = None
-) -> list[Path]:
-    """Per-file atomic copy: temp file → fsync → rename. Returns list of files
-    written. Caller has already validated staging.
+) -> tuple[list[Path], list[Path]]:
+    """Per-file atomic copy: temp file → fsync → rename. Returns (written,
+    unchanged). Caller has already validated staging.
 
     Paths in ``protected`` are skipped — they carry hand edits forge has not
-    adopted yet, and overwriting them would destroy the only copy.
+    adopted yet, and overwriting them would destroy the only copy. They count as
+    neither written nor unchanged: calling a hand edit "unchanged" would report
+    it as agreement with what forge wanted to write.
+
+    A file whose bytes already match is not rewritten. Re-writing identical
+    content still moves the mtime and still reports as a write, which is how a
+    sync that changed nothing looked like a sync that changed everything — and
+    what `SyncResult.files_unchanged` was declared for and never given.
     """
     protected = protected or set()
     written: list[Path] = []
+    unchanged: list[Path] = []
     for staged_path in tool_staging.rglob("*"):
         if not staged_path.is_file():
             continue
@@ -609,18 +617,27 @@ def _swap_into_bench(
         target = bench_root / rel
         if target in protected:
             continue
+        staged_text = staged_path.read_text()
+        staged_mode = staged_path.stat().st_mode & 0o777
+        if target.is_file() and target.read_text() == staged_text:
+            # Mode is still applied: content can match while the executable bit
+            # does not, and a hook that is not executable does not run.
+            if target.stat().st_mode & 0o777 != staged_mode:
+                target.chmod(staged_mode)
+            unchanged.append(target)
+            continue
         target.parent.mkdir(parents=True, exist_ok=True)
         tmp = target.with_suffix(target.suffix + ".tmp")
-        tmp.write_text(staged_path.read_text())
+        tmp.write_text(staged_text)
         # Carry the staged mode across, and set it on the temp file *before* the
         # rename. Chmod-after-rename leaves a window where the file is live but
         # still 0644 — a hook firing in that window fails with "permission
         # denied". Setting it first keeps the swap genuinely atomic: the file
         # appears at its final path already executable.
-        tmp.chmod(staged_path.stat().st_mode & 0o777)
+        tmp.chmod(staged_mode)
         tmp.replace(target)
         written.append(target)
-    return written
+    return written, unchanged
 
 
 def detect_hand_edits(
@@ -975,7 +992,10 @@ def sync_tool(
         }
 
         # Live swap
-        written = _swap_into_bench(tool_staging, bench_root, protected=protected)
+        written, unchanged = _swap_into_bench(
+            tool_staging, bench_root, protected=protected
+        )
+        result.files_unchanged = unchanged
 
         # …then merge the fragments into whatever is already on disk.
         merged_paths, conflicts, backup = _merge_settings_fragments(fragments)

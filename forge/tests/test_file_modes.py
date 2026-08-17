@@ -64,7 +64,7 @@ def test_mode_survives_the_swap(tmp_path):
     art = _artifact(tmp_path, "gates.sh", 0o755)
     bench = tmp_path / "bench"
     staging = _stage_artifacts([art], bench / ".forge-staging", "claude-code")
-    written = _swap_into_bench(staging, bench)
+    written, _ = _swap_into_bench(staging, bench)
 
     landed = bench / "scripts" / "harness" / "gates.sh"
     assert landed in written
