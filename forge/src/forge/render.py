@@ -98,6 +98,18 @@ def _source_provenance(
     return found
 
 
+def _commit_of(repo_root: Path, source: Path, forge_ctx: ForgeContext) -> str:
+    """The commit a RenderedArtifact should record for `source`.
+
+    Same rule as `_source_provenance`, which stamps the file's visible footer —
+    these two must agree or the manifest and the file it describes date from
+    different things. Repo HEAD is never the answer for a tracked source: the
+    forge repo renders into itself, so a HEAD stamp cannot converge, because
+    committing the render moves HEAD and invalidates what was just committed.
+    """
+    return _source_provenance(repo_root, source, forge_ctx)[0]
+
+
 def _unlinted_apps(target: Target, lint_apps: list[str]) -> list[str]:
     """Every app directory in the target that `lint_apps` does not name.
 
@@ -561,7 +573,7 @@ def render(
                 source_path=root_source,
                 output_path=resolve_path(output_paths_cfg.get("root_claude_md", "")),
                 content=content,
-                source_commit=forge_ctx.source_commit,
+                source_commit=_commit_of(repo_root, root_source, forge_ctx),
                 source_version=forge_version,
                 artifact_id="root-claude-md",
                 artifact_kind="aggregate",
@@ -660,7 +672,7 @@ def render(
                     source_path=script.source_path,
                     output_path=harness_dir / script.filename,
                     content=content,
-                    source_commit=forge_ctx.source_commit,
+                    source_commit=_commit_of(repo_root, script.source_path, forge_ctx),
                     source_version=harness.version,
                     artifact_id=f"harness/{script.id}",
                     artifact_kind="harness-script",
@@ -709,7 +721,7 @@ def render(
                         source_path=cfg_spec.source_path,
                         output_path=config_path,
                         content=content,
-                        source_commit=forge_ctx.source_commit,
+                        source_commit=_commit_of(repo_root, cfg_spec.source_path, forge_ctx),
                         source_version=harness.version,
                         artifact_id=f"harness/{cfg_spec.id}",
                         artifact_kind="harness-config",
@@ -770,7 +782,7 @@ def render(
                     source_path=repo_root / "canonical" / "harness" / "harness.yaml",
                     output_path=Path(_resolve(wiring_cfg["output"], output_ctx)),
                     content=content,
-                    source_commit=forge_ctx.source_commit,
+                    source_commit=_commit_of(repo_root, repo_root / "canonical" / "harness" / "harness.yaml", forge_ctx),
                     source_version=harness.version,
                     artifact_id=f"hook-wiring/{tool}",
                     # Not swapped like a normal file — it merges into human-owned
@@ -801,7 +813,7 @@ def render(
                         _resolve(ledger_cfg["output"], {**output_ctx, "phase": phase})
                     ),
                     content=content,
-                    source_commit=forge_ctx.source_commit,
+                    source_commit=_commit_of(repo_root, repo_root / "canonical" / "policies" / "definition-of-done.md", forge_ctx),
                     source_version="1.0.0",
                     artifact_id=f"ledger/{phase['id']}",
                     # Written only if absent — never overwritten. See
@@ -836,6 +848,15 @@ def render(
         all_commands = [_artifact_to_template_dict(c) for c in load_commands(repo_root)]
         all_skills = [_artifact_to_template_dict(s) for s in load_skills(repo_root)]
         all_tools = [_tool_to_template_dict(t) for t in load_tools(repo_root)]
+        # An aggregate is rendered from the whole canonical set, so it dates
+        # from the last commit that touched `canonical/` — NOT from repo HEAD.
+        # The forge repo is one of its own targets: a HEAD stamp cannot
+        # converge, because committing the render moves HEAD and so invalidates
+        # the render that was just committed. `canonical/` only moves when a
+        # source actually changes, which is the thing being described anyway.
+        agg_commit, agg_at = _source_provenance(
+            repo_root, repo_root / "canonical", forge_ctx
+        )
         for kind, spec in aggregate_entries:
             tmpl = env.get_template(spec["template"])
             content = tmpl.render(
@@ -852,8 +873,8 @@ def render(
                 tools=all_tools,
                 forge={
                     "version": forge_ctx.version,
-                    "source_commit": forge_ctx.source_commit,
-                    "rendered_at": forge_ctx.rendered_at.isoformat(),
+                    "source_commit": agg_commit,
+                    "rendered_at": agg_at,
                 },
                 bench={"primary_site": forge_ctx.primary_site},
                 discovery={
@@ -880,7 +901,11 @@ def render(
                     source_path=repo_root / "canonical",
                     output_path=output_path,
                     content=content,
-                    source_commit=forge_ctx.source_commit,
+                    # Matches the stamp in the footer above. The manifest
+                    # derives its own `rendered_at` from this commit, so a HEAD
+                    # value here would keep the manifest churning even once the
+                    # file it describes had settled.
+                    source_commit=agg_commit,
                     source_version=forge_version,
                     artifact_id=f"aggregate/{kind}",
                     artifact_kind="aggregate",
@@ -936,7 +961,7 @@ def render(
                         source_path=repo_root / "discovery" / "INVENTORY.md",
                         output_path=Path(resolved_output),
                         content=content,
-                        source_commit=forge_ctx.source_commit,
+                        source_commit=_commit_of(repo_root, repo_root / "discovery" / "INVENTORY.md", forge_ctx),
                         source_version=forge_version,
                         artifact_id=f"aggregate-per-app/{kind}/{app_name}",
                         artifact_kind="aggregate",

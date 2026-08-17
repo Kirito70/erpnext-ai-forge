@@ -151,6 +151,34 @@ def test_provenance_carries_no_wall_clock(tmp_path, repo_root, monkeypatch):
     assert drifted == [], f"{len(drifted)} artifact(s) differ between two renders"
 
 
+def test_output_does_not_change_when_only_head_moves(tmp_path, repo_root, monkeypatch):
+    """Provenance must date from an artifact's SOURCE, never from repo HEAD.
+
+    The forge repo is one of its own render targets, so HEAD-based provenance
+    cannot converge: sync stamps HEAD, committing that render moves HEAD, and
+    the next sync stamps the new HEAD and disagrees with what was just
+    committed. The self-sync check chases its own tail forever. Anything
+    rendered from a source that did not change must render identically no
+    matter which commit happens to be checked out.
+    """
+    from forge import render as render_mod
+
+    monkeypatch.setenv("FORGE_BENCH_PATH", str(tmp_path / "bench"))
+    monkeypatch.setenv("FORGE_PRIMARY_SITE", "test-site")
+
+    before = {r.output_path: r.content for r in render_mod.render(repo_root, TOOL)}
+    # Same tree, different HEAD — exactly what committing a render does.
+    monkeypatch.setattr(render_mod, "repo_head_commit", lambda _root: "0" * 40)
+    after = render_mod.render(repo_root, TOOL)
+
+    moved = [
+        str(r.output_path)
+        for r in after
+        if sha256_text(before.get(r.output_path, "")) != sha256_text(r.content)
+    ]
+    assert moved == [], f"{len(moved)} artifact(s) re-dated because HEAD moved"
+
+
 def test_every_artifact_names_a_source_that_exists(tmp_path, repo_root, monkeypatch):
     """A row whose source cannot be read opts out of the staleness check rather
     than failing it, so a renamed canonical file silently stops being watched.

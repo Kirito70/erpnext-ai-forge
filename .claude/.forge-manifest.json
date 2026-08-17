@@ -4,10 +4,10 @@
     "version": "0.1.0"
   },
   "outputs": [],
-  "rendered_at": "2026-08-17T12:57:02+05:00",
+  "rendered_at": "2026-08-14T10:26:39+05:00",
   "rendered_by": "forge 0.1.0",
   "schema_version": 2,
-  "source_commit": "4bb84acb9cdc5f8b379fc7dc253ba4f096ddd576",
+  "source_commit": "81cc0c0ec73a5e425c1ea2b2d43d1ac9f49b8310",
   "source_files": [
     {
       "adapter": "claude-code",
