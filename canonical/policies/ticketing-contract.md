@@ -1,10 +1,10 @@
 ---
 id: ticketing-contract
 kind: policy
-version: 1.0.0
+version: 1.1.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
-last_reviewed: 2026-07-30
+last_reviewed: 2026-09-12
 scope: [agent:novizna-architect]
 ---
 
@@ -75,8 +75,15 @@ created: 2026-07-27
 
 - `depends_on` is **binding** — do not start a ticket whose dependencies are unfinished.
 - `blocks` tells you what a shortcut here costs downstream.
-- `status` is **human-owned**. Leave it `To Do` until the user confirms verification;
-  never flip it yourself.
+- **The vault is the single source of truth for a ticket's status — never keep a second,
+  agent-only copy of it that the vault doesn't reflect.** The agent keeps `status:` in
+  step with the work automatically, without being asked each time: `To Do` → `In Progress`
+  when the ticket is claimed (`brain ticket start`), and `In Progress` → `Done` only once
+  `/ticket-review` has actually run and left its `## REVIEW` entry in the journal — never
+  mark `Done` on the strength of a passing gate alone. A ticket the agent has not actually
+  advanced stays untouched; this is a sync, not a rubber stamp. If a ticket's `status:` is
+  ever found lagging its real `build_state` (e.g. a ticket left `To Do` while work on it is
+  `in_progress`), that is a bug — fix it as part of the same session that notices it.
 - Tick an acceptance-criteria checkbox only for what you actually verified, and say how.
 - "Explicitly out of scope" is binding — do not helpfully exceed it.
 
