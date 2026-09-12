@@ -15,14 +15,14 @@
       "adapter": "claude-code",
       "mode": 420,
       "path": "common.sh",
-      "sha256": "c9f5ed9e44e6abd8df3bcfebc8539b936c89982c15d7340425583635d9389d62",
+      "sha256": "7616228b35b7a93d498257bceea1c12a445658c161fcc2c0305e82c650c9137f",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "mode": 493,
       "path": "gates.sh",
-      "sha256": "636cd010b42ab0c2f2eb2f5ff81d657a5bcf9f66a257604b010e8a3c87e2fe7d",
+      "sha256": "dd2ece485ef771fc6bfc13757f59e0a261a4def2481a029b32d2142f831bcbeb",
       "version": "1.0.0"
     },
     {
@@ -62,15 +62,15 @@
     {
       "adapter": "claude-code",
       "path": "canonical/harness/scripts/common.sh.j2",
-      "sha256": "c9f5ed9e44e6abd8df3bcfebc8539b936c89982c15d7340425583635d9389d62",
-      "source_sha256": "5194e132369a7cbd3d3999228bc6885e7e625007564c75900465f62f5ce6f690",
+      "sha256": "7616228b35b7a93d498257bceea1c12a445658c161fcc2c0305e82c650c9137f",
+      "source_sha256": "528620a3c5aa1dafdcc0bbcc1527bf54c27d7620be491867ccf2784da6db2191",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "path": "canonical/harness/scripts/gates.sh.j2",
-      "sha256": "636cd010b42ab0c2f2eb2f5ff81d657a5bcf9f66a257604b010e8a3c87e2fe7d",
-      "source_sha256": "6af00a6a79c84472ea63e3a622ab18f0544b0f896513d2440f2635e9dd13532a",
+      "sha256": "dd2ece485ef771fc6bfc13757f59e0a261a4def2481a029b32d2142f831bcbeb",
+      "source_sha256": "fd4a439c25e3afe73fb8f9f3301834137959e9b4aaab14ae94ce6efe686ee4e5",
       "version": "1.0.0"
     },
     {

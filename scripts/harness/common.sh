@@ -85,9 +85,36 @@ _app_dir_of() {
     *)  rel="$path" ;;
   esac
   case "$rel" in
+    # `apps/<app>/…` — a file inside an app.
     apps/*/*) printf '%s/apps/%s' "$REPO_ROOT" "$(printf '%s' "${rel#apps/}" | cut -d/ -f1)" ;;
+    # `apps/<app>` — the app directory itself, with no trailing path. This is
+    # what _subject_path produces from a bare app name, and it is a legitimate
+    # subject in its own right; matching only `apps/*/*` left it resolving to
+    # nothing, which was the second half of HARNESS-005. `apps/` alone (empty
+    # app) must still resolve to nothing, hence `?*` rather than `*`.
+    apps/?*)  printf '%s/apps/%s' "$REPO_ROOT" "${rel#apps/}" ;;
     *)        printf '' ;;
   esac
+}
+
+# A gate subject may arrive as a path (`apps/<app>/…`) or as a bare app name
+# (`gates.sh full novizna_pos`) — the form AGENTS-HARNESS.md documents and the
+# form every ticket Test Plan uses. _app_dir_of matches only `apps/*/*`, so a
+# bare name resolved to the empty string, `bench run-tests --app ""` then ran
+# EVERY app, and the run died on unrelated site fixture state — which reads to
+# the operator as "my code broke the tests" (HARNESS-005).
+#
+# Normalising once, here, keeps _app_dir_of and _js_dir_of unchanged: they go on
+# taking a path and only ever see a path. A bare token becomes an app only when
+# apps/<token> really is a directory — never guessed. Anything else is returned
+# untouched, so a non-app subject still resolves to no app and the caller skips
+# loudly rather than silently widening its scope.
+_subject_path() {
+  local s="$1"
+  case "$s" in
+    ""|*/*) printf '%s' "$s"; return ;;
+  esac
+  if [ -d "$REPO_ROOT/apps/$s" ]; then printf 'apps/%s' "$s"; else printf '%s' "$s"; fi
 }
 
 # `apps/<app>/…` -> the app name, for gates that take --app.
