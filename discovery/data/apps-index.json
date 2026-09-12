@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-13T11:19:10.406552+00:00",
+  "generated_at": "2026-09-11T14:24:47.080007+00:00",
   "generated_by": "forge discover",
   "bench_path": "/home/tayyab/Work/Projects/erp/novizna-v16/novizna-v16",
   "upstream_apps": [
@@ -109,11 +109,27 @@
       "purpose": "Novizna CRM with more features"
     },
     {
+      "name": "novizna_hr_legal",
+      "type": "custom",
+      "stack": "python",
+      "doctype_count": 13,
+      "whitelist_api_count": 1,
+      "purpose": "Employee legal document lifecycle for Novizna HRMS \u2014 controlled templates, immutable versions, generated artifacts, signature capture and append-only evidence."
+    },
+    {
+      "name": "novizna_integrations",
+      "type": "custom",
+      "stack": "python",
+      "doctype_count": 0,
+      "whitelist_api_count": 0,
+      "purpose": "Reusable integrations hub for Novizna \u2014 providers, capabilities and consumers for external services (Zoho Mail, Zoho WorkDrive)."
+    },
+    {
       "name": "novizna_pos",
       "type": "custom",
       "stack": "python + quasar-vue3-pwa",
-      "doctype_count": 11,
-      "whitelist_api_count": 107
+      "doctype_count": 13,
+      "whitelist_api_count": 117
     },
     {
       "name": "novizna_restaurant",
@@ -136,8 +152,8 @@
     "upstream_app_count": 11,
     "third_party_app_count": 3,
     "unowned_app_count": 14,
-    "custom_app_count": 7,
-    "custom_doctype_count": 142,
-    "custom_whitelist_api_count": 371
+    "custom_app_count": 9,
+    "custom_doctype_count": 157,
+    "custom_whitelist_api_count": 382
   }
 }
