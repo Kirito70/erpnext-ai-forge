@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-13T11:19:10.406552+00:00",
+  "generated_at": "2026-09-11T14:24:47.080007+00:00",
   "generated_by": "forge discover",
   "custom_apps": {
     "erpnext_location": [
@@ -26,6 +26,22 @@
       "crm_import_log",
       "crm_lead_industry"
     ],
+    "novizna_hr_legal": [
+      "employee_document_event",
+      "employee_document_package",
+      "employee_document_package_requirement",
+      "employee_document_package_waiver",
+      "employee_legal_document",
+      "legal_document_requirement_rule",
+      "legal_document_template",
+      "legal_document_template_version",
+      "legal_document_variable",
+      "legal_rule_access_flag",
+      "legal_rule_designation",
+      "legal_rule_project",
+      "novizna_hr_legal_settings"
+    ],
+    "novizna_integrations": [],
     "novizna_pos": [
       "branch_warehouse",
       "cash_variance_entry",
@@ -36,6 +52,8 @@
       "pos_invoice_posting_status",
       "pos_offline_sync_review",
       "pos_repair_action",
+      "pos_report_export",
+      "pos_report_schedule",
       "pos_shift_schedule_detail",
       "pos_stock_discrepancy_log"
     ],
