@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
 trigger: "Every new feature, bug fix, or refactor. Mandatory on backend, integrations, and frontend (both stacks)."
-scope: [agent:architect]
+scope: [agent:novizna-architect]
 foundational: false
 security_score: 100
 ---
@@ -42,11 +42,13 @@ You author unit / integration / E2E tests and enforce **≥ 80% coverage** on ne
 ## Skills
 
 ### Foundational (always loaded for you)
+
 - [`testing/frappe-unittest`](../skills/testing/frappe-unittest.md)
 - [`testing/pytest-patterns`](../skills/testing/pytest-patterns.md)
 - [`testing/e2e-playwright`](../skills/testing/e2e-playwright.md)
 
 ### Model-invoked
+
 - [`frappe-core/conventions`](../skills/frappe-core/conventions.md)
 - [`frappe-core/permissions-model`](../skills/frappe-core/permissions-model.md) — when testing permission gates
 - Domain skill matching the touched DocType (e.g., [`erpnext-domains/sales`](../skills/erpnext-domains/sales.md))
@@ -84,7 +86,11 @@ You author unit / integration / E2E tests and enforce **≥ 80% coverage** on ne
 
 - **Minimum 80% line coverage on new/changed code** (per project-global testing rule)
 - Coverage measured per file, not aggregated — a single new file at 60% blocks acceptance
-- Tests live alongside the code: `test_<module>.py` next to `<module>.py` for Python; `<Component>.spec.ts` next to `<Component>.vue` for Vue
+- **Test placement (Python):**
+  - **DocType tests stay colocated** — `doctype/<name>/test_<name>.py`; that is where `bench run-tests --doctype <Name>` looks, so moving them breaks per-DocType runs.
+  - **All other Python tests live under a `tests/` package**, grouped by domain, NOT piled flat next to the code: `<app>/<app>/tests/<domain>/test_<thing>.py` (e.g. `tests/repair/test_policy.py`). Drop the redundant domain prefix once inside the package. Every folder needs an `__init__.py` — `run-tests --app` walks the tree to derive the dotted module path, so a missing init silently hides a whole folder. A flat wall of `test_*.py` in the app/module root is the anti-pattern this replaces.
+  - Never compute a path from `__file__` in a test (e.g. to read a DocType JSON) — resolve it through `frappe.get_meta(...)` so the test survives being moved.
+- **Test placement (Vue):** `<Component>.spec.ts` next to `<Component>.vue` — colocation is correct for the frontend.
 - Edge cases required: empty input, max-length input, permission-denied path, error path
 
 ---
@@ -124,6 +130,7 @@ class TestCrmIndustryLeadScore(FrappeTestCase):
 ```
 
 Run:
+
 ```bash
 bench --site novizna-v16 run-tests --app novizna_crm --module \
   novizna_crm.novizna_crm.doctype.crm_industry_lead_score.test_crm_industry_lead_score
@@ -179,7 +186,7 @@ test('save and submit invoice flow', async ({ page }) => {
 
 1. **Read the diff + TASK BRIEF acceptance criteria**
 2. **Decide test types** from the matrix above
-3. **Write tests** alongside the touched files (test_*.py / *.spec.ts)
+3. **Write tests** in their proper home (see Coverage Rules → Test placement): DocType tests colocated, other Python tests under the domain-grouped `tests/` package, Vue `*.spec.ts` beside the component
 4. **Run** the relevant `bench run-tests` / `pytest` / `vitest` / `playwright test`
 5. **Verify coverage** — `pytest --cov` or `bench run-tests --coverage`. Reject if any new file < 80%.
 6. **Emit review** per [review-protocol.md](../policies/review-protocol.md) format with Decision: APPROVE or REQUEST_CHANGES

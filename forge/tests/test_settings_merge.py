@@ -85,3 +85,40 @@ def test_write_settings_no_backup_when_file_missing(tmp_path):
     backup = write_settings_with_backup(settings_path, {"new": True})
     assert backup is None
     assert json.loads(settings_path.read_text()) == {"new": True}
+
+
+def test_a_no_op_merge_does_not_destroy_the_backup(tmp_path):
+    """The backup is a single fixed path, so every write overwrites it.
+
+    `_merge_settings_fragments` wrote settings.json on every sync whether or
+    not the merge changed anything, which meant the second sync copied the
+    already-merged file over the backup. The one artifact that exists to
+    recover a human's pre-merge settings was destroyed by the next no-op run.
+    """
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text('{"humanKey": "keep me"}\n')
+
+    # A real change: backup captures the human's original.
+    write_settings_with_backup(settings_path, {"humanKey": "keep me", "hooks": []})
+    backup = settings_path.with_suffix(".json.forge-backup")
+    assert json.loads(backup.read_text()) == {"humanKey": "keep me"}
+
+    # A no-op: same content forge already wrote. The backup must survive.
+    write_settings_with_backup(settings_path, {"humanKey": "keep me", "hooks": []})
+    assert json.loads(backup.read_text()) == {"humanKey": "keep me"}, (
+        "a no-op write overwrote the backup with post-merge content"
+    )
+
+
+def test_a_no_op_merge_reports_nothing_written(tmp_path):
+    """An unconditional write is also reported as a write, so `forge sync`
+    claimed '1 files written' on a run that changed nothing — which would mask
+    a genuine single-file write."""
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(json.dumps({"a": 1}, indent=2, sort_keys=True) + "\n")
+    before = settings_path.stat().st_mtime_ns
+
+    backup = write_settings_with_backup(settings_path, {"a": 1})
+
+    assert backup is None, "a no-op took a backup"
+    assert settings_path.stat().st_mtime_ns == before, "the file was rewritten"

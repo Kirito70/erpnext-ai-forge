@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
-triggers_agents: [architect, security-reviewer]
+triggers_agents: [novizna-architect, security-reviewer]
 ---
 
 # /review-security
@@ -14,7 +14,7 @@ Run the full Security Reviewer checklist over a path (uncommitted changes, a spe
 
 ## Usage
 
-```
+```text
 /review-security [--path <p>] [--staged-only]
 ```
 
@@ -27,7 +27,7 @@ Run the full Security Reviewer checklist over a path (uncommitted changes, a spe
 
 ## Examples
 
-```
+```text
 /review-security
 /review-security --path apps/novizna_crm
 /review-security --path apps/noviznaerp_payroll/noviznaerp_payroll/custom/loan_custom.py --staged-only

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from forge.loader import load_forge_config
 from forge.render import render, render_summary
 
 
@@ -25,26 +26,33 @@ def test_render_claude_code_produces_artifacts(repo_root):
     rendered = render(repo_root, "claude-code")
     summary = render_summary(rendered)
 
-    assert summary.get("agent") == 8
-    assert summary.get("command") == 17
-    assert summary.get("skill") == 30
+    assert summary.get("agent") == 11
+    assert summary.get("command") == 21
+    assert summary.get("skill") == 33
     assert summary.get("tool") == 14
     assert summary.get("aggregate") >= 1  # root CLAUDE.md + per-app CLAUDE.md files
 
 
 def test_rendered_agent_has_frontmatter(repo_root):
     rendered = render(repo_root, "claude-code")
-    architect = next(r for r in rendered if r.artifact_id == "architect")
+    architect = next(r for r in rendered if r.artifact_id == "novizna-architect")
     content = architect.content
+    # Frontmatter MUST be the very first thing in the file — Claude Code only
+    # registers a subagent when line 1 is the opening `---`. A banner comment
+    # above it silently breaks agent loading, so the provenance banner lives
+    # below the frontmatter, not above it.
+    assert content.startswith("---"), "agent frontmatter must start on line 1"
     assert "AUTO-GENERATED FROM erpnext-ai-forge" in content
-    assert "---" in content
-    assert "name: architect" in content
+    # `novizna-`, not `architect` — the bare name belongs to the user-level
+    # ECC agent, and two agents claiming one name is undefined behaviour.
+    assert "name: novizna-architect" in content
     assert "description:" in content
 
 
 def test_rendered_command_has_description(repo_root):
     rendered = render(repo_root, "claude-code")
     scaffold = next(r for r in rendered if r.artifact_id == "scaffold-doctype")
+    assert scaffold.content.startswith("---"), "command frontmatter must start on line 1"
     assert "description:" in scaffold.content
     assert "Triggers agents:" in scaffold.content
 
@@ -55,9 +63,18 @@ def test_rendered_skill_carries_domain(repo_root):
         r for r in rendered
         if r.artifact_kind == "skill" and r.artifact_id == "novizna-crm-override-system"
     )
-    # Skill should be written under .claude/skills/frontend/
-    assert "skills/frontend" in str(skill.output_path)
+    assert skill.content.startswith("---"), "skill frontmatter must start on line 1"
     assert "novizna-crm-override-system" in skill.content
+
+    # The domain still travels with the skill, but in FRONTMATTER, not in the
+    # path. Claude Code discovers skills only at `<name>/SKILL.md`; a domain
+    # segment in the path left all 33 invisible to its loader while they
+    # appeared correctly synced. The previous form asserted the domain was in
+    # the path — it pinned the bug.
+    assert "domain: frontend" in skill.content
+    assert str(skill.output_path).endswith(
+        "skills/novizna-crm-override-system/SKILL.md"
+    ), "skills must be addressable as <name>/SKILL.md"
 
 
 def test_rendered_per_app_includes_all_custom_apps(repo_root):
@@ -67,7 +84,9 @@ def test_rendered_per_app_includes_all_custom_apps(repo_root):
     assert "novizna_crm" in app_names
     assert "novizna_pos" in app_names
     assert "noviznaerp_payroll" in app_names
-    assert len(app_names) == 8
+    # One per managed app — apps owned by another team are excluded, so this
+    # tracks `bench.managed_apps` rather than "every custom app in the bench".
+    assert app_names == set(load_forge_config(repo_root)["bench"]["managed_apps"])
 
 
 def test_rendered_root_claude_md_has_cross_cutting_only(repo_root):

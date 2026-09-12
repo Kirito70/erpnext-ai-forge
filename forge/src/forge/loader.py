@@ -7,16 +7,25 @@ the canonical layer.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import frontmatter
 import yaml
 
 from forge.models import (
+    PROVENANCE_VALUES,
     CanonicalArtifact,
     DiscoverySnapshot,
+    HarnessConfig,
+    HarnessScript,
+    HarnessSpec,
+    HookSpec,
+    Provenance,
+    Target,
     ToolSpec,
 )
 
@@ -33,6 +42,61 @@ def find_repo_root(start: Path | None = None) -> Path:
     raise FileNotFoundError(
         "Could not locate erpnext-ai-forge repo root (no forge.config.yaml found)."
     )
+
+
+@lru_cache(maxsize=512)
+def file_last_commit(repo_root: Path, rel_path: str) -> tuple[str, str] | None:
+    """`(sha, ISO-8601 commit date)` of the last commit touching `rel_path`.
+
+    Provenance for a generated file should describe the source it came from,
+    not the moment `forge sync` happened to run. Stamping repo HEAD and a
+    wall-clock time made every sync rewrite every managed app — the footer
+    changed, so the file's sha256 changed, so the manifest changed — and made
+    `forge validate` report drift for apps whose source had not moved.
+
+    Anchored per file, a re-sync with unchanged sources produces byte-identical
+    output and the working tree stays clean.
+
+    None when the path is untracked or this is not a git repo; callers fall
+    back to HEAD.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%H%x00%cI", "--", rel_path],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
+        )
+        if result.returncode == 0 and "\0" in result.stdout:
+            sha, _, date = result.stdout.strip().partition("\0")
+            if sha:
+                return sha, date
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return None
+
+
+@lru_cache(maxsize=512)
+def commit_date(repo_root: Path, sha: str) -> str | None:
+    """ISO-8601 committer date for `sha`, or None if it cannot be resolved."""
+    if not sha:
+        return None
+    try:
+        result = subprocess.run(
+            ["git", "show", "-s", "--format=%cI", sha],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return None
 
 
 def repo_head_commit(repo_root: Path) -> str | None:
@@ -78,12 +142,35 @@ def file_commit(repo_root: Path, file_path: Path) -> str | None:
 # ---------------------------------------------------------------------------
 # Canonical artifact loaders
 # ---------------------------------------------------------------------------
+def _provenance_of(fm: dict[str, Any], path: Path) -> Provenance:
+    """Read `provenance:`, refusing anything outside the two-value domain.
+
+    This is a security control, so it fails closed at the boundary rather than
+    coercing. `skills_lock.verify()` skips anything that is not exactly
+    `external`, so `External` or a typo would exempt a skill from the lockfile
+    check while `forge skills list` still labelled it external — the two
+    disagreeing because the value was never constrained.
+    """
+    raw = fm.get("provenance", "internal")
+    if raw not in PROVENANCE_VALUES:
+        raise ValueError(
+            f"{path}: provenance must be one of {' | '.join(PROVENANCE_VALUES)}, "
+            f"got {raw!r}. An external skill needs a canonical/skills-lock.json "
+            f"entry; a value this does not recognise would silently skip that check."
+        )
+    return cast("Provenance", raw)
+
+
 def _parse_markdown_artifact(
     path: Path, kind: str, repo_root: Path
 ) -> CanonicalArtifact:
     """Parse a Markdown file with YAML frontmatter into a CanonicalArtifact."""
     post = frontmatter.load(path)
-    fm = post.metadata or {}
+    # Annotated because `post.metadata` is untyped: without this every
+    # `fm.get(...)` below is `object`, and each one becomes a mypy error at the
+    # CanonicalArtifact constructor. Frontmatter is arbitrary YAML, so `Any` is
+    # the honest type — the validator checks the shape, not the type checker.
+    fm: dict[str, Any] = post.metadata or {}
 
     # `id` must match basename for unique linking
     artifact_id = fm.get("id") or path.stem
@@ -108,6 +195,9 @@ def _parse_markdown_artifact(
         body=post.content,
         raw_frontmatter=fm,
         domain=fm.get("domain"),
+        provenance=_provenance_of(fm, path),
+        source_url=fm.get("source_url"),
+        source_ref=fm.get("source_ref"),
     )
 
 
@@ -142,6 +232,27 @@ def load_skills(repo_root: Path) -> list[CanonicalArtifact]:
     return out
 
 
+def load_app_notes(repo_root: Path) -> dict[str, CanonicalArtifact]:
+    """Load ``canonical/apps/<app>.md`` — hand-authored per-app knowledge.
+
+    Keyed by app name so a template can look up its own notes. This is the
+    editable half of a per-app instruction file: the generator supplies the
+    facts it can derive from discovery, and everything a human knows about the
+    app that no scanner can infer lives here.
+
+    An app with no file simply renders without a notes section — a missing
+    entry is normal, not an error.
+    """
+    apps_dir = repo_root / "canonical" / "apps"
+    if not apps_dir.is_dir():
+        return {}
+    return {
+        p.stem: _parse_markdown_artifact(p, "app-notes", repo_root)
+        for p in sorted(apps_dir.glob("*.md"))
+        if not p.name.startswith("_")
+    }
+
+
 def load_policies(repo_root: Path) -> list[CanonicalArtifact]:
     """Load canonical/policies/*.md (the yaml one — security-scoring — is loaded
     separately via load_security_scoring_yaml)."""
@@ -156,7 +267,8 @@ def load_security_scoring_yaml(repo_root: Path) -> dict[str, Any]:
     """Load canonical/policies/security-scoring.yaml as a plain dict (no Markdown body)."""
     path = repo_root / "canonical" / "policies" / "security-scoring.yaml"
     with path.open() as f:
-        return yaml.safe_load(f)
+        data: dict[str, Any] = yaml.safe_load(f) or {}
+    return data
 
 
 def load_tools(repo_root: Path) -> list[ToolSpec]:
@@ -193,7 +305,8 @@ def _load_json_or_empty(path: Path) -> dict[str, Any]:
     if not path.is_file():
         return {}
     with path.open() as f:
-        return json.load(f)
+        data: dict[str, Any] = json.load(f)
+    return data
 
 
 def load_discovery(repo_root: Path) -> DiscoverySnapshot:
@@ -220,11 +333,189 @@ def load_adapter_config(repo_root: Path, tool: str) -> dict[str, Any]:
     if not path.is_file():
         raise FileNotFoundError(f"Adapter config not found: {path}")
     with path.open() as f:
-        return yaml.safe_load(f)
+        adapter_cfg: dict[str, Any] = yaml.safe_load(f) or {}
+    return adapter_cfg
 
 
 def load_forge_config(repo_root: Path) -> dict[str, Any]:
     """Load forge.config.yaml as a plain dict."""
     path = repo_root / "forge.config.yaml"
     with path.open() as f:
-        return yaml.safe_load(f)
+        cfg: dict[str, Any] = yaml.safe_load(f) or {}
+    return cfg
+
+
+def load_harness(repo_root: Path) -> HarnessSpec | None:
+    """Parse canonical/harness/. Returns None when the directory is absent.
+
+    None rather than raising, so a checkout without a harness still renders
+    everything else — the harness is additive, not a precondition.
+    """
+    base = repo_root / "canonical" / "harness"
+    spec_path = base / "harness.yaml"
+    if not spec_path.is_file():
+        return None
+
+    with spec_path.open() as f:
+        raw: dict[str, Any] = yaml.safe_load(f) or {}
+
+    sources = [spec_path]
+
+    def _read_yaml(name: str) -> dict[str, Any]:
+        path = base / name
+        if not path.is_file():
+            return {}
+        sources.append(path)
+        with path.open() as fh:
+            data: dict[str, Any] = yaml.safe_load(fh) or {}
+        return data
+
+    gates = _read_yaml("gates.yaml").get("stacks") or {}
+    permissions = _read_yaml("permissions.yaml")
+
+    scripts: list[HarnessScript] = []
+    for entry in raw.get("scripts") or []:
+        rel = entry["file"]
+        source = base / rel
+        sources.append(source)
+        # `scripts/gates.sh.j2` -> `gates.sh`. The .j2 is a rendering detail;
+        # the target sees a plain shell file.
+        filename = Path(rel).name
+        if filename.endswith(".j2"):
+            filename = filename[: -len(".j2")]
+        scripts.append(
+            HarnessScript(
+                id=str(entry["id"]),
+                source_path=source,
+                filename=filename,
+                mode=int(str(entry.get("mode", "0755")), 8),
+                purpose=str(entry.get("purpose", "")),
+            )
+        )
+
+    configs: list[HarnessConfig] = []
+    for entry in raw.get("configs") or []:
+        rel = entry["file"]
+        source = base / rel
+        sources.append(source)
+        # Unlike scripts, the landing place is declared rather than derived:
+        # a config has to sit where its tool looks for it.
+        configs.append(
+            HarnessConfig(
+                id=str(entry["id"]),
+                source_path=source,
+                output_path=str(entry["output_path"]),
+                mode=int(str(entry.get("mode", "0644")), 8),
+                purpose=str(entry.get("purpose", "")),
+            )
+        )
+
+    hooks = tuple(
+        HookSpec(
+            id=str(h["id"]),
+            fires_on=str(h["fires_on"]),
+            script=str(h["script"]),
+            policy=str(h.get("policy", "advisory")),
+            timeout_seconds=int(h.get("timeout_seconds", 120)),
+            args=tuple(str(a) for a in (h.get("args") or ())),
+            loop_guard=h.get("loop_guard"),
+            description=str(h.get("description", "")),
+        )
+        for h in (raw.get("hooks") or [])
+    )
+
+    return HarnessSpec(
+        version=str(raw.get("version", "0.0.0")),
+        scripts=tuple(scripts),
+        hooks=hooks,
+        gates=gates,
+        permissions=permissions,
+        source_paths=tuple(sources),
+        configs=tuple(configs),
+    )
+
+
+DEFAULT_TARGET = "bench"
+
+
+def resolve_config_str(value: str, env: dict[str, str] | None = None) -> str:
+    """Expand `{{ env.VAR }}` in a config string.
+
+    Every consumer of `bench.path` used to inline this. Sharing it means a
+    target's root is expanded the same way no matter who asks.
+    """
+    from jinja2 import Environment, StrictUndefined
+
+    jenv = Environment(undefined=StrictUndefined, autoescape=False)
+    return jenv.from_string(value).render(env=env if env is not None else dict(os.environ))
+
+
+def load_targets(repo_root: Path, forge_cfg: dict[str, Any] | None = None) -> dict[str, Target]:
+    """Every target declared in forge.config.yaml, keyed by name.
+
+    Back-compat is deliberate: a config carrying only the original `bench:`
+    block still yields exactly one target named "bench", with the same root,
+    same tools, same behaviour. Nothing has to be migrated for sync to keep
+    working, and `targets:` is purely additive.
+    """
+    cfg = forge_cfg if forge_cfg is not None else load_forge_config(repo_root)
+    env = dict(os.environ)
+
+    # `bench:` is the original single-target shape and stays authoritative for
+    # the bench. `targets:` is additive on top, so adding a second target does
+    # not require migrating (or re-commenting) the block that already works.
+    declared: dict[str, Any] = {}
+    if cfg.get("bench"):
+        declared[DEFAULT_TARGET] = {"stack_profile": "frappe", **dict(cfg["bench"])}
+    for name, raw in (cfg.get("targets") or {}).items():
+        declared[name] = {**declared.get(name, {}), **(raw or {})}
+
+    targets: dict[str, Target] = {}
+    for name, raw in declared.items():
+        raw = raw or {}
+        # `root` is the new spelling; `path` is what `bench:` called it.
+        root_str = raw.get("root") or raw.get("path")
+        if not root_str:
+            raise ValueError(
+                f"target '{name}' declares neither `root:` nor `path:` in "
+                f"forge.config.yaml. A target with no root has nowhere to render to."
+            )
+        root_str = resolve_config_str(str(root_str), env)
+        if not root_str.strip():
+            raise ValueError(
+                f"target '{name}': root resolved to an empty string. Check the "
+                f"environment variable it interpolates."
+            )
+        root = Path(root_str)
+        if not root.is_absolute():
+            # "." for the self target, and any relative path, is relative to the
+            # forge repo — not to the cwd, which changes per invocation.
+            root = (repo_root / root).resolve()
+
+        site = raw.get("primary_site")
+        managed = raw.get("managed_apps")
+        lint = raw.get("lint_apps")
+        targets[name] = Target(
+            name=name,
+            root=root,
+            stack_profile=raw.get("stack_profile", "frappe"),
+            enabled_tools=list(raw.get("enabled_tools") or cfg.get("enabled_tools") or []),
+            primary_site=resolve_config_str(str(site), env) if site else None,
+            owned_remotes=frozenset(raw.get("owned_remotes") or []),
+            managed_apps=tuple(managed) if managed else None,
+            lint_apps=tuple(lint) if lint else None,
+            renders=frozenset(raw["renders"]) if raw.get("renders") is not None else None,
+            self_target=bool(raw.get("self_target", False)),
+        )
+    return targets
+
+
+def load_target(repo_root: Path, name: str | None = None,
+                forge_cfg: dict[str, Any] | None = None) -> Target:
+    """One target by name, defaulting to the bench."""
+    targets = load_targets(repo_root, forge_cfg)
+    key = name or DEFAULT_TARGET
+    if key not in targets:
+        known = ", ".join(sorted(targets)) or "none"
+        raise KeyError(f"unknown target '{key}'. Declared targets: {known}.")
+    return targets[key]

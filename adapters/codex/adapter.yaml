@@ -1,6 +1,13 @@
 # Codex (OpenAI) adapter
 # Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md §3 + Decision 8
-# Per Decision 8: separate AGENTS.codex.md (no FORGE markers on shared AGENTS.md).
+# Decision 8 called for a separate AGENTS.codex.md so hand-edits would not
+# conflict on the shared AGENTS.md. Codex never read it. Its own base
+# instructions, read out of the shipped 0.136.0 binary, define the contract as
+# "Repos often contain AGENTS.md files ... The contents of the AGENTS.md file at
+# the root of the repo ... are included with the developer message" — no
+# alternate filename, no config key for one. So the file was 10,437 B rendered
+# on every sync into a path nothing opens, while Codex read opencode's AGENTS.md
+# all along. Rendering it is dropped; the adapter stays for hooks and MCP.
 
 tool: codex
 adapter_version: 0.1.0
@@ -15,17 +22,29 @@ capabilities:
 
 output_paths:
   bench_root: "{{ env.FORGE_BENCH_PATH }}"
-  agents_md: "{{ output_paths.bench_root }}/AGENTS.codex.md"
 
 limits:
   max_total_chars: 20000        # Codex per v0.2 §4.0
 
 artifacts:
-  # Single aggregate file at bench root.
-  forge_agents:
+  # Bench-root AGENTS-TICKETING.md — the full vault/ticketing + brain contract,
+  # rendered from the SHARED template so all seven tools ship the same text.
+  # Kept out of the root instruction file on purpose: root files are read every
+  # turn, this one is read only when actually working a ticket.
+  ticketing_doc:
     strategy: aggregate
-    template: AGENTS.codex.md.j2
-    output: "{{ output_paths.agents_md }}"
+    template: ticketing-and-memory.md.j2
+    output: "{{ output_paths.bench_root }}/AGENTS-TICKETING.md"
+
+  harness_doc:
+    strategy: aggregate
+    template: harness-and-gates.md.j2
+    output: "{{ output_paths.bench_root }}/AGENTS-HARNESS.md"
+
+  operating_manual_doc:
+    strategy: aggregate
+    template: operating-manual.md.j2
+    output: "{{ output_paths.bench_root }}/AGENTS-OPERATING-MANUAL.md"
 
 context_loading:
   specialists_inlined: true

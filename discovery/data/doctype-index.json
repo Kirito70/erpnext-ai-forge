@@ -1,47 +1,8 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-05-26T06:58:30.458694+00:00",
+  "generated_at": "2026-09-11T14:24:47.080007+00:00",
   "generated_by": "forge discover",
   "custom_apps": {
-    "cargo_management": [
-      "cargo_packing_list",
-      "cargo_packing_list_line",
-      "cargo_shipment",
-      "cargo_shipment_line",
-      "cargo_shipment_receipt",
-      "cargo_shipment_receipt_line",
-      "cargo_shipment_warehouse",
-      "parcel",
-      "parcel_content",
-      "parcel_selling_settings",
-      "warehouse_receipt",
-      "warehouse_receipt_line"
-    ],
-    "changemakers": {
-      "_count": 52,
-      "_sample": [
-        "admission_criterion",
-        "awareness_camp_record",
-        "beneficiary",
-        "care_centre",
-        "care_centre_admission",
-        "care_centre_admission_detail",
-        "case",
-        "case_followup",
-        "case_type",
-        "changemakers_settings",
-        "changemakers_user_profile",
-        "chronic_illness_type",
-        "daily_visit_update",
-        "designation",
-        "disability_condition",
-        "district",
-        "education_level",
-        "entitlement_request",
-        "entitlement_type",
-        "family_reintegration"
-      ]
-    },
     "erpnext_location": [
       "city",
       "region",
@@ -65,11 +26,62 @@
       "crm_import_log",
       "crm_lead_industry"
     ],
+    "novizna_hr_legal": [
+      "employee_document_event",
+      "employee_document_package",
+      "employee_document_package_requirement",
+      "employee_document_package_waiver",
+      "employee_legal_document",
+      "legal_document_requirement_rule",
+      "legal_document_template",
+      "legal_document_template_version",
+      "legal_document_variable",
+      "legal_rule_access_flag",
+      "legal_rule_designation",
+      "legal_rule_project",
+      "novizna_hr_legal_settings"
+    ],
+    "novizna_integrations": [],
     "novizna_pos": [
       "branch_warehouse",
       "cash_variance_entry",
-      "noviznapos_settings"
+      "noviznapos_settings",
+      "pos_cash_movement",
+      "pos_cash_movement_reason",
+      "pos_delete_request",
+      "pos_invoice_posting_status",
+      "pos_offline_sync_review",
+      "pos_repair_action",
+      "pos_report_export",
+      "pos_report_schedule",
+      "pos_shift_schedule_detail",
+      "pos_stock_discrepancy_log"
     ],
+    "novizna_restaurant": {
+      "_count": 42,
+      "_sample": [
+        "accessibility_need",
+        "accessibility_need_detail",
+        "allergy",
+        "allergy_detail",
+        "cancellation_policy",
+        "compliance_checklist_item",
+        "customer_feedback",
+        "customer_loyalty",
+        "dietary_restriction",
+        "dietary_restriction_detail",
+        "flexible_order_state",
+        "floor_layout_designer",
+        "inventory_control",
+        "kitchen_order",
+        "location_performance_metric",
+        "menu_engineering",
+        "menu_engineering_item",
+        "qr_code_ordering",
+        "regulatory_compliance",
+        "required_document"
+      ]
+    },
     "noviznaerp_payroll": {
       "_count": 73,
       "_sample": [

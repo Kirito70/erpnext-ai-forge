@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
-triggers_agents: [architect, backend-specialist, qa-test-engineer, security-reviewer]
+triggers_agents: [novizna-architect, backend-specialist, qa-test-engineer, security-reviewer]
 ---
 
 # /scaffold-api
@@ -14,7 +14,7 @@ Generate a `@frappe.whitelist()` method with input validation, permission check,
 
 ## Usage
 
-```
+```text
 /scaffold-api <module.method> [--guest] --inputs "<input-spec>" [--rate-limit <n>/min]
 ```
 
@@ -29,7 +29,7 @@ Generate a `@frappe.whitelist()` method with input validation, permission check,
 
 ## Example
 
-```
+```text
 /scaffold-api novizna_crm.api.leads.bulk_assign --inputs "lead_ids:list,owner:str"
 ```
 

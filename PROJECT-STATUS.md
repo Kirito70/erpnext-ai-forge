@@ -72,7 +72,7 @@ No canonical agent, skill, command, or tool content has been authored yet. That 
 | `opencode` | ✅ | ✅ (2 templates) | ✅ AGENTS.md (7k) + 17 commands |
 | `cline` | ✅ | ✅ (2 templates) | ✅ 9 files / 11k chars total |
 | `copilot` | ✅ | ✅ (2 templates) | ✅ 9 files / 12k chars total |
-| `codex` | ✅ | ✅ (1 template) | ✅ AGENTS.codex.md (7k) |
+| `codex` | ✅ | — | reads shared `AGENTS.md` (BRAIN-T8) |
 | `antigravity` | ✅ | ✅ (1 template) | ✅ system.md (5.5k, minimal) |
 
 ---

@@ -58,7 +58,7 @@ adapters/           ← per-tool translation rules + Jinja templates
   opencode/         ← AGENTS.md + native slash commands
   cline/            ← .clinerules/ aggregate
   copilot/          ← .github/copilot-instructions.md + applyTo:
-  codex/            ← AGENTS.codex.md
+  codex/            ← hooks + MCP only (Codex reads the shared AGENTS.md)
   antigravity/      ← minimal system.md
 
 forge/              ← the CLI implementation
@@ -81,7 +81,7 @@ docs/               ← onboarding (this file), incident-response.md
 
 Three files are essential context:
 
-1. **[`canonical/agents/architect.md`](../canonical/agents/architect.md)** — how the architect orchestrates, what review pairings are mandatory, what the closing documentation sub-phase requires.
+1. **[`canonical/agents/novizna-architect.md`](../canonical/agents/novizna-architect.md)** — how the architect orchestrates, what review pairings are mandatory, what the closing documentation sub-phase requires.
 2. **[`canonical/policies/security-scoring.yaml`](../canonical/policies/security-scoring.yaml)** — the deduction table; every pattern the security gate watches for.
 3. **[`discovery/INVENTORY.md`](../discovery/INVENTORY.md)** — what's actually in the bench. Skills reference real apps and DocTypes from here, not generic Frappe.
 

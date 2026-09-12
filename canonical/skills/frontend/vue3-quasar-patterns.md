@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Any change under apps/novizna_pos/novizna-pos-ui/ — Quasar PWA work for the POS"
-scope: [agent:architect, agent:frontend-quasar-specialist, agent:qa-test-engineer]
+scope: [agent:novizna-architect, agent:frontend-quasar-specialist, agent:qa-test-engineer]
 foundational: true
 domain: frontend
 security_score: 100
@@ -18,6 +18,7 @@ supersedes: []
 Patterns specific to the `novizna_pos` Quasar PWA workspace — TypeScript strict, Pinia stores, offline queue, PWA service worker, and the **CSRF token + session cookie** auth model (Decision 17).
 
 ## When to Load
+
 - Adding a page, composable, or store under `apps/novizna_pos/novizna-pos-ui/`
 - Wiring an API call from the POS
 - Touching the PWA service worker config
@@ -42,6 +43,7 @@ Patterns specific to the `novizna_pos` Quasar PWA workspace — TypeScript stric
 **When:** Every API call from the POS shell.
 
 **Do:**
+
 ```typescript
 // apps/novizna_pos/novizna-pos-ui/src/boot/axios.ts
 import { boot } from 'quasar/wrappers'
@@ -79,6 +81,7 @@ The CSRF token is hydrated at app boot from the bootstrap response (or a meta ta
 **When:** Components consume the POS profile.
 
 **Do:**
+
 ```typescript
 // apps/novizna_pos/novizna-pos-ui/src/stores/pos-profile.ts
 import { defineStore } from 'pinia'
@@ -119,6 +122,7 @@ export function usePosProfile() {
 **When:** Network is flaky; invoice saves must not be lost.
 
 **Do:**
+
 ```typescript
 // src/stores/offline-queue.ts
 import { defineStore } from 'pinia'
@@ -158,6 +162,7 @@ window.addEventListener('online', () => { useOfflineQueue().flush() })
 ### Pattern: Quasar Notify / Dialog / Loading
 
 **Do:**
+
 ```typescript
 import { Notify, Dialog, Loading } from 'quasar'
 
@@ -178,6 +183,7 @@ These plugins must be enabled in `quasar.config.ts:framework.plugins`.
 ### Pattern: New page + route
 
 **Do:**
+
 ```typescript
 // src/router/routes.ts
 const routes = [
@@ -191,13 +197,18 @@ const routes = [
 ]
 ```
 
-Restaurant pages go under `src/pages/restaurant/`; their components under `src/components/restaurant/`.
+The route path and the file path are the same path — `/pos/manage/catalog/items` lives at
+`src/pages/pos/manage/catalog/items/ItemsPage.vue`. Folder layout, shared-component placement and
+the "touch it, move it" migration rule are owned by
+[`frontend/spa-file-structure`](./spa-file-structure.md); read it before adding any page.
+Restaurant pages follow the same rule under the `restaurant` area.
 
 ### Pattern: Service worker allowlist
 
 **When:** Caching PDF print formats for offline receipt printing.
 
 **Do:**
+
 ```typescript
 // quasar.config.ts (excerpt)
 pwa: {
@@ -214,6 +225,7 @@ pwa: {
 ```
 
 ## Common Pitfalls
+
 - Reading `document.cookie` to extract the session — it's `HttpOnly`; JS cannot see it. Use `withCredentials: true`.
 - Hard-coding `X-Frappe-CSRF-Token` from a public endpoint — defeats CSRF protection.
 - `any` typing to silence TS errors — the project enforces strict mode; QA flags as LOW.
@@ -223,8 +235,9 @@ pwa: {
 - Reading or writing to `localStorage` for credentials — never, even temporarily.
 
 ## References
+
 - [`erpnext-domains/pos`](../erpnext-domains/pos.md) — POS domain model + invoice / closing entry flows
 - [`integrations/queueing-retry-backoff`](../integrations/queueing-retry-backoff.md) — for the offline-queue retry semantics
 - [`security/review-checklist`](../security/review-checklist.md) — CSRF + offline cache leak checks
 - [`discovery/data/anti-pattern-findings.json`](../../../discovery/data/anti-pattern-findings.json) — AP-005 (`ignore_csrf=true`)
-- Quasar docs: https://quasar.dev/
+- Quasar docs: <https://quasar.dev/>

@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
 trigger: "Any UI change to novizna_crm frontend (the CRM extension with the 3-layer override system)"
-scope: [agent:architect]
+scope: [agent:novizna-architect]
 foundational: false
 security_score: 100
 ---
@@ -49,11 +49,14 @@ The 10 currently-overridden files are listed in [override-map.json](../../discov
 ## Skills
 
 ### Foundational (always loaded)
+
 - [`frontend/novizna-crm-override-system`](../skills/frontend/novizna-crm-override-system.md)
+- [`frontend/spa-file-structure`](../skills/frontend/spa-file-structure.md) — where a page/component goes (within the bucket the override system picks)
 - [`frontend/frappe-ui-components`](../skills/frontend/frappe-ui-components.md)
 - [`frappe-core/conventions`](../skills/frappe-core/conventions.md)
 
 ### Model-invoked
+
 - [`frappe-core/whitelist-api-patterns`](../skills/frappe-core/whitelist-api-patterns.md) — when wiring up a new API call
 - [`security/review-checklist`](../skills/security/review-checklist.md) — when API surface expands
 
@@ -105,6 +108,7 @@ The 10 currently-overridden files are listed in [override-map.json](../../discov
 
 1. **Classify:** Needs an override (LeadsListHeader) + a net-new component (the filter dropdown)
 2. **Net-new:** `apps/novizna_crm/frontend/src/components/Leads/LeadsIndustryFilter.vue`
+
    ```vue
    <script setup>
    import { createListResource } from 'frappe-ui'
@@ -118,6 +122,7 @@ The 10 currently-overridden files are listed in [override-map.json](../../discov
    </script>
    <template>...</template>
    ```
+
 3. **Override:** `apps/novizna_crm/frontend/src_override/components/Leads/LeadsListHeader.vue`
    - Copy upstream `apps/crm/frontend/src/components/Leads/LeadsListHeader.vue`
    - Slot in `<LeadsIndustryFilter @change="..." />` next to the existing filters
@@ -134,3 +139,24 @@ The 10 currently-overridden files are listed in [override-map.json](../../discov
 - You do not place files under `crm_build/` or `public/frontend/`
 - You do not import server-side Frappe APIs directly — go through Frappe-UI's resources
 - You do not add a fourth override bucket
+
+---
+
+## Review Mode
+
+When [`/ticket-review`](../commands/ticket-review.md) invokes you as a
+**reviewer** rather than as the producer of the artifact under review — you
+fill the project-pattern lane for a Vue/Frappe-UI artifact you did not
+produce — you operate **read-only**: `Read`, `Grep`, `Glob` only, no `Write`,
+no `Edit`. Emit the standard
+[review-protocol §1](../policies/review-protocol.md#1-review-output-format)
+output instead of code. You do not fix what you find; you report it.
+
+This is a different tool posture from your normal producer role above, gated
+by invocation context, not by a separate frontmatter entry — the same agent
+definition serves both roles because the review knowledge (override layering,
+the three-bucket system, upstream boundaries) is identical either way.
+
+You typically fill this lane reviewing [`frontend-quasar-specialist`](frontend-quasar-specialist.md)'s
+output (different stack, same Vue 3 conventions) — not your own producer
+output, which needs an independent reviewer.

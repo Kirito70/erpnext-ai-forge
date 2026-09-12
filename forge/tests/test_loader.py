@@ -29,7 +29,7 @@ def test_load_agents(repo_root):
     agents = load_agents(repo_root)
     ids = {a.id for a in agents}
     assert ids == {
-        "architect",
+        "novizna-architect",
         "backend-specialist",
         "frontend-frappe-ui-specialist",
         "frontend-quasar-specialist",
@@ -37,11 +37,14 @@ def test_load_agents(repo_root):
         "security-reviewer",
         "qa-test-engineer",
         "devops-deployment",
+        "ticket-refiner",
+        "code-reviewer",
+        "frappe-framework-reviewer",
     }
 
 
 def test_architect_is_foundational(repo_root):
-    architect = next(a for a in load_agents(repo_root) if a.id == "architect")
+    architect = next(a for a in load_agents(repo_root) if a.id == "novizna-architect")
     assert architect.foundational is True
     assert architect.kind == "agent"
     assert architect.version != "0.0.0"
@@ -49,16 +52,16 @@ def test_architect_is_foundational(repo_root):
     assert architect.body.strip()  # body is non-empty
 
 
-def test_load_commands_returns_17(repo_root):
+def test_load_commands_returns_21(repo_root):
     commands = load_commands(repo_root)
-    assert len(commands) == 17
+    assert len(commands) == 21  # +write-ticket, +refine-ticket, +ticket-review, +gap-ticket
     expected_subset = {"scaffold-doctype", "review-security", "forge-sync"}
     assert expected_subset <= {c.id for c in commands}
 
 
-def test_load_skills_returns_30(repo_root):
+def test_load_skills_returns_33(repo_root):
     skills = load_skills(repo_root)
-    assert len(skills) == 30
+    assert len(skills) == 33  # +frontend/spa-file-structure, +frontend/frappe-worktrees
     # Every skill has a domain inferred from parent dir
     domains = {s.domain for s in skills}
     assert "frappe-core" in domains
@@ -69,7 +72,12 @@ def test_load_skills_returns_30(repo_root):
 def test_load_policies(repo_root):
     policies = load_policies(repo_root)
     ids = {p.id for p in policies}
-    assert ids == {"review-protocol", "escalation-rules", "governance"}
+    assert ids == {
+        "review-protocol", "escalation-rules", "governance",
+        # Moved out of adapters/_shared/templates/ so they get versioning,
+        # scoring, validation and deprecation like every other artifact.
+        "ticketing-contract", "operating-manual", "definition-of-done",
+    }
 
 
 def test_load_security_scoring_yaml(repo_root):
@@ -96,7 +104,16 @@ def test_load_discovery(repo_root):
     custom = snap.custom_app_names()
     assert "novizna_crm" in custom
     assert "novizna_pos" in custom
-    assert len(custom) == 8
+
+    # The two lists partition the bench: nothing is both ours and not ours.
+    # Asserted as an invariant rather than a hard-coded length, which was the
+    # previous form — it encoded the count produced by the classification bug
+    # (third-party apps counted as custom) and would break again on the next
+    # app installed into the bench.
+    unowned = {a["name"] for a in snap.apps.get("upstream_apps", [])}
+    assert not (set(custom) & unowned)
+    assert snap.apps["totals"]["custom_app_count"] == len(custom)
+    assert snap.apps["totals"]["unowned_app_count"] == len(unowned)
 
 
 def test_discovery_app_lookup(repo_root):

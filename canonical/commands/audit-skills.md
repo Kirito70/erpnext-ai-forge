@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
-triggers_agents: [architect, security-reviewer]
+triggers_agents: [novizna-architect, security-reviewer]
 ---
 
 # /audit-skills
@@ -14,7 +14,7 @@ Lint canonical agents / skills / commands / tools for drift, dead links, and sec
 
 ## Usage
 
-```
+```text
 /audit-skills [--scope <dir>]
 ```
 
@@ -26,7 +26,7 @@ Lint canonical agents / skills / commands / tools for drift, dead links, and sec
 
 ## Examples
 
-```
+```text
 /audit-skills
 /audit-skills --scope canonical/skills/integrations
 ```

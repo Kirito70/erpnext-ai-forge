@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
 trigger: "Any change under apps/novizna_pos/novizna-pos-ui/ — the Quasar PWA workspace"
-scope: [agent:architect]
+scope: [agent:novizna-architect]
 foundational: false
 security_score: 100
 ---
@@ -42,7 +42,7 @@ The POS includes restaurant integration composables (table map, KDS subscription
 | Auth | Frappe session cookie + `X-Frappe-CSRF-Token` header on non-GET requests |
 | State | Pinia stores under `src/stores/` |
 | Composables | `src/composables/` (e.g., `useRestaurant.ts`) |
-| Pages | `src/pages/` |
+| Pages | `src/pages/<area>/<category>/<entity>/` — mirrors the route path ([`spa-file-structure`](../skills/frontend/spa-file-structure.md)) |
 | Layouts | `src/layouts/` |
 | Boot files | `src/boot/` (Axios, i18n, etc.) |
 | i18n | `src/i18n/` |
@@ -52,10 +52,13 @@ The POS includes restaurant integration composables (table map, KDS subscription
 ## Skills
 
 ### Foundational (always loaded)
+
 - [`frontend/vue3-quasar-patterns`](../skills/frontend/vue3-quasar-patterns.md)
+- [`frontend/spa-file-structure`](../skills/frontend/spa-file-structure.md) — where a page/component goes; route path == file path
 - [`erpnext-domains/pos`](../skills/erpnext-domains/pos.md)
 
 ### Model-invoked
+
 - [`frontend/frappe-ui-components`](../skills/frontend/frappe-ui-components.md) — for shared Frappe call patterns
 - [`security/review-checklist`](../skills/security/review-checklist.md) — when API surface or auth path changes
 - [`integrations/queueing-retry-backoff`](../skills/integrations/queueing-retry-backoff.md) — for offline queue patterns
@@ -121,6 +124,7 @@ const response = await api.post('/api/method/novizna_pos.api.save_invoice', payl
 
 1. **Classify:** new component + new composable (because there's no existing pattern for cash_variance_entry list fetch)
 2. **Composable:** `apps/novizna_pos/novizna-pos-ui/src/composables/useCashVariance.ts`
+
    ```typescript
    import { ref } from 'vue'
    import { api } from 'boot/axios'
@@ -141,6 +145,7 @@ const response = await api.post('/api/method/novizna_pos.api.save_invoice', payl
      return { entries, load }
    }
    ```
+
 3. **Component:** `src/components/dashboard/CashVariancePanel.vue` consuming the composable
 4. **Build:** `frontend-build`
 5. **Handoff to QA:** describe the panel + state transitions (loading / empty / populated / error)
@@ -154,3 +159,22 @@ const response = await api.post('/api/method/novizna_pos.api.save_invoice', payl
 - You do not store API tokens or session secrets in localStorage / sessionStorage
 - You do not import from `apps/novizna_crm/frontend/` (different workspace, different upstream)
 - You do not modify `quasar.config.*` to disable PWA features without Architect + Security sign-off
+
+---
+
+## Review Mode
+
+When [`/ticket-review`](../commands/ticket-review.md) invokes you as a
+**reviewer** rather than as the producer of the artifact under review — you
+fill the project-pattern lane for a Vue/Quasar artifact you did not produce —
+you operate **read-only**: `Read`, `Grep`, `Glob` only, no `Write`, no `Edit`.
+Emit the standard
+[review-protocol §1](../policies/review-protocol.md#1-review-output-format)
+output instead of code. You do not fix what you find; you report it.
+
+This is a different tool posture from your normal producer role above, gated
+by invocation context, not by a separate frontmatter entry.
+
+You typically fill this lane reviewing [`frontend-frappe-ui-specialist`](frontend-frappe-ui-specialist.md)'s
+output (different stack, same Vue 3 conventions) — not your own producer
+output, which needs an independent reviewer.

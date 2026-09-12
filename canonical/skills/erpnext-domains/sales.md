@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Work touching the Sales cycle DocTypes — Quotation, Sales Order, Delivery Note, Sales Invoice, Customer, or the CRM ↔ ERPNext bridge"
-scope: [agent:architect, agent:backend-specialist, agent:qa-test-engineer]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:qa-test-engineer]
 foundational: false
 domain: erpnext-domains
 security_score: 100
@@ -18,6 +18,7 @@ supersedes: []
 The Quotation → Sales Order → Delivery Note → Sales Invoice cycle, plus Customer/Address/Contact and the **novizna_crm ↔ ERPNext sync** (`novizna_crm.api.erpnext_sync`). Loaded when work touches any of these DocTypes.
 
 ## When to Load
+
 - A change to a `crm_*` flow that pushes to ERPNext (sync)
 - Customizing the Quote → SO → DN → SI cycle
 - Authoring a Custom Field on `Sales Invoice` / `Sales Order`
@@ -37,7 +38,7 @@ The Quotation → Sales Order → Delivery Note → Sales Invoice cycle, plus Cu
 
 ## The Sales Cycle (default)
 
-```
+```text
 CRM Lead → CRM Deal → Quotation → Sales Order → Delivery Note → Sales Invoice
                           ↘ (or)                                       ↗
                             Sales Invoice (direct, without DN)
@@ -63,6 +64,7 @@ When extending this bridge, follow the orchestration-vs-connector split per [Dec
 **When:** Sales rep clicks "Generate Quote" on a CRM Deal.
 
 **Do:**
+
 ```python
 import frappe
 from frappe import _
@@ -91,6 +93,7 @@ def make_quotation_from_deal(deal_name: str) -> dict:
 **When:** `cargo_management` needs a `customs_code` field on Sales Invoice.
 
 **Do:**
+
 - Don't edit `apps/erpnext/erpnext/accounts/doctype/sales_invoice/sales_invoice.json` (CRITICAL — D-EDIT-UPSTREAM).
 - Add a Custom Field via the UI or `bench --site ... execute frappe.custom.doctype.custom_field.custom_field.create_custom_field` then export the fixture:
 
@@ -110,6 +113,7 @@ After every fixture-touching change, run [`fixture-differ`](../../tools/fixture-
 **When:** Need to react after the GL is posted (e.g., notify customer).
 
 **Do (in hooks.py):**
+
 ```python
 doc_events = {
     "Sales Invoice": {
@@ -134,6 +138,7 @@ quote.currency = customer.default_currency or frappe.defaults.get_global_default
 ### Pattern: Standard sales reports to mirror
 
 When authoring CRM-side reports, mirror ERPNext's:
+
 - `Sales Register` (Sales Invoice list)
 - `Item-wise Sales Register`
 - `Sales Order Analysis`
@@ -154,6 +159,7 @@ Use the same column shapes for visual consistency.
 User Permissions on `Territory`, `Company`, or `Customer Group` are the common multi-tenant slicers — see [`frappe-core/permissions-model`](../frappe-core/permissions-model.md).
 
 ## Common Pitfalls
+
 - Calling `make_sales_invoice(source_name)` without checking docstatus — only works on submitted source docs.
 - Adding items to Quotation without a Price List context — rates may be 0 or wrong-currency.
 - Hard-coding `Sales User` in tests — that role assumes the user owns the doc; switch tests to `Sales Manager` for cross-user paths.
@@ -162,6 +168,7 @@ User Permissions on `Territory`, `Company`, or `Customer Group` are the common m
 - Not reading [`erpnext-domains/accounting`](./accounting.md) when adding fields that affect GL — Sales Invoice posts to GL on submit.
 
 ## References
+
 - [`erpnext-domains/crm`](./crm.md) — pre-sales side
 - [`erpnext-domains/accounting`](./accounting.md) — what Sales Invoice does on submit
 - [`frappe-core/doctype-authoring`](../frappe-core/doctype-authoring.md) — Custom Field decision matrix

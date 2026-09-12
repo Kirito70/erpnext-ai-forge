@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
-scope: [agent:architect, agent:security-reviewer]
+scope: [agent:novizna-architect, agent:security-reviewer]
 ---
 
 # Governance
@@ -18,10 +18,10 @@ How the canonical layer evolves, how artifacts are versioned, deprecated, and ro
 
 | Role | Owner |
 |------|-------|
-| Repo owner | m.tayyab9736@gmail.com |
-| Security policy reviewer | m.tayyab9736@gmail.com |
-| Calibration cadence reviewer | m.tayyab9736@gmail.com |
-| 3-month AI Forge merge checkpoint | m.tayyab9736@gmail.com |
+| Repo owner | <m.tayyab9736@gmail.com> |
+| Security policy reviewer | <m.tayyab9736@gmail.com> |
+| Calibration cadence reviewer | <m.tayyab9736@gmail.com> |
+| 3-month AI Forge merge checkpoint | <m.tayyab9736@gmail.com> |
 
 Per-artifact owners are declared in frontmatter (`owners:` field). An artifact may have multiple owners; the first listed is the on-call for incident response.
 

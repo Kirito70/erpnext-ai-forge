@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Authoring or reviewing an inbound webhook receiver (EasyPost, 17Track, Invoice Ninja, Stripe-style)"
-scope: [agent:architect, agent:integrations-specialist, agent:security-reviewer]
+scope: [agent:novizna-architect, agent:integrations-specialist, agent:security-reviewer]
 foundational: true
 domain: integrations
 security_score: 100
@@ -18,6 +18,7 @@ supersedes: []
 How to write webhook receivers that verify signatures, rate-limit, log, and dispatch safely. Grounded in the two existing webhook receivers on this bench: **EasyPost** (`cargo_management/.../easypost_api.py:84`) and **17Track** (`cargo_management — webhook_17track`).
 
 ## When to Load
+
 - Adding a webhook receiver for a new vendor
 - Reviewing an existing receiver for the AP-002 finding (guest endpoint without protection)
 - Investigating a webhook failure (signature mismatch, retries, duplicates)
@@ -39,6 +40,7 @@ How to write webhook receivers that verify signatures, rate-limit, log, and disp
 **When:** EasyPost webhook for parcel status updates.
 
 **Do:**
+
 ```python
 # apps/cargo_management/cargo_management/parcel_management/doctype/parcel/api/easypost_api.py
 import hashlib, hmac
@@ -93,6 +95,7 @@ def easypost_webhook() -> dict:
 ```
 
 **Don't (AP-002 lineage):**
+
 ```python
 @frappe.whitelist(allow_guest=True)
 def easypost_webhook():
@@ -109,6 +112,7 @@ This is the kind of pattern that puts AP-002 at MEDIUM in [`anti-pattern-finding
 **When:** 17Track uses a different signature scheme (often `X-17track-Sign` MD5 of `body+secret`).
 
 **Do:** Read the vendor's docs; isolate the verification in a small helper:
+
 ```python
 def _verify_17track_signature(raw: bytes, sig: str, secret: str) -> bool:
     expected = hashlib.md5(raw + secret.encode()).hexdigest()
@@ -121,7 +125,7 @@ Each vendor differs. The pattern is constant: read raw → derive expected → c
 
 **Do:** Each integration owns a sync log DocType (e.g., `Parcel Sync Log`, `Invoice Ninja Sync Logs` — the latter already exists per [`doctype-index.json`](../../../discovery/data/doctype-index.json)). Schema:
 
-```
+```text
 event_id   (Data, unique, search_index)
 vendor     (Data)
 received_at (Datetime, default now)
@@ -137,6 +141,7 @@ The unique `event_id` index makes duplicate detection O(1).
 **When:** The enqueued job that does the actual work.
 
 **Do:**
+
 ```python
 def handle_easypost_event(payload: dict) -> None:
     """Apply an EasyPost tracking update to the matching Parcel."""
@@ -150,6 +155,7 @@ def handle_easypost_event(payload: dict) -> None:
 Background processors are the right place for `frappe.db.set_value` / `ignore_permissions=True` patterns because they run outside a user request context.
 
 ## Common Pitfalls
+
 - Parsing the JSON body before computing signature — signature is over the raw bytes; `json.dumps(parsed)` produces different bytes (key order, whitespace).
 - Returning a non-200 on duplicate events — vendor will retry forever. Return 200 with `duplicate: True`.
 - Logging the raw signature secret in error messages — leaks the secret. Log only the prefix or hash.
@@ -158,6 +164,7 @@ Background processors are the right place for `frappe.db.set_value` / `ignore_pe
 - `frappe.local.request_ip` behind a reverse proxy without `X-Forwarded-For` honoring — rate limit miscounts.
 
 ## References
+
 - [`integrations/oauth-patterns`](./oauth-patterns.md) — for the outbound counterpart
 - [`integrations/queueing-retry-backoff`](./queueing-retry-backoff.md) — for the background job semantics
 - [`frappe-core/whitelist-api-patterns`](../frappe-core/whitelist-api-patterns.md) — for `@frappe.whitelist(allow_guest=True, methods=["POST"])`

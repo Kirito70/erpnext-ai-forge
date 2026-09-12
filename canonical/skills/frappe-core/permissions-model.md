@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Designing DocType permissions, calling has_permission, reviewing ignore_permissions usage, or planning Role Profiles / User Permissions"
-scope: [agent:architect, agent:backend-specialist, agent:security-reviewer, agent:qa-test-engineer]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:security-reviewer, agent:qa-test-engineer]
 foundational: false
 domain: frappe-core
 security_score: 100
@@ -18,6 +18,7 @@ supersedes: []
 How role-based perms, permlevels, User Permissions, Document Share, and Role Profiles compose at runtime — and which checks belong in your code.
 
 ## When to Load
+
 - Drafting the permissions block in a new DocType
 - Adding `frappe.has_permission(...)` calls in a whitelist endpoint
 - Reviewing an `ignore_permissions=True` occurrence (see [AP-003](../../../discovery/data/anti-pattern-findings.json) — 99 known)
@@ -41,6 +42,7 @@ How role-based perms, permlevels, User Permissions, Document Share, and Role Pro
 **When:** Designing perms for a new transactional DocType (e.g., `cash_variance_entry`).
 
 **Do:**
+
 ```json
 "permissions": [
   { "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "amend": 1 },
@@ -52,9 +54,11 @@ How role-based perms, permlevels, User Permissions, Document Share, and Role Pro
 `if_owner: 1` restricts non-Manager users to docs they created — a common POS pattern.
 
 **Don't:**
+
 ```json
 [{ "role": "All", "read": 1, "write": 1, "create": 1, "delete": 1 }]
 ```
+
 The `All` role plus full perms exposes every authenticated user. Security Reviewer flags as MEDIUM.
 
 ### Pattern: `has_permission` at the whitelist boundary
@@ -62,6 +66,7 @@ The `All` role plus full perms exposes every authenticated user. Security Review
 **When:** Endpoint reads or mutates a specific doc.
 
 **Do:**
+
 ```python
 @frappe.whitelist()
 def submit_invoice(invoice_id: str) -> dict:
@@ -81,6 +86,7 @@ This mirrors the `novizna_pos.api.submit_invoice` endpoint (one of the 33 in `no
 **When:** Truly needed (scheduled tasks, post-install patches, system-generated logs).
 
 **Do:**
+
 ```python
 def on_invoice_submit(doc, method):
     """Log the submit to Parcel Log (system action — current user may not own Parcel Log)."""
@@ -93,10 +99,12 @@ def on_invoice_submit(doc, method):
 The 1-line justification before or beside the call is what Security Reviewer looks for. Without it, the AP-003 deduction applies.
 
 **Don't:**
+
 ```python
 # (no comment)
 new_doc.insert(ignore_permissions=True)
 ```
+
 Phase 2 `forge score` flags any `ignore_permissions=True` without a justifying comment within 3 lines.
 
 ### Pattern: User Permissions for tenant isolation
@@ -104,6 +112,7 @@ Phase 2 `forge score` flags any `ignore_permissions=True` without a justifying c
 **When:** A user should only see Customers in their Region.
 
 **Do (configured via UI or fixture, not code):**
+
 ```json
 // User Permission row
 {
@@ -124,6 +133,7 @@ This causes `frappe.get_list("Customer", ...)` for that user to be silently filt
 **When:** Manager can see `internal_notes`; user cannot.
 
 **Do (in DocType JSON):**
+
 ```json
 {
   "fieldname": "internal_notes", "fieldtype": "Small Text",
@@ -151,6 +161,7 @@ When Frappe decides "can user X do ptype on doc Y?":
 5. Does `if_owner` restrict to docs created by X? → enforce
 
 ## Common Pitfalls
+
 - Defining a `permlevel: 1` field but no `permlevel: 1` permission row — nobody can read it (not even System Manager — they have to add the row).
 - Using `frappe.get_all` in a user-triggered handler — bypasses permissions and User Permissions filtering. Use `frappe.get_list` instead.
 - `frappe.set_user("Administrator")` inside a handler to "work around" permission failures — that's a permission bypass; use `ignore_permissions=True` with justification at the specific call instead.
@@ -158,6 +169,7 @@ When Frappe decides "can user X do ptype on doc Y?":
 - Forgetting that `frappe.has_permission` with `doc=None` checks the DocType-level perm, not a specific row.
 
 ## References
+
 - [`frappe-core/doctype-authoring`](./doctype-authoring.md) — for the JSON permissions block
 - [`frappe-core/whitelist-api-patterns`](./whitelist-api-patterns.md) — for the boundary-check pattern
 - [`security/review-checklist`](../security/review-checklist.md) — for the AP-003 review walkthrough

@@ -4,7 +4,6 @@
   Output: <bench>/.claude/skills/<domain>/<id>.md
   Phase 1b will populate canonical/skills/ — this template is in place for then.
 -#}
-<!-- AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT -->
 ---
 name: {{ artifact.id }}
 description: {{ artifact.trigger | tojson }}
@@ -18,7 +17,13 @@ scope:
 {% endfor -%}
 {%- endif %}
 version: "{{ artifact.version }}"
+{#- `domain` moved out of the output PATH and into frontmatter. Claude Code
+    addresses a skill as <name>/SKILL.md, so a domain segment in the path made
+    every skill undiscoverable. It is metadata about the skill, not part of its
+    address. #}
+domain: {{ artifact.domain }}
 ---
+<!-- AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT -->
 
 {{ artifact.body }}
 

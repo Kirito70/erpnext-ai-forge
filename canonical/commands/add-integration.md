@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
-triggers_agents: [architect, integrations-specialist, security-reviewer, qa-test-engineer]
+triggers_agents: [novizna-architect, integrations-specialist, security-reviewer, qa-test-engineer]
 ---
 
 # /add-integration
@@ -14,7 +14,7 @@ Scaffold a new vendor integration: connector class + Settings DocType + optional
 
 ## Usage
 
-```
+```text
 /add-integration <vendor> --auth oauth2|api-key|basic [--webhook] [--scheduler <cron>]
 ```
 
@@ -29,7 +29,7 @@ Scaffold a new vendor integration: connector class + Settings DocType + optional
 
 ## Example
 
-```
+```text
 /add-integration pipedrive --auth oauth2 --webhook --scheduler "0 2 * * *"
 ```
 

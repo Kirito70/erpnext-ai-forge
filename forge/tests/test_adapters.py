@@ -24,14 +24,22 @@ def fake_bench_env(tmp_path, monkeypatch):
     yield
 
 
+
+def _managed_app_count(repo_root) -> int:
+    """How many apps forge is allowed to write per-app files into."""
+    from forge.loader import load_forge_config
+
+    return len(load_forge_config(repo_root)["bench"]["managed_apps"])
+
+
 # ---------------------------------------------------------------------------
 # Cursor
 # ---------------------------------------------------------------------------
 def test_cursor_renders_main_plus_per_app(repo_root):
     rendered = render(repo_root, "cursor")
     summary = render_summary(rendered)
-    # 1 forge-main.mdc + 8 per-app .mdc files
-    assert summary.get("aggregate") == 9
+    # 1 forge-main.mdc + one .mdc per managed app + the shared AGENTS-TICKETING.md
+    assert summary.get("aggregate") == 4 + _managed_app_count(repo_root)
     main = next(r for r in rendered if r.artifact_id == "aggregate/forge_main")
     # Must respect the 40k char budget
     assert len(main.content) < 40_000, f"forge-main.mdc {len(main.content)} chars exceeds 40k budget"
@@ -50,13 +58,13 @@ def test_opencode_renders_full_artifact_set(repo_root):
     agent, command, skill, and tool under .opencode/<kind>/."""
     rendered = render(repo_root, "opencode")
     summary = render_summary(rendered)
-    # Same counts as Claude Code (8 agents + 17 commands + 30 skills + 14 tools)
+    # Same counts as Claude Code (11 agents + 21 commands + 32 skills + 14 tools)
     # plus a single AGENTS.md index aggregate.
-    assert summary.get("agent") == 8
-    assert summary.get("command") == 17
-    assert summary.get("skill") == 30
+    assert summary.get("agent") == 11
+    assert summary.get("command") == 21
+    assert summary.get("skill") == 33
     assert summary.get("tool") == 14
-    assert summary.get("aggregate") == 1   # AGENTS.md index only
+    assert summary.get("aggregate") == 4   # AGENTS.md index + the three shared bench-root docs
     # AGENTS.md is the bench-root index
     agents_md = next(r for r in rendered if r.artifact_id == "aggregate/forge_agents_index")
     assert agents_md.output_path.name == "AGENTS.md"
@@ -86,8 +94,8 @@ def test_opencode_writes_to_dot_opencode_tree(repo_root):
 def test_cline_renders_main_plus_per_app(repo_root):
     rendered = render(repo_root, "cline")
     summary = render_summary(rendered)
-    # 1 main + 8 per-app
-    assert summary.get("aggregate") == 9
+    # 1 main + one per managed app + the shared AGENTS-TICKETING.md
+    assert summary.get("aggregate") == 4 + _managed_app_count(repo_root)
     main = next(r for r in rendered if r.artifact_id == "aggregate/forge_main")
     assert len(main.content) < 35_000, "00-forge-main.md exceeds 35k budget"
     assert main.output_path.name == "00-forge-main.md"
@@ -101,7 +109,8 @@ def test_cline_renders_main_plus_per_app(repo_root):
 def test_copilot_renders_main_plus_per_app(repo_root):
     rendered = render(repo_root, "copilot")
     summary = render_summary(rendered)
-    assert summary.get("aggregate") == 9
+    # 1 main + one per managed app + the shared AGENTS-TICKETING.md
+    assert summary.get("aggregate") == 4 + _managed_app_count(repo_root)
     main = next(r for r in rendered if r.artifact_id == "aggregate/copilot_instructions")
     assert len(main.content) < 30_000, "copilot-instructions.md exceeds 30k budget"
     assert main.output_path.name == "copilot-instructions.md"
@@ -115,12 +124,19 @@ def test_copilot_renders_main_plus_per_app(repo_root):
 # ---------------------------------------------------------------------------
 # Codex
 # ---------------------------------------------------------------------------
-def test_codex_renders_single_aggregate(repo_root):
+def test_codex_renders_no_root_instruction_file(repo_root):
+    """Codex reads the bench-root `AGENTS.md`, which OpenCode owns.
+
+    Decision 8 originally gave it `AGENTS.codex.md` on a filename that was
+    never verified. Codex 0.136.0's own base instructions define the contract
+    as the root `AGENTS.md` with no alternate filename and no config key for
+    one — so forge was rendering 10,437 B into a path nothing opens. The
+    adapter stays for hooks and MCP; only the three shared docs remain.
+    """
     rendered = render(repo_root, "codex")
-    assert len(rendered) == 1
-    out = rendered[0]
-    assert out.output_path.name == "AGENTS.codex.md"
-    assert len(out.content) < 20_000, "AGENTS.codex.md exceeds 20k budget"
+    assert {r.output_path.name for r in rendered} == {
+        "AGENTS-TICKETING.md", "AGENTS-HARNESS.md", "AGENTS-OPERATING-MANUAL.md",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -128,13 +144,14 @@ def test_codex_renders_single_aggregate(repo_root):
 # ---------------------------------------------------------------------------
 def test_antigravity_renders_minimal_aggregate(repo_root):
     rendered = render(repo_root, "antigravity")
-    assert len(rendered) == 1
-    out = rendered[0]
-    assert out.output_path.name == "system.md"
+    # Root instruction file + the three shared docs + .agents/hooks.json, which
+    # is antigravity's native Stop-hook wiring.
+    assert len(rendered) == 5
+    out = next(r for r in rendered if r.output_path.name == "system.md")
     # Minimal target: respect 15k budget
     assert len(out.content) < 15_000, "system.md exceeds 15k budget"
     # Only the 3 inlined personas should appear as expanded persona sections
-    assert "Persona: `architect`" in out.content
+    assert "Persona: `novizna-architect`" in out.content
     assert "Persona: `backend-specialist`" in out.content
     assert "Persona: `security-reviewer`" in out.content
 
@@ -186,3 +203,20 @@ def test_every_adapter_writes_provenance_footer(repo_root, tool):
         if r.artifact_kind == "aggregate":
             assert "erpnext-ai-forge" in r.content
             assert "AUTO-GENERATED" in r.content
+
+
+def test_antigravity_inlines_exactly_what_its_config_declares(repo_root):
+    """The template used to restate `inlined_specialists_only` as a literal id
+    list. Renaming architect → novizna-architect updated the yaml, the literal
+    went stale, and the persona vanished from the output with nothing failing.
+    The yaml is now the only place the list exists; this pins that."""
+    from forge.loader import load_adapter_config
+
+    declared = load_adapter_config(repo_root, "antigravity")["context_loading"][
+        "inlined_specialists_only"
+    ]
+    out = next(r for r in render(repo_root, "antigravity")
+               if r.output_path.name == "system.md")
+    for agent_id in declared:
+        assert f"Persona: `{agent_id}`" in out.content, agent_id
+    assert out.content.count("### Persona:") == len(declared)

@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
-triggers_agents: [architect, backend-specialist]
+triggers_agents: [novizna-architect, backend-specialist]
 ---
 
 # /explain-hook
@@ -14,7 +14,7 @@ Walk through a `hooks.py` entry and trace its full dispatch chain.
 
 ## Usage
 
-```
+```text
 /explain-hook <app> <hook-name>
 ```
 
@@ -27,7 +27,7 @@ Walk through a `hooks.py` entry and trace its full dispatch chain.
 
 ## Examples
 
-```
+```text
 /explain-hook novizna_pos doc_events
 /explain-hook invoice_ninja_integration scheduler_events
 ```

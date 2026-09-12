@@ -3,7 +3,6 @@
   Input: artifact object with frontmatter + body.
   Output: <bench>/.claude/commands/<id>.md  (invoked as /<id>)
 -#}
-<!-- AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT -->
 ---
 description: {{ artifact.description | tojson }}
 {% if artifact.argument_hint -%}
@@ -13,6 +12,7 @@ argument-hint: {{ artifact.argument_hint }}
 allowed-tools: {{ artifact.allowed_tools | join(", ") }}
 {%- endif %}
 ---
+<!-- AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT -->
 
 {{ artifact.body }}
 

@@ -1,5 +1,5 @@
 ---
-id: architect
+id: novizna-architect
 kind: agent
 version: 1.1.0
 status: stable

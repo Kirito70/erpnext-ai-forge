@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Authoring a one-shot data migration or schema fix-up that runs on `bench migrate`"
-scope: [agent:architect, agent:backend-specialist, agent:devops-deployment]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:devops-deployment]
 foundational: true
 domain: frappe-core
 security_score: 100
@@ -18,6 +18,7 @@ supersedes: []
 How to author idempotent, rollback-safe Frappe patches that run on `bench migrate`. Used whenever a DocType schema change requires data backfill or a one-shot data transformation is needed.
 
 ## When to Load
+
 - Adding fields that need data backfill on existing rows
 - Renaming a DocType, field, or naming series
 - Migrating Custom Fields from one app to another
@@ -40,6 +41,7 @@ How to author idempotent, rollback-safe Frappe patches that run on `bench migrat
 **When:** New patch for `noviznaerp_payroll`.
 
 **Do:**
+
 ```python
 # apps/noviznaerp_payroll/noviznaerp_payroll/patches/v16_0_0/2026_05_24_backfill_eobi_policy.py
 """Backfill EOBI Policy default rate for Employees missing the field."""
@@ -67,7 +69,8 @@ def execute() -> None:
 ```
 
 Add to `apps/noviznaerp_payroll/noviznaerp_payroll/patches.txt`:
-```
+
+```text
 noviznaerp_payroll.patches.v16_0_0.2026_05_24_backfill_eobi_policy
 ```
 
@@ -78,6 +81,7 @@ noviznaerp_payroll.patches.v16_0_0.2026_05_24_backfill_eobi_policy
 **When:** New field on `crm_lead_industry` requires computed default from existing fields.
 
 **Do:**
+
 ```python
 import frappe
 
@@ -113,6 +117,7 @@ def execute() -> None:
 **When:** Renaming `cash_variance_entry` → `pos_cash_variance_entry`.
 
 **Do (use Frappe's built-in helper):**
+
 ```python
 import frappe
 from frappe.model.rename_doc import rename_doc
@@ -132,6 +137,7 @@ def execute() -> None:
 **When:** Patch only applies if a sibling app is installed.
 
 **Do:**
+
 ```python
 def execute() -> None:
     """Skip if invoice_ninja_integration is not installed in this site."""
@@ -141,6 +147,7 @@ def execute() -> None:
 ```
 
 ## Common Pitfalls
+
 - Forgetting `frappe.reload_doc(...)` before touching a newly-added field — schema cache returns old definition; writes silently no-op.
 - Calling `frappe.db.commit()` inside the patch — `bench migrate` wraps everything in one transaction; commits break rollback.
 - Patch path doesn't match the entry in `patches.txt` — silently skipped (no error). Always grep both after authoring.
@@ -149,6 +156,7 @@ def execute() -> None:
 - Long-running patch with no progress logging — developer thinks `bench migrate` hung. Use `frappe.utils.update_progress_bar` or periodic `print` statements for patches that loop over many rows.
 
 ## References
+
 - [`frappe-core/doctype-authoring`](./doctype-authoring.md) — for the DocType change that motivates the patch
 - [`tools/patch-generator`](../../tools/patch-generator.yaml) — scaffolds the patch file + `patches.txt` entry
 - [`tools/bench-migrate`](../../tools/bench-migrate.yaml) — to run after authoring

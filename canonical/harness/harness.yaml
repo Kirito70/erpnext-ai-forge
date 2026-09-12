@@ -1,0 +1,114 @@
+# The verification harness — which scripts exist, and when they fire.
+#
+# Shell cannot carry YAML frontmatter (a `---` block before the shebang breaks
+# it), so harness artifacts follow the canonical/tools/*.yaml pattern: a YAML
+# spec that points at its files, rather than files that describe themselves.
+#
+# `fires_on` uses forge-neutral event names. Each adapter maps them to its own
+# vocabulary (PostToolUse / AfterTool / PostFileSave / tool.execute.after) in its
+# adapter.yaml. That indirection is what keeps the canonical layer tool-agnostic,
+# which is this repo's entire premise — the moment "PostToolUse" appears here,
+# canonical has quietly become Claude-specific.
+
+id: harness
+kind: harness
+version: 1.0.0
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-07-30
+
+scripts:
+  - id: common
+    file: scripts/common.sh.j2
+    mode: "0644"        # sourced, never executed — no need for +x
+    purpose: "Shared helpers: root resolution, timeouts, output caps, dirty markers."
+
+  - id: check-file
+    file: scripts/check-file.sh.j2
+    mode: "0755"
+    purpose: "BLOCKING per-file lint. Runs on every edit."
+
+  - id: typecheck
+    file: scripts/typecheck.sh.j2
+    mode: "0755"
+    purpose: >-
+      ADVISORY whole-target type check. Always exits 0: cross-file breakage is
+      normal mid-refactor, and blocking on it teaches people to bypass the hook.
+
+  - id: gates
+    file: scripts/gates.sh.j2
+    mode: "0755"
+    purpose: "The Definition-of-Done runner. Mirrors CI."
+
+  - id: hook-posttooluse
+    file: scripts/hook-posttooluse.sh.j2
+    mode: "0755"
+    purpose: "Adapter: file-edit event -> check-file (blocking) + typecheck (advisory)."
+
+  - id: hook-stop
+    file: scripts/hook-stop.sh.j2
+    mode: "0755"
+    purpose: "Adapter: session-end event -> gates quick, blocking."
+
+# Tool-config files. Not scripts: nothing executes these, and each lands where
+# its tool looks for it rather than in `scripts_dir` — ruff reads config from
+# the directory the check runs in, so a scripts/harness/ruff.toml is inert.
+#
+# Rendered only for targets that declare `lint_apps`. A target without one gets
+# no file, and its linter keeps whatever scope it already had.
+configs:
+  - id: ruff-scope
+    file: ruff.toml.j2
+    output_path: ruff.toml
+    mode: "0644"
+    purpose: >-
+      Confines `ruff check apps` to the apps we own. Without it the gate reports
+      upstream and third-party findings we are not allowed to fix.
+
+hooks:
+  # Hooks invoke the ADAPTER scripts, never check-file/gates directly: a hook is
+  # handed a JSON payload on stdin, while check-file.sh takes file paths as
+  # arguments. hook-posttooluse.sh is what bridges the two.
+  - id: post-edit
+    fires_on: file_edit
+    script: hook-posttooluse
+    policy: blocking
+    timeout_seconds: 240
+    description: "Lint the file that was just written, and refuse to accept it dirty."
+
+  - id: session-end
+    fires_on: session_stop
+    script: hook-stop
+    policy: blocking
+    timeout_seconds: 420
+    loop_guard: stop_hook_active
+    description: >-
+      Refuse to end a session on red gates. Runs `quick` only — never the full
+      suite. A Frappe test run is minutes, and a Stop hook that takes minutes is
+      a Stop hook someone disables.
+
+# Rules the scripts themselves must satisfy. `forge validate` enforces these;
+# they are here so the reason is versioned alongside the constraint.
+invariants:
+  - id: no-sync-from-hook
+    rule: "No harness script may invoke `forge sync`."
+    why: >-
+      A sync from inside a hook rewrites the scripts mid-run, and
+      _confirm_foreign_writes fails closed on a non-tty — so it would skip
+      silently rather than ask.
+
+  - id: strict-mode
+    rule: "Every executable script sets `set -euo pipefail`."
+    why: >-
+      Without it a hook continues past a failed command and exits 0, so a broken
+      gate reports success. Enforced by D-SHELL-NO-STRICT-MODE.
+
+  - id: no-eval-of-stdin
+    rule: "Hook payloads are parsed with `IFS= read -r`, never `eval`."
+    why: >-
+      Hook stdin is model-controlled. Enforced by D-SHELL-EVAL-SUBSHELL.
+
+  - id: single-owner
+    rule: "Exactly one enabled adapter per target renders the scripts."
+    why: >-
+      All seven adapters writing the same scripts/harness/ would race, and each
+      would strip the others' manifest rows.

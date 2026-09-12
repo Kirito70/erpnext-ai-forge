@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
-triggers_agents: [architect, integrations-specialist, devops-deployment]
+triggers_agents: [novizna-architect, integrations-specialist, devops-deployment]
 ---
 
 # /sync-erpnext
@@ -14,7 +14,7 @@ Run the existing `novizna_crm.api.erpnext_sync` workflow with safety checks.
 
 ## Usage
 
-```
+```text
 /sync-erpnext [--dry-run] [--scope customers|quotations|all]
 ```
 
@@ -27,7 +27,7 @@ Run the existing `novizna_crm.api.erpnext_sync` workflow with safety checks.
 
 ## Example
 
-```
+```text
 /sync-erpnext --dry-run --scope customers
 ```
 

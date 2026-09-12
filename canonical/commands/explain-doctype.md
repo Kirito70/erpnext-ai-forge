@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
-triggers_agents: [architect, backend-specialist]
+triggers_agents: [novizna-architect, backend-specialist]
 ---
 
 # /explain-doctype
@@ -14,7 +14,7 @@ Summarize a DocType's schema, hooks, permissions, and known callers.
 
 ## Usage
 
-```
+```text
 /explain-doctype <doctype-id>
 ```
 
@@ -26,7 +26,7 @@ Summarize a DocType's schema, hooks, permissions, and known callers.
 
 ## Example
 
-```
+```text
 /explain-doctype crm_lead_industry
 ```
 

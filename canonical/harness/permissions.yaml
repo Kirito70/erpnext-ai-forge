@@ -1,0 +1,57 @@
+# Tool permissions rendered into each adapter's settings file.
+#
+# Kept in canonical/ rather than inline in an adapter template so it is scored,
+# versioned, and reviewable like everything else. That has one consequence worth
+# stating plainly: the deny-list below contains the literal string
+# `curl … | bash`, which is exactly what D-CURL-SHELL matches. The entry is
+# therefore declared in that rule's `exempt_paths` — one explicit, greppable
+# line, rather than widening a CRITICAL regex until it stops catching things.
+
+id: harness-permissions
+kind: harness-permissions
+version: 1.0.0
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-07-30
+
+profiles:
+  frappe:
+    allow:
+      - "Bash(bench --site * run-tests*)"
+      - "Bash(bench --site * migrate)"
+      - "Bash(bench --site * clear-cache)"
+      - "Bash(bench build*)"
+      - "Bash(yarn --cwd * lint*)"
+      - "Bash(yarn --cwd * build)"
+      - "Bash(ruff check*)"
+      - "Bash(coverage report*)"
+      - "Bash(git diff*)"
+      - "Bash(git log*)"
+      - "Bash(git status*)"
+      - "Bash(grep*)"
+      - "Bash(find*)"
+      - "Bash(ls*)"
+
+  python_cli:
+    allow:
+      - "Bash(uv run --project forge*)"
+      - "Bash(uv sync*)"
+      - "Bash(git diff*)"
+      - "Bash(git log*)"
+      - "Bash(git status*)"
+      - "Bash(grep*)"
+      - "Bash(find*)"
+      - "Bash(ls*)"
+
+# Applied to every profile. `bench --site * reinstall` and `drop-site` are
+# absent from every allow-list on purpose — canonical/agents/devops-deployment.md
+# requires explicit chat confirmation for those, and an allow entry would
+# quietly remove the prompt that enforces it.
+deny_all:
+  - "Bash(sudo *)"
+  - "Bash(chmod 777 *)"
+  - "Bash(curl * | bash)"
+  - "Bash(curl * | sh)"
+  - "Bash(wget * | bash)"
+  - "Bash(bench --site * reinstall*)"
+  - "Bash(bench drop-site*)"
+  - "Bash(forge sync*)"   # a sync from inside an agent turn rewrites its own harness

@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
-triggers_agents: [architect, backend-specialist]
+triggers_agents: [novizna-architect, backend-specialist]
 ---
 
 # /optimize-query
@@ -14,7 +14,7 @@ Profile a slow query, propose indexes or refactor.
 
 ## Usage
 
-```
+```text
 /optimize-query <sql-or-file:line>
 ```
 
@@ -26,7 +26,7 @@ Profile a slow query, propose indexes or refactor.
 
 ## Examples
 
-```
+```text
 /optimize-query "SELECT * FROM `tabSales Invoice` WHERE customer = 'X' AND posting_date > '2025-01-01'"
 /optimize-query apps/novizna_crm/novizna_crm/api/deals.py:142
 ```

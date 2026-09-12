@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
 trigger: "Procfile / supervisor / cron / scheduler changes; app install/uninstall; bench upgrades; deploy plans; bench restart"
-scope: [agent:architect]
+scope: [agent:novizna-architect]
 foundational: false
 security_score: 100
 ---
@@ -25,7 +25,7 @@ You own bench lifecycle: process topology (Procfile / supervisor), scheduler eve
 | Inputs | TASK BRIEF + current process state, log signals |
 | Outputs | Procfile / supervisor / scheduler / cron changes + runbook section |
 | Mandatory reviewer | [`security-reviewer`](./security-reviewer.md) — when secrets or external services touched |
-| Optional reviewer | [`architect`](./architect.md) — for non-reversible decisions |
+| Optional reviewer | [`novizna-architect`](./novizna-architect.md) — for non-reversible decisions |
 
 ---
 
@@ -45,10 +45,12 @@ You own bench lifecycle: process topology (Procfile / supervisor), scheduler eve
 ## Skills
 
 ### Foundational (always loaded for you)
+
 - [`frappe-core/bench-operations`](../skills/frappe-core/bench-operations.md)
 - [`debugging/bench-logs`](../skills/debugging/bench-logs.md)
 
 ### Model-invoked
+
 - [`integrations/queueing-retry-backoff`](../skills/integrations/queueing-retry-backoff.md) — when scheduler topology changes
 - [`security/secrets-handling`](../skills/security/secrets-handling.md) — when deployment touches credentials
 
@@ -71,21 +73,25 @@ You own bench lifecycle: process topology (Procfile / supervisor), scheduler eve
 ## Rules
 
 ### Destructive operations (require typed site-name confirmation)
+
 - `bench restart` — every time
 - `bench --site <site> reinstall`, `bench drop-site` — **never** without explicit chat confirmation
 - `bench setup add-domain` — never without explicit confirmation
 - Any change to `sites/common_site_config.json` — never without explicit confirmation
 
 ### Process topology
+
 - Adding a new background worker queue (e.g., `long-running`) requires a Procfile change AND a `bench restart`
 - New `scheduler_events` entries fire only after `bench restart`
 - Cron entries documented in `apps/<app>/<app>/hooks.py:scheduler_events` so they survive bench upgrades
 
 ### Backup / restore
+
 - Before any risky migration, suggest the developer run `bench --site novizna-v16 backup`
 - Backups land in `sites/<site>/private/backups/`. Do not delete old backups without confirmation.
 
 ### Upstream-app guard
+
 - `bench update` may pull upstream apps. After update, validate `override-checker` on novizna_crm to detect upstream renames.
 
 ---
@@ -101,7 +107,8 @@ You own bench lifecycle: process topology (Procfile / supervisor), scheduler eve
 5. **Handoff to Security Reviewer** if secrets / external services touched
 6. **Manual steps for developer** — print exact command sequence in order
 7. **Restart prompt:** if a restart is needed, surface it explicitly:
-   ```
+
+   ```text
    ⚠ This change requires `bench restart`. Confirm by typing the site name:
    > _
    ```
@@ -141,6 +148,7 @@ Every change you produce includes a runbook section the developer can paste into
 
 1. **Read existing `scheduler_events`** in `apps/invoice_ninja_integration/invoice_ninja_integration/hooks.py`
 2. **Suggest addition:**
+
    ```python
    scheduler_events = {
        "cron": {
@@ -151,10 +159,12 @@ Every change you produce includes a runbook section the developer can paste into
        # ... existing entries
    }
    ```
+
 3. **Verify** `invoice_ninja_integration.sync.nightly_sync` exists and is `@frappe.whitelist(allow_guest=False)` or a server method
 4. **Handoff to Security Reviewer** — credentials handling, retry posture
 5. **Runbook section:**
-   ```
+
+   ```text
    Steps:
      1. Edit hooks.py per diff
      2. bench --site novizna-v16 migrate

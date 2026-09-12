@@ -29,9 +29,9 @@ Operating in the **Novizna v16 ERPNext/Frappe bench**. This is a minimal system 
 
 ## Inlined Personas
 
-Only `architect`, `backend-specialist`, and `security-reviewer` are inlined here. Other specialists (frontend-frappe-ui, frontend-quasar, integrations, qa-test-engineer, devops-deployment) are available via `canonical/agents/<id>.md` — ask the developer to expand when needed.
+Only {% for id in adapter.context_loading.inlined_specialists_only %}`{{ id }}`{% if not loop.last %}, {% endif %}{% endfor %} are inlined here. Other specialists (frontend-frappe-ui, frontend-quasar, integrations, qa-test-engineer, devops-deployment) are available via `canonical/agents/<id>.md` — ask the developer to expand when needed.
 
-{% for agent in agents if agent.id in ['architect', 'backend-specialist', 'security-reviewer'] -%}
+{% for agent in agents if agent.id in adapter.context_loading.inlined_specialists_only -%}
 ### Persona: `{{ agent.id }}`
 
 **When:** {{ agent.trigger }}
@@ -40,7 +40,7 @@ Only `architect`, `backend-specialist`, and `security-reviewer` are inlined here
 
 | Other persona | Trigger summary |
 |---------------|-----------------|
-{% for agent in agents if agent.id not in ['architect', 'backend-specialist', 'security-reviewer'] -%}
+{% for agent in agents if agent.id not in adapter.context_loading.inlined_specialists_only -%}
 | `{{ agent.id }}` | {{ agent.trigger | truncate(100) }} |
 {% endfor %}
 
@@ -63,6 +63,14 @@ All skill bodies are external — at `canonical/skills/<domain>/<id>.md`.
 {% for t in tools -%}
 | `{{ t.id }}` | {{ t.purpose | truncate(80) }} | {{ '✓' if t.requires_confirmation else '' }} |
 {% endfor %}
+
+---
+
+{% include "operating-manual-pointer.md.j2" %}
+
+{% include "ticketing-pointer.md.j2" %}
+
+{% include "harness-pointer.md.j2" %}
 
 ---
 

@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Authoring a new skill for the canonical layer, or deciding whether to split / merge existing skills"
-scope: [agent:architect]
+scope: [agent:novizna-architect]
 foundational: true
 domain: meta
 security_score: 100
@@ -18,6 +18,7 @@ supersedes: []
 How to write a new skill that passes review and integrates cleanly with the canonical layer. Loaded by Architect whenever the skill catalogue is extended.
 
 ## When to Load
+
 - A new skill is being added under `canonical/skills/<domain>/`
 - An existing skill has grown past 500 lines (governance cap) and needs splitting
 - A skill is being deprecated or merged
@@ -51,7 +52,7 @@ supersedes: []                   # IDs of skills this replaces, for the deprecat
 
 ## Body Structure
 
-```markdown
+````markdown
 # <Skill Title>
 
 <1–2 sentence purpose. State who loads it and when.>
@@ -71,21 +72,27 @@ supersedes: []                   # IDs of skills this replaces, for the deprecat
 ```python
 # bench-grounded example using REAL app paths/DocTypes from discovery
 ```
+
 **Don't:**
+
 ```python
 # anti-pattern, with AP-id link if applicable
 ```
 
 ### Pattern: <name>
+
 ... (3–6 patterns per skill)
 
 ## Common Pitfalls
+
 - <Pitfall 1 with link to discovery AP-id if standing finding>
 - <Pitfall 2>
 
 ## References
+
 - <link to 2+ other skills/policies/tools/discovery files via relative paths>
-```
+
+````
 
 ## Length Budget
 
@@ -100,7 +107,7 @@ If a skill exceeds 500 lines, split along the patterns it carries. For example: 
 1. **Every code example references a real custom app from this bench** — not `myapp`, not `example_app`. Pick from: `novizna_crm`, `novizna_core`, `novizna_pos`, `invoice_ninja_integration`, `noviznaerp_payroll`, `cargo_management`, `changemakers`, `erpnext_location`.
 2. **Every `Don't` example links to a discovery AP-id** when a standing finding exists in [`anti-pattern-findings.json`](../../../discovery/data/anti-pattern-findings.json).
 3. **At least 2 cross-references** in the References section — to other skills, policies, tools, or discovery JSON. Use relative paths.
-4. **Voice matches existing agent specs** — direct, second-person where appropriate, no fluff. Read `canonical/agents/architect.md` for the cadence.
+4. **Voice matches existing agent specs** — direct, second-person where appropriate, no fluff. Read `canonical/agents/novizna-architect.md` for the cadence.
 5. **A reader unfamiliar with this bench can identify which custom app each example came from** (Phase 1b exit criterion in v0.2 §10).
 
 ## F vs M Classification
@@ -160,6 +167,7 @@ Before opening the editor:
 - [ ] Identified which standing AP-ids the `Don't` blocks will reference
 
 ## Common Pitfalls
+
 - Generic Frappe content with no bench grounding — fails Phase 1b exit criterion.
 - `Don't` blocks without AP-id linkage when a standing finding exists.
 - Frontmatter `scope` referencing an agent ID that doesn't exist.
@@ -169,8 +177,9 @@ Before opening the editor:
 - "Verify this URL exists" sections that cite hallucinated docs URLs — verify or omit.
 
 ## References
+
 - [`policies/governance`](../../policies/governance.md) — versioning, deprecation, calibration
 - [`policies/security-scoring`](../../policies/security-scoring.yaml) — initial scoring
 - [`policies/review-protocol`](../../policies/review-protocol.md) — review output format
 - [`discovery/INVENTORY.md`](../../../discovery/INVENTORY.md) — bench facts to draw from
-- [`canonical/agents/architect.md`](../../agents/architect.md) — voice and structure reference
+- [`canonical/agents/novizna-architect.md`](../../agents/novizna-architect.md) — voice and structure reference

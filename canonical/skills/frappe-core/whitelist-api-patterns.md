@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Authoring or reviewing any @frappe.whitelist() endpoint in a custom app — especially when allow_guest=True"
-scope: [agent:architect, agent:backend-specialist, agent:integrations-specialist, agent:security-reviewer]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:integrations-specialist, agent:security-reviewer]
 foundational: true
 domain: frappe-core
 security_score: 100
@@ -18,6 +18,7 @@ supersedes: []
 How to author `@frappe.whitelist()` endpoints that pass Security Reviewer on this bench. The bench currently exposes **205 whitelist methods** across 8 custom apps ([`api-surface.json`](../../../discovery/data/api-surface.json)) — every new one inherits the same posture.
 
 ## When to Load
+
 - Adding a new `@frappe.whitelist()` method
 - Reviewing an existing endpoint for permission gating
 - Considering `allow_guest=True` (webhook, public form, etc.)
@@ -41,6 +42,7 @@ How to author `@frappe.whitelist()` endpoints that pass Security Reviewer on thi
 **When:** A whitelist method that reads or writes business data.
 
 **Do:**
+
 ```python
 import frappe
 from frappe import _
@@ -70,6 +72,7 @@ def get_deal_addresses(deal_name: str) -> dict:
 This mirrors the shape of `novizna_crm.api.deals.get_deal_addresses` (one of the 40 endpoints in `novizna_crm`).
 
 **Don't:**
+
 ```python
 @frappe.whitelist()
 def get_deal_addresses(deal_name):
@@ -81,6 +84,7 @@ def get_deal_addresses(deal_name):
 **When:** External vendor posts to our bench (EasyPost, 17Track, Invoice Ninja).
 
 **Do:**
+
 ```python
 # apps/cargo_management/cargo_management/parcel_management/doctype/parcel/api/easypost_api.py
 import hashlib, hmac
@@ -115,6 +119,7 @@ The current `easypost_webhook` at `cargo_management/.../easypost_api.py:84` is t
 **When:** Public careers / job application pages — `noviznaerp_payroll/www/careers.py:9`, `job_apply.py:8`, `job_detail.py:5`.
 
 **Do:** rate-limit + CAPTCHA + bounded input:
+
 ```python
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 def apply_for_job(job_id: str, applicant_email: str, resume_url: str) -> dict:
@@ -138,6 +143,7 @@ The three existing guest endpoints in `noviznaerp_payroll/www/` were authored be
 **When:** Endpoint returns a list that may be long (lead / customer / invoice lists).
 
 **Do:**
+
 ```python
 @frappe.whitelist()
 def import_customers_as_leads(page: int = 1, limit: int = 50) -> dict:
@@ -164,6 +170,7 @@ def import_customers_as_leads(page: int = 1, limit: int = 50) -> dict:
 **Don't:** Leave methods open — a write endpoint accidentally callable via GET shows up in URL logs in plaintext (leaks query string parameters as referrer).
 
 ## Common Pitfalls
+
 - `@frappe.whitelist()` with no permission check inside — silently lets any logged-in user read/write any doc.
 - Trusting `frappe.local.form_dict` types — they're always strings. Cast with `cint`, `flt`, etc.
 - Returning ORM objects directly — call `.as_dict()` and strip large/private fields.
@@ -172,6 +179,7 @@ def import_customers_as_leads(page: int = 1, limit: int = 50) -> dict:
 - Long synchronous work inside an HTTP request path — enqueue it. See [`integrations/queueing-retry-backoff`](../integrations/queueing-retry-backoff.md).
 
 ## References
+
 - [`frappe-core/permissions-model`](./permissions-model.md) — for `has_permission` deeper-dive
 - [`security/review-checklist`](../security/review-checklist.md) — full reviewer walkthrough
 - [`integrations/webhooks`](../integrations/webhooks.md) — for signature verification patterns

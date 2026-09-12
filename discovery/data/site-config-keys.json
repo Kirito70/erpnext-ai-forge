@@ -1,9 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-05-26T06:58:31.789813+00:00",
+  "generated_at": "2026-09-11T14:24:48.341528+00:00",
   "note": "Per v0.2 \u00a78.5 and Decision 12: only KEY NAMES recorded. Values are never read into the model context.",
   "primary_site": "novizna-v16",
   "site_config_keys": [
+    "allow_tests",
     "db_host",
     "db_name",
     "db_password",
@@ -11,6 +12,7 @@
     "db_type",
     "db_user",
     "encryption_key",
+    "installed_apps",
     "user_type_doctype_limit"
   ],
   "common_site_config_keys": [

@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
-triggers_agents: [architect, backend-specialist, devops-deployment]
+triggers_agents: [novizna-architect, backend-specialist, devops-deployment]
 ---
 
 # /migrate-patch
@@ -14,7 +14,7 @@ Create a correctly-numbered, idempotent Frappe patch and add it to `patches.txt`
 
 ## Usage
 
-```
+```text
 /migrate-patch <app> <description>
 ```
 
@@ -27,7 +27,7 @@ Create a correctly-numbered, idempotent Frappe patch and add it to `patches.txt`
 
 ## Example
 
-```
+```text
 /migrate-patch novizna_crm "backfill industry on existing leads"
 ```
 

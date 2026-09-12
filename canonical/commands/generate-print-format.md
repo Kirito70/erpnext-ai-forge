@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
-triggers_agents: [architect, backend-specialist]
+triggers_agents: [novizna-architect, backend-specialist]
 ---
 
 # /generate-print-format
@@ -14,7 +14,7 @@ Scaffold a Jinja-based Print Format for a DocType.
 
 ## Usage
 
-```
+```text
 /generate-print-format <DocType> "<Format Name>" [--app <custom-app>] [--letterhead <name>]
 ```
 
@@ -29,7 +29,7 @@ Scaffold a Jinja-based Print Format for a DocType.
 
 ## Example
 
-```
+```text
 /generate-print-format "Sales Invoice" "Cargo Branded" --app cargo_management --letterhead "Novizna Cargo"
 ```
 

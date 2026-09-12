@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any
 
 from forge.loader import find_repo_root, load_forge_config
+from forge.repo import is_foreign, owner_of_app
 
 
 # ---------------------------------------------------------------------------
@@ -311,8 +312,27 @@ def discover_bench(
     upstream = set(cfg.get("upstream_apps", []))
     apps_dir = bench / "apps"
     all_apps = sorted(p.name for p in apps_dir.iterdir() if p.is_dir())
-    custom_apps_names = [a for a in all_apps if a not in upstream]
-    upstream_apps_names = [a for a in all_apps if a in upstream]
+
+    # "Not upstream" is not the same as "ours". `upstream_apps` names the
+    # Frappe-ecosystem apps only, so a third-party app vendored into the bench
+    # (raven, cargo_management, changemakers) fell through to `custom` and got
+    # walked — putting another organisation's DocTypes, whitelisted APIs and
+    # anti-pattern findings into the indexes agents read as our own surface.
+    #
+    # Same predicate the write guard uses (sync.py / validate.py:
+    # is_upstream OR is_foreign), so the two cannot drift. Neither half is
+    # sufficient alone on this bench: the upstream apps are forks into our own
+    # org, so `is_foreign` clears them; the third-party apps are absent from
+    # `upstream_apps`, so that list clears them.
+    owned = set((cfg.get("bench") or {}).get("owned_remotes") or [])
+
+    def _is_ours(app: str) -> bool:
+        if app in upstream:
+            return False
+        return not is_foreign(owner_of_app(bench, app), owned)
+
+    custom_apps_names = [a for a in all_apps if _is_ours(a)]
+    foreign_apps_names = [a for a in all_apps if not _is_ours(a)]
 
     now = datetime.now(timezone.utc).isoformat()
     data_dir = repo_root / "discovery" / "data"
@@ -371,10 +391,17 @@ def discover_bench(
         }
         anti_patterns_per_app[app] = ap
 
-    # --- upstream apps list (unchanged from forge.config.yaml ordering) ---
+    # --- apps we do not own ---
+    # `type` distinguishes why, because the two are fixed by different edits:
+    # an `upstream` app is on the `upstream_apps` list, a `third_party` one is
+    # caught by its git remote. `modifiable: False` either way.
     upstream_payload = [
-        {"name": a, "type": "upstream", "modifiable": False}
-        for a in upstream_apps_names
+        {
+            "name": a,
+            "type": "upstream" if a in upstream else "third_party",
+            "modifiable": False,
+        }
+        for a in foreign_apps_names
     ]
 
     # --- aggregate writes ---
@@ -387,7 +414,17 @@ def discover_bench(
             "upstream_apps": upstream_payload,
             "custom_apps": apps_payload,
             "totals": {
-                "upstream_app_count": len(upstream_payload),
+                # `upstream_apps` above now carries both kinds of not-ours app,
+                # so the counts are split rather than lumped: an unowned count
+                # that silently grew to include third-party apps would misreport
+                # how much of the bench is Frappe upstream.
+                "upstream_app_count": sum(
+                    1 for a in upstream_payload if a["type"] == "upstream"
+                ),
+                "third_party_app_count": sum(
+                    1 for a in upstream_payload if a["type"] == "third_party"
+                ),
+                "unowned_app_count": len(upstream_payload),
                 "custom_app_count": len(apps_payload),
                 "custom_doctype_count": sum(a["doctype_count"] for a in apps_payload),
                 "custom_whitelist_api_count": sum(a["whitelist_api_count"] for a in apps_payload),

@@ -4,8 +4,14 @@ For each `.forge-manifest.json` found in the bench, compare:
 
   1. The current sha256 of every file the manifest lists, against the manifest's
      recorded sha256. Mismatch = drift (hand-edited or replaced).
-  2. The manifest's `source_commit` against the current repo HEAD. Older
-     commits = stale sync (re-run `forge sync` to refresh).
+  2. The current sha256 of every canonical source, against the `source_sha256`
+     recorded when it was rendered. Mismatch = stale sync (re-run `forge sync`).
+
+     Both checks are content comparisons. Staleness was previously inferred
+     from git commits — first the manifest's commit vs repo HEAD, then vs the
+     newest source commit — and both were proxies that fired constantly on
+     unchanged files. A report that is mostly noise is one people stop reading,
+     which costs the hand-edit warning its meaning too.
 
 Drift in (1) is louder than (2). Both feed into `forge validate --check-drift`.
 """
@@ -17,13 +23,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
-from forge.loader import load_forge_config, repo_head_commit
+from forge.loader import load_forge_config
 from forge.manifest import MANIFEST_FILENAME, read_manifest, sha256_text
 
 
 @dataclass
 class DriftFinding:
-    severity: str           # "DRIFT" (file changed) | "STALE" (source_commit behind)
+    severity: str           # "DRIFT" (output edited) | "STALE" (source changed)
     manifest_path: Path     # path to the .forge-manifest.json
     file_path: Path | None  # specific file that drifted (None for STALE)
     detail: str             # human-readable description
@@ -73,7 +79,8 @@ def check_drift(
     if not bench_root.is_dir():
         return report
 
-    current_head = repo_head_commit(repo_root)
+    # Neither check consults git: both compare recorded hashes to what is on
+    # disk now, so a finding always means content actually differs.
 
     for manifest_path in _iter_manifests(bench_root):
         report.manifests_checked += 1
@@ -90,45 +97,72 @@ def check_drift(
             )
             continue
 
-        # 1) Compare manifest commit vs repo HEAD
-        if current_head and manifest.source_commit and manifest.source_commit != current_head:
-            report.findings.append(
-                DriftFinding(
-                    severity="STALE",
-                    manifest_path=manifest_path,
-                    file_path=None,
-                    detail=(
-                        f"manifest source_commit={manifest.source_commit[:7]} "
-                        f"vs repo HEAD={current_head[:7]}"
-                    ),
-                )
-            )
-
-        # 2) For each manifest entry, verify the rendered bench file still
-        #    matches the recorded sha256. The manifest stores entries by
-        #    canonical-source path, but the bench file lives in manifest_dir.
+        # 1) STALE — has a canonical source changed since this was rendered?
+        #
+        #    Compared by CONTENT, per source file. Rows written before
+        #    `source_sha256` existed, or whose source cannot be read, are
+        #    skipped: no record means no judgement, never a guess.
         for entry in manifest.source_files:
-            report.files_checked += 1
-            # The synced output lives in manifest_dir/<basename>
-            # (each artifact's bench filename is preserved relative to the
-            # manifest's parent dir). For agents, this is e.g.
-            # .claude/agents/architect.md alongside the manifest.
-            bench_file = manifest_dir / Path(entry.path).name
-            if not bench_file.is_file():
-                # Try a few alternative suffixes (e.g. command file)
-                alt = manifest_dir / Path(entry.path).stem
-                if alt.is_file():
-                    bench_file = alt
-                else:
-                    report.findings.append(
-                        DriftFinding(
-                            severity="DRIFT",
-                            manifest_path=manifest_path,
-                            file_path=bench_file,
-                            detail=f"missing — manifest lists {entry.path} but file is gone",
-                        )
+            if not entry.source_sha256:
+                continue
+            source_file = repo_root / entry.path
+            if not source_file.is_file():
+                continue
+            current = sha256_text(source_file.read_text(errors="replace"))
+            if current != entry.source_sha256:
+                report.findings.append(
+                    DriftFinding(
+                        severity="STALE",
+                        manifest_path=manifest_path,
+                        file_path=source_file,
+                        detail=(
+                            f"{entry.path} changed since this was rendered — "
+                            f"re-run `forge sync`"
+                        ),
                     )
-                    continue
+                )
+
+        # 2) DRIFT — has a file forge wrote been edited or removed?
+        #
+        #    Driven by `outputs`, whose `path` is already relative to this
+        #    directory and whose sha256 is the file forge actually wrote.
+        #
+        #    This used to walk `source_files` and reconstruct the on-disk name
+        #    as `manifest_dir / basename(source_path)`. That only holds when
+        #    source and output share a basename — true for agents and skills
+        #    (.md -> .md), false for every tool (canonical/tools/x.yaml -> x.md)
+        #    and for aggregates whose output is not a sibling under that name.
+        #    It reported 48 files "gone" that were all present and correct.
+        #
+        #    An EMPTY `outputs` is an answer, not a gap. A manifest whose only
+        #    contribution is a settings fragment records sources and no outputs
+        #    by design — forge merges into settings.json, it does not own the
+        #    file. Reconstructing rows from `source_files` in that case brought
+        #    the basename bug back for exactly those manifests: `.claude/`
+        #    reported a permanent DRIFT for `harness.yaml`, a canonical source
+        #    path checked as though it were a bench output. A pre-`outputs`
+        #    manifest cannot reach here anyway — `read_manifest` returns None on
+        #    a schema mismatch.
+        for entry in manifest.outputs:
+            report.files_checked += 1
+            bench_file = manifest_dir / entry.path
+            if not bench_file.is_file():
+                report.findings.append(
+                    DriftFinding(
+                        severity="DRIFT",
+                        manifest_path=manifest_path,
+                        file_path=bench_file,
+                        detail=f"missing — manifest lists {entry.path} but file is gone",
+                    )
+                )
+                continue
+
+            if entry.write_once:
+                # A ledger: forge seeded the header and is forbidden from
+                # touching it again, so the recorded hash describes the file
+                # only at creation. Every row an agent appends is the file
+                # working as designed, not drift.
+                continue
 
             actual_sha = sha256_text(bench_file.read_text(errors="replace"))
             if actual_sha != entry.sha256:
@@ -163,7 +197,7 @@ def render_drift_report(report: DriftReport) -> str:
             target = f.file_path.name if f.file_path else f.manifest_path.parent.name
             lines.append(f"  ✗ {target}: {f.detail}")
     if stale:
-        lines.append(f"Staleness ({len(stale)} manifest(s) behind HEAD):")
+        lines.append(f"Staleness ({len(stale)} source(s) changed since sync):")
         for f in stale:
             lines.append(f"  ! {f.manifest_path.parent.name}: {f.detail}")
     lines.append(

@@ -1,0 +1,28 @@
+{
+  "adapter": {
+    "name": "opencode",
+    "version": "0.1.0"
+  },
+  "outputs": [
+    {
+      "adapter": "opencode",
+      "path": "harness.js",
+      "sha256": "ed5ef2db53bc42e4cf300381becfb4c40a638f8eeb56f7fc16260ee415596d24",
+      "version": "1.0.0"
+    }
+  ],
+  "rendered_at": "2026-08-14T10:26:39+05:00",
+  "rendered_by": "forge 0.1.0",
+  "schema_version": 2,
+  "source_commit": "81cc0c0ec73a5e425c1ea2b2d43d1ac9f49b8310",
+  "source_files": [
+    {
+      "adapter": "opencode",
+      "path": "canonical/harness/harness.yaml",
+      "sha256": "ed5ef2db53bc42e4cf300381becfb4c40a638f8eeb56f7fc16260ee415596d24",
+      "source_sha256": "5b2678d2da9d3c1d4fd24ba6c6191cbdda79f7b4c92c541f7286ab84c8bd41bb",
+      "version": "1.0.0"
+    }
+  ],
+  "source_repo": "erpnext-ai-forge"
+}

@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Implementing or reviewing OAuth2 flows for any vendor integration (Zoho, Google, HubSpot, LinkedIn, Invoice Ninja)"
-scope: [agent:architect, agent:integrations-specialist, agent:security-reviewer]
+scope: [agent:novizna-architect, agent:integrations-specialist, agent:security-reviewer]
 foundational: true
 domain: integrations
 security_score: 100
@@ -18,6 +18,7 @@ supersedes: []
 OAuth2 token storage, refresh, and revocation for the bench's existing integrations: Zoho CRM, Google (Sheets/Drive), LinkedIn, HubSpot, Invoice Ninja. Tokens live in **Settings DocType rows**, **not** in `site_config.json` (verified via [`site-config-keys.json`](../../../discovery/data/site-config-keys.json) — none of the integration keys are present).
 
 ## When to Load
+
 - Adding a new vendor integration that uses OAuth2
 - Reviewing the connector class for an existing vendor
 - Investigating a token refresh failure
@@ -40,6 +41,7 @@ OAuth2 token storage, refresh, and revocation for the bench's existing integrati
 **When:** Adding `Zoho Settings` (singleton).
 
 **Do:**
+
 ```json
 {
   "doctype": "DocType",
@@ -68,6 +70,7 @@ Singleton + System Manager perms only. Never expose to Sales User / regular role
 **When:** Calling `https://www.zohoapis.com/crm/v2` (matches [`integrations-map.json`](../../../discovery/data/integrations-map.json)).
 
 **Do:**
+
 ```python
 # apps/novizna_crm/novizna_crm/api/connectors/zoho.py
 import frappe
@@ -121,6 +124,7 @@ class ZohoConnector:
 ```
 
 **Don't:**
+
 ```python
 # Reading secret from site_config — wrong place + AP-like pattern
 zoho_token = frappe.conf.get("zoho_access_token")
@@ -133,6 +137,7 @@ The integration keys list in [`site-config-keys.json`](../../../discovery/data/s
 **When:** Admin clicks "Connect Zoho" in the Zoho Settings form.
 
 **Do:**
+
 1. Whitelist method generates the auth URL with `redirect_uri` from settings + state token
 2. User authorizes at Zoho → Zoho redirects back to `redirect_uri` with `code`
 3. A second whitelist method (the callback) exchanges `code` for refresh + access tokens
@@ -157,6 +162,7 @@ def begin_zoho_oauth() -> str:
 ### Pattern: Revocation on disconnect
 
 **Do:**
+
 ```python
 @frappe.whitelist()
 def disconnect_zoho() -> dict:
@@ -174,6 +180,7 @@ def disconnect_zoho() -> dict:
 ```
 
 ## Common Pitfalls
+
 - Storing tokens as plain `Data` instead of `Password` — leaks in CSV export and any UI that shows raw fields.
 - Logging `resp.text` from a failed refresh — vendor may echo the secret in error responses.
 - Using `frappe.conf.get(...)` to read tokens — confirms keys present in site config; this bench's site config has none of the integration keys.
@@ -182,6 +189,7 @@ def disconnect_zoho() -> dict:
 - Hard-coding `redirect_uri` instead of reading from Settings — breaks across dev / staging / prod.
 
 ## References
+
 - [`integrations/webhooks`](./webhooks.md) — for the inbound counterpart
 - [`integrations/queueing-retry-backoff`](./queueing-retry-backoff.md) — for sync orchestration
 - [`security/secrets-handling`](../security/secrets-handling.md) — never log token values

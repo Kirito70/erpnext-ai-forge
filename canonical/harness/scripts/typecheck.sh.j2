@@ -1,0 +1,32 @@
+{#- ADVISORY whole-target type check. Always exits 0. -#}
+#!/usr/bin/env bash
+# AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT
+# Source: canonical/harness/scripts/typecheck.sh.j2
+# Target: {{ target.name }} ({{ target.stack_profile }})
+#
+# ADVISORY. Always exits 0, on purpose.
+#
+# A type error is usually cross-file, and a multi-file refactor passes through
+# genuinely broken intermediate states. Blocking each edit until the whole tree
+# type-checks makes the hook impossible to work with, and the reliable outcome
+# of an unworkable hook is that someone turns it off. So: report, do not block.
+
+set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname -- "${BASH_SOURCE[0]}")/common.sh"
+
+{%- if not profile.get('typecheck') %}
+
+# No typecheck gates declared for the {{ target.stack_profile }} profile.
+exit 0
+{%- else %}
+{% for gate in profile.get('typecheck') %}
+# {{ gate.id }} [{{ gate.verify_status }}]
+out="$(run_to {{ gate.get('timeout_seconds', 120) }} {{ gate.cmd | render_gate_cmd(target.primary_site) }} 2>&1)" || true
+if printf '%s' "$out" | grep -qE 'error:|error TS'; then
+  note "typecheck ({{ gate.id }}) reported problems — advisory, not blocking:"
+  printf '%s\n' "$out" | grep -E 'error:|error TS' | cap 20 >&2
+fi
+{% endfor %}
+exit 0
+{%- endif %}

@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Adding or modifying entries in any custom app's hooks.py — doc_events, scheduler_events, overrides, fixtures, boot_session, app_include_*"
-scope: [agent:architect, agent:backend-specialist, agent:integrations-specialist, agent:devops-deployment]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:integrations-specialist, agent:devops-deployment]
 foundational: false
 domain: frappe-core
 security_score: 100
@@ -18,6 +18,7 @@ supersedes: []
 How Frappe dispatches `doc_events`, scheduler entries, overrides, and includes — grounded in the 8 active `hooks.py` files in this bench.
 
 ## When to Load
+
 - Adding a `doc_events` handler for a custom or upstream DocType
 - Adding a scheduler entry
 - Overriding an upstream controller class or whitelisted method
@@ -56,6 +57,7 @@ Per [`hooks-index.json`](../../../discovery/data/hooks-index.json) — which app
 **When:** React to a Sales Invoice submission to log to `cargo_management`.
 
 **Do:**
+
 ```python
 # apps/cargo_management/cargo_management/hooks.py
 doc_events = {
@@ -89,6 +91,7 @@ def log_invoice_submit(doc: Document, method: str) -> None:
 **When:** Nightly sync, e.g., Invoice Ninja two-way reconciliation.
 
 **Do:**
+
 ```python
 # apps/invoice_ninja_integration/invoice_ninja_integration/hooks.py
 scheduler_events = {
@@ -117,6 +120,7 @@ def schedule_nightly_sync() -> None:
 **When:** Need to extend ERPNext's `Salary Slip` for payroll-specific behavior.
 
 **Do:**
+
 ```python
 # apps/noviznaerp_payroll/noviznaerp_payroll/hooks.py
 override_doctype_class = {
@@ -143,6 +147,7 @@ class SalarySlipNovizna(SalarySlip):
 **When:** Exporting Custom Fields scoped to one app.
 
 **Do:**
+
 ```python
 # apps/cargo_management/cargo_management/hooks.py
 fixtures = [
@@ -165,6 +170,7 @@ After every fixture-touching change, run [`fixture-differ`](../../tools/fixture-
 **When:** Frontend needs per-user runtime values without an extra round trip.
 
 **Do:**
+
 ```python
 # hooks.py
 boot_session = "novizna_pos.boot.add_pos_boot"
@@ -179,6 +185,7 @@ def add_pos_boot(bootinfo: dict) -> None:
 ```
 
 ## Common Pitfalls
+
 - `doc_events` handler raises an exception → the whole transaction rolls back (sometimes desired, sometimes catastrophic). Wrap recoverable side-effects in try/except and log via `frappe.log_error`.
 - Scheduler event registered but you didn't `bench restart` — it never fires. DevOps reminder.
 - `override_whitelisted_methods` shadows a method that has multiple legitimate callers — verify with grep before adding.
@@ -186,6 +193,7 @@ def add_pos_boot(bootinfo: dict) -> None:
 - Fixture exports drag in unrelated Custom Fields — always run `fixture-differ` after `bench export-fixtures`.
 
 ## References
+
 - [`frappe-core/migration-patches`](./migration-patches.md) — for one-shot data migrations triggered after a hook change
 - [`integrations/queueing-retry-backoff`](../integrations/queueing-retry-backoff.md) — for scheduler-driven jobs
 - [`discovery/data/hooks-index.json`](../../../discovery/data/hooks-index.json) — current hook signals per app

@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Designing background jobs, scheduler-driven syncs, or retry semantics for any integration or long-running operation"
-scope: [agent:architect, agent:integrations-specialist, agent:devops-deployment, agent:frontend-quasar-specialist]
+scope: [agent:novizna-architect, agent:integrations-specialist, agent:devops-deployment, agent:frontend-quasar-specialist]
 foundational: true
 domain: integrations
 security_score: 100
@@ -18,6 +18,7 @@ supersedes: []
 The canonical pattern for moving slow work off the request path and surviving transient failures. Used by every vendor sync on the bench (Zoho, HubSpot, Invoice Ninja, Google, LinkedIn, EasyPost, 17Track) and by the Quasar POS offline queue.
 
 ## When to Load
+
 - Wrapping a vendor API call so it doesn't block the HTTP request
 - Designing retry semantics for a scheduled sync
 - Building the POS offline write queue
@@ -40,6 +41,7 @@ The canonical pattern for moving slow work off the request path and surviving tr
 **When:** Invoice Ninja sync triggered by a button click.
 
 **Do:**
+
 ```python
 @frappe.whitelist()
 def trigger_invoice_ninja_sync() -> dict:
@@ -57,6 +59,7 @@ def trigger_invoice_ninja_sync() -> dict:
 The user sees a fast response; the work happens off-thread.
 
 **Don't:** Inline the sync in the request:
+
 ```python
 @frappe.whitelist()
 def trigger_invoice_ninja_sync():
@@ -70,6 +73,7 @@ This is the MEDIUM finding "Network call inside an HTTP request path without `fr
 **When:** A vendor API call may transiently fail (timeout, 5xx, rate-limit 429).
 
 **Do:**
+
 ```python
 import random, time
 import requests
@@ -103,6 +107,7 @@ def call_with_retry(method: str, url: str, **kwargs) -> requests.Response:
 **When:** All retries exhausted; preserve the event for manual replay.
 
 **Do:**
+
 ```python
 def run_invoice_ninja_sync_for_invoice(invoice_id: str) -> None:
     """Sync one invoice with dead-letter on permanent failure."""
@@ -129,6 +134,7 @@ def _record_log(status: str, invoice_id: str, message: str) -> None:
 **When:** Nightly sync should not run inline in the scheduler tick.
 
 **Do:**
+
 ```python
 # hooks.py
 scheduler_events = {
@@ -158,6 +164,7 @@ Fan-out pattern: one scheduler tick enqueues one worker; that worker enqueues N 
 The same retry shape lives on the Quasar side. See [`frontend/vue3-quasar-patterns`](../frontend/vue3-quasar-patterns.md) — the offline-queue store uses the same `[2000, 4000, 8000, 16000, 32000]` delays and 5-attempt cap.
 
 ## Common Pitfalls
+
 - Jobs that mutate state without idempotency keys — re-running creates duplicates.
 - Catching exceptions in the worker and not logging — silent failures.
 - `queue="default"` for a job that takes >120s — worker starvation; use `queue="long"`.
@@ -167,6 +174,7 @@ The same retry shape lives on the Quasar side. See [`frontend/vue3-quasar-patter
 - Retrying 4xx errors — wastes the rate limit; will never succeed without code change.
 
 ## References
+
 - [`integrations/oauth-patterns`](./oauth-patterns.md) — auth refresh as a precursor to the call
 - [`integrations/webhooks`](./webhooks.md) — webhook receivers enqueue into this pattern
 - [`frontend/vue3-quasar-patterns`](../frontend/vue3-quasar-patterns.md) — POS offline queue mirror

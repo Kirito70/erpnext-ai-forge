@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Work on novizna_crm — CRM Lead, CRM Deal, vendor connectors, ERPNext sync, or the frontend override system"
-scope: [agent:architect, agent:backend-specialist, agent:frontend-frappe-ui-specialist, agent:integrations-specialist]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:frontend-frappe-ui-specialist, agent:integrations-specialist]
 foundational: false
 domain: erpnext-domains
 security_score: 100
@@ -18,6 +18,7 @@ supersedes: []
 The pre-sales funnel: Lead → Opportunity → Deal → handoff to Sales (Quotation). Built on upstream `crm` extended by `novizna_crm` (custom DocTypes + 40 whitelist APIs + 4 vendor connectors + 10-file frontend override). Loaded for any CRM-domain backend, frontend, or sync task.
 
 ## When to Load
+
 - Adding fields/controllers to `CRM Lead`, `CRM Deal`, `CRM Lead Industry`, `CRM Import Log`
 - Authoring or extending the 4 vendor connectors (Zoho, HubSpot, LinkedIn, Google)
 - Wiring a new flow into the `novizna_crm` frontend override system
@@ -85,6 +86,7 @@ Currently 10 overrides per [`override-map.json`](../../../discovery/data/overrid
 ### Pattern: New Lead with Industry classification
 
 **Do (backend):**
+
 ```python
 import frappe
 from frappe import _
@@ -114,6 +116,7 @@ The pattern: net-new component under `src/components/Leads/`, slotted into an `s
 **When:** Importing 1000 customers as Leads.
 
 **Do:**
+
 ```python
 @frappe.whitelist(methods=["POST"])
 def import_customers_as_leads(source: str = "ERPNext") -> dict:
@@ -137,6 +140,7 @@ The log gives the user a place to see status and re-run failed imports — see [
 ### Pattern: ERPNext customer sync from CRM Deal
 
 **Do (in `api/erpnext_sync.py`):**
+
 ```python
 @frappe.whitelist(methods=["POST"])
 def sync_erpnext_customers(deal_names: list[str]) -> dict:
@@ -167,6 +171,7 @@ def sync_erpnext_customers(deal_names: list[str]) -> dict:
 **When:** Adding "Reports" entry to the CRM sidebar.
 
 **Do (in `apps/novizna_crm/frontend/src/index.js`):**
+
 ```javascript
 export const customSidebarItems = [
   { name: 'Reports', icon: ChartBarIcon, to: { name: 'NoviznaReports' } },
@@ -187,6 +192,7 @@ The `src_override/components/Layouts/AppSidebar.vue` override reads `customSideb
 User Permissions on `Territory` are the common slicer.
 
 ## Common Pitfalls
+
 - Adding a frontend file outside `src/` or `src_override/` — see the layer rule.
 - Putting orchestration code inside `connectors/<vendor>.py` — violates Decision 18; keep `connectors/` vendor-pure.
 - Creating Customers without the dedupe check — bulk imports produce duplicates with similar names.
@@ -196,6 +202,7 @@ User Permissions on `Territory` are the common slicer.
 - Adding a new Industry without populating `crm_lead_industry` first — Link field validation fails.
 
 ## References
+
 - [`erpnext-domains/sales`](./sales.md) — handoff target (Deal → Quotation)
 - [`frontend/novizna-crm-override-system`](../frontend/novizna-crm-override-system.md) — the 3-layer rule
 - [`frontend/frappe-ui-components`](../frontend/frappe-ui-components.md) — for component patterns

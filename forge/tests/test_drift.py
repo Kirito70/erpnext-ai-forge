@@ -12,6 +12,7 @@ from forge.manifest import (
     ManifestEntry,
     build_manifest,
     sha256_text,
+    read_manifest,
     write_manifest,
 )
 
@@ -47,6 +48,15 @@ def _make_fake_bench_with_manifest(
         adapter_name="claude-code",
         adapter_version="0.1.0",
         entries=[entry],
+        # Real manifests always carry `outputs` — it is what the DRIFT check
+        # reads. This fixture omitted it and so exercised a fallback that
+        # rebuilt output names from source basenames, which is precisely the
+        # bug the check was rewritten to remove.
+        outputs=[ManifestEntry(
+            path=file_name,
+            version="1.0.0",
+            sha256=sha256_text(file_content),
+        )],
     )
     write_manifest(manifest_dir, manifest)
     return bench, manifest_dir, bench_file
@@ -54,7 +64,6 @@ def _make_fake_bench_with_manifest(
 
 def test_clean_bench_no_drift(repo_root, tmp_path, monkeypatch):
     head = "abc123def"
-    monkeypatch.setattr("forge.drift.repo_head_commit", lambda _: head)
     bench, manifest_dir, _ = _make_fake_bench_with_manifest(
         tmp_path, source_commit=head
     )
@@ -68,7 +77,6 @@ def test_clean_bench_no_drift(repo_root, tmp_path, monkeypatch):
 
 def test_hand_edited_file_flagged_as_drift(repo_root, tmp_path, monkeypatch):
     head = "abc123def"
-    monkeypatch.setattr("forge.drift.repo_head_commit", lambda _: head)
     bench, _, bench_file = _make_fake_bench_with_manifest(
         tmp_path, source_commit=head
     )
@@ -82,7 +90,6 @@ def test_hand_edited_file_flagged_as_drift(repo_root, tmp_path, monkeypatch):
 
 def test_missing_file_flagged_as_drift(repo_root, tmp_path, monkeypatch):
     head = "abc123def"
-    monkeypatch.setattr("forge.drift.repo_head_commit", lambda _: head)
     bench, manifest_dir, bench_file = _make_fake_bench_with_manifest(
         tmp_path, source_commit=head
     )
@@ -93,20 +100,51 @@ def test_missing_file_flagged_as_drift(repo_root, tmp_path, monkeypatch):
     assert any("missing" in f.detail for f in report.findings)
 
 
-def test_stale_manifest_flagged(repo_root, tmp_path, monkeypatch):
-    monkeypatch.setattr("forge.drift.repo_head_commit", lambda _: "new-head-7890")
-    bench, _, _ = _make_fake_bench_with_manifest(
-        tmp_path, source_commit="old-commit-12345"
-    )
+def test_stale_manifest_flagged(repo_root, tmp_path):
+    """A canonical source edited after the sync makes the bench copy stale.
+
+    Content-based: the manifest records the source's hash at render time, so
+    this fires only when the source actually differs. The earlier commit-based
+    forms fired on unrelated commits and reported staleness for files nobody
+    had touched.
+    """
+    bench, manifest_dir, _ = _make_fake_bench_with_manifest(tmp_path)
+
+    # Point the row at a real file in the forge repo, recording a hash that
+    # deliberately does not match its current content.
+    manifest = read_manifest(manifest_dir)
+    manifest.source_files[0].path = "forge.config.yaml"
+    manifest.source_files[0].source_sha256 = sha256_text("not what is on disk")
+    write_manifest(manifest_dir, manifest)
+
     report = check_drift(repo_root, bench_root=bench)
     assert report.has_staleness
-    assert any(
-        "manifest source_commit=old-com" in f.detail for f in report.findings
+    assert any("changed since this was rendered" in f.detail for f in report.findings)
+
+
+def test_unchanged_source_is_not_stale(repo_root, tmp_path):
+    """The case the old commit-based checks got wrong: nothing changed."""
+    bench, manifest_dir, _ = _make_fake_bench_with_manifest(tmp_path)
+
+    manifest = read_manifest(manifest_dir)
+    manifest.source_files[0].path = "forge.config.yaml"
+    manifest.source_files[0].source_sha256 = sha256_text(
+        (repo_root / "forge.config.yaml").read_text()
     )
+    write_manifest(manifest_dir, manifest)
+
+    report = check_drift(repo_root, bench_root=bench)
+    assert not report.has_staleness
+
+
+def test_row_without_source_hash_is_never_stale(repo_root, tmp_path):
+    """Manifests written before source_sha256 existed opt out, silently."""
+    bench, _, _ = _make_fake_bench_with_manifest(tmp_path)
+    report = check_drift(repo_root, bench_root=bench)
+    assert not report.has_staleness
 
 
 def test_staging_dir_skipped(repo_root, tmp_path, monkeypatch):
-    monkeypatch.setattr("forge.drift.repo_head_commit", lambda _: "head")
     bench, _, _ = _make_fake_bench_with_manifest(tmp_path, source_commit="head")
     # Put another manifest under .forge-staging/ — should be ignored
     staging = bench / ".forge-staging" / "claude-code" / ".claude" / "agents"
@@ -126,10 +164,75 @@ def test_staging_dir_skipped(repo_root, tmp_path, monkeypatch):
 
 
 def test_drift_render_lists_findings(repo_root, tmp_path, monkeypatch):
-    monkeypatch.setattr("forge.drift.repo_head_commit", lambda _: "head")
     bench, _, bench_file = _make_fake_bench_with_manifest(tmp_path, source_commit="head")
     bench_file.write_text("drifted content")
     report = check_drift(repo_root, bench_root=bench)
     rendered = render_drift_report(report)
     assert "Drift" in rendered
     assert "architect.md" in rendered
+
+
+def test_output_with_different_extension_is_not_reported_missing(repo_root, tmp_path):
+    """A tool renders canonical/tools/x.yaml -> x.md. Both are correct.
+
+    The old check reconstructed the on-disk name as
+    `manifest_dir / basename(source_path)`, i.e. looked for `x.yaml` in a
+    directory that only ever holds `x.md`, and reported it gone. That was every
+    tool in every adapter — 48 findings on the Novizna bench, none of them a
+    real edit.
+    """
+    bench = tmp_path / "fake-bench"
+    (bench / "apps").mkdir(parents=True)
+    manifest_dir = bench / ".claude" / "tools"
+    manifest_dir.mkdir(parents=True)
+    (manifest_dir / "mariadb-query.md").write_text("rendered tool doc")
+
+    manifest = build_manifest(
+        source_repo="erpnext-ai-forge",
+        source_commit="abc123def",
+        adapter_name="claude-code",
+        adapter_version="0.1.0",
+        entries=[ManifestEntry(
+            path="canonical/tools/mariadb-query.yaml",
+            version="1.0.0",
+            sha256=sha256_text("rendered tool doc"),
+        )],
+        outputs=[ManifestEntry(
+            path="mariadb-query.md",
+            version="1.0.0",
+            sha256=sha256_text("rendered tool doc"),
+        )],
+    )
+    write_manifest(manifest_dir, manifest)
+
+    report = check_drift(repo_root, bench_root=bench)
+    assert not report.has_drift, [f.detail for f in report.findings]
+
+
+def test_manifest_with_no_outputs_reports_nothing(repo_root, tmp_path):
+    """A settings-fragment manifest records sources and no outputs by design —
+    forge merges into settings.json, it does not own the file. Treating the
+    empty list as "fall back to source basenames" made `.claude/` report a
+    permanent DRIFT for `harness.yaml`, a canonical source path checked as if
+    it were a bench output.
+    """
+    bench = tmp_path / "fake-bench"
+    (bench / "apps").mkdir(parents=True)
+    manifest_dir = bench / ".claude"
+    manifest_dir.mkdir(parents=True)
+
+    write_manifest(manifest_dir, build_manifest(
+        source_repo="erpnext-ai-forge",
+        source_commit="abc123def",
+        adapter_name="claude-code",
+        adapter_version="0.1.0",
+        entries=[ManifestEntry(
+            path="canonical/harness/harness.yaml",
+            version="1.0.0",
+            sha256=sha256_text("harness config"),
+        )],
+        outputs=[],
+    ))
+
+    report = check_drift(repo_root, bench_root=bench)
+    assert not report.has_drift, [f.detail for f in report.findings]

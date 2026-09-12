@@ -20,6 +20,25 @@ limits:
   max_total_chars: 35000        # Cline per v0.2 §4.0
 
 artifacts:
+  # Bench-root AGENTS-TICKETING.md — the full vault/ticketing + brain contract,
+  # rendered from the SHARED template so all seven tools ship the same text.
+  # Kept out of the root instruction file on purpose: root files are read every
+  # turn, this one is read only when actually working a ticket.
+  ticketing_doc:
+    strategy: aggregate
+    template: ticketing-and-memory.md.j2
+    output: "{{ output_paths.bench_root }}/AGENTS-TICKETING.md"
+
+  harness_doc:
+    strategy: aggregate
+    template: harness-and-gates.md.j2
+    output: "{{ output_paths.bench_root }}/AGENTS-HARNESS.md"
+
+  operating_manual_doc:
+    strategy: aggregate
+    template: operating-manual.md.j2
+    output: "{{ output_paths.bench_root }}/AGENTS-OPERATING-MANUAL.md"
+
   forge_main:
     strategy: aggregate
     template: 00-forge-main.md.j2

@@ -1,0 +1,157 @@
+# Gate commands — DATA, not shell.
+#
+# The harness scripts are identical for every target; only this table differs.
+# That is the whole reason a Frappe bench and a Python CLI can share one
+# `gates.sh`: the shell never asks which stack it is on, it just runs the rows
+# it was rendered with. If a difference ever cannot be expressed here and needs
+# an `if [ "$PROFILE" = ... ]` inside a script, the abstraction is wrong — say
+# so rather than pushing it through.
+#
+# `verify_status` is the honest part. UNVERIFIED means nobody has run this
+# command against the real target yet. `forge validate` lists every one of them
+# on every run, so the debt stays visible instead of rotting in a comment.
+# Flip to VERIFIED only after running it and seeing it pass.
+
+id: harness-gates
+kind: harness-gates
+version: 1.0.0
+owners: [m.tayyab9736@gmail.com]
+last_reviewed: 2026-07-30
+
+stacks:
+  # -------------------------------------------------------------------------
+  # The Novizna v16 ERPNext/Frappe bench.
+  # -------------------------------------------------------------------------
+  frappe:
+    description: "Frappe/ERPNext bench — Python apps plus Vue/Quasar frontends."
+
+    # Per-file, on every edit. Must be fast: this runs inside a PostToolUse hook.
+    file_lint:
+      - id: python-lint
+        match: "*.py"
+        cmd: "ruff check --fix {file}"
+        verify_status: VERIFIED
+        note: >-
+          Run against the bench 2026-08-14: exit 0 on a clean file, and the
+          convention the old note doubted does now exist — a bench-root
+          ruff.toml rendered from ruff.toml.j2, plus per-app [tool.ruff] in 13
+          of 21 apps. Note that ruff resolves configuration hierarchically, so
+          a file inside an app with its own config is governed by that file and
+          not by the bench root; the scope excludes only apply here through
+          force-exclude, and only for apps shipping no config of their own.
+      - id: frontend-lint
+        match: "*.js,*.ts,*.vue"
+        cmd: "yarn --cwd {js_dir} lint --fix {file}"
+        requires: js_dir
+        verify_status: VERIFIED
+        note: >-
+          `{js_dir}`, not `{app_dir}`: novizna_pos keeps its Quasar workspace in
+          the nested novizna-pos-ui/ and has no package.json at the app root, so
+          `yarn --cwd apps/novizna_pos` failed on every .ts/.vue edit (HARNESS-001).
+          `requires: js_dir` skips the gate for a JS file in an app with no
+          workspace at all, rather than failing on an empty --cwd.
+
+    # Whole-target, advisory. Never blocks — cross-file breakage is normal
+    # mid-refactor, and blocking on it makes people work around the hook.
+    typecheck: []
+
+    # Cheap enough to run when a session ends.
+    quick:
+      - id: python-lint-all
+        cmd: "env/bin/ruff check apps"
+        verify_status: VERIFIED
+        note: >-
+          Scoped by the generated bench-root ruff.toml (see lint_apps): 2189
+          findings across all 21 apps become ~1200 across the apps we own.
+          Exits 1 today and that is correct — the remaining findings are real
+          pre-existing debt, concentrated in novizna_restaurant and
+          noviznaerp_payroll (HARNESS-004). VERIFIED means the command is
+          right, not that the gate is green.
+          `env/bin/ruff`, not bare `ruff` (HARNESS-006, fixed 2026-09-11): the
+          bare form resolved to whatever was first on the operator's PATH — on
+          one machine anaconda's ruff 0.12.0, reporting 1223, against the bench
+          venv's 0.14.2 reporting 1212. Same class as HARNESS-002, and this one
+          failed quietly: some ruff is always found, so nothing ever errored and
+          the debt count was simply not reproducible between operators.
+
+    # The real Definition of Done. Minutes, not seconds — run by the
+    # orchestrator during /ticket-review, never from a Stop hook.
+    full:
+      - id: frappe-tests
+        cmd: "bench --site {site} run-tests --app {app} --coverage"
+        timeout_seconds: 1800
+        verify_status: DOCUMENTED
+        note: >-
+          Documented in canonical/skills/testing/frappe-unittest.md:184. Still
+          confirm the v16 argument spelling, that --coverage is supported, and
+          that FORGE_PRIMARY_SITE is the site tests should run against — the
+          bench has four.
+      - id: coverage-floor
+        cmd: "env/bin/coverage report --data-file sites/.coverage --fail-under=80"
+        verify_status: VERIFIED
+        note: >-
+          Same source; the project-wide floor is 80% on new code. Invoked
+          through the bench venv: `coverage` is installed there (7.14.0) but is
+          not on PATH, so the bare `coverage` this used to run failed with
+          "command not found" on every full-gate run (HARNESS-002).
+          `--data-file sites/.coverage` (HARNESS-003, fixed 2026-09-11): bench
+          commands chdir to sites/, so frappe's CodeCoverage
+          (apps/frappe/frappe/coverage.py) writes sites/.coverage — while this
+          gate ran from the bench root and resolved .coverage relative to cwd.
+          Measured 2026-09-11: a stale bench-root .coverage left by an earlier
+          workaround made the gate exit 0 at 80%+, while the authoritative
+          sites/.coverage reported 66% and failed. So the symptom was not only
+          the documented "No data to report" — once any root copy exists the
+          gate passes on data from a different run, which is worse. Reading the
+          file explicitly removes the cwd dependency in both directions.
+          Note the floor is bench-wide-per-run, not per-changed-file.
+      - id: frontend-build
+        cmd: "yarn --cwd {js_dir} build"
+        requires: js_dir
+        timeout_seconds: 900
+        verify_status: VERIFIED
+        note: >-
+          Wrapped by canonical/tools/frontend-build.yaml. Same `{js_dir}` fix as
+          frontend-lint — see HARNESS-001.
+
+  # -------------------------------------------------------------------------
+  # The forge repo itself. Simpler, and that simplicity lives here as fewer
+  # rows — not as a second set of scripts.
+  # -------------------------------------------------------------------------
+  python_cli:
+    description: "erpnext-ai-forge — a Typer CLI plus Jinja templates."
+
+    file_lint:
+      - id: python-lint
+        match: "*.py"
+        cmd: "uv run --project forge ruff check --fix {file}"
+        verify_status: VERIFIED
+
+    typecheck:
+      - id: mypy
+        cmd: "uv run --project forge mypy forge/src/forge"
+        timeout_seconds: 120
+        verify_status: VERIFIED
+
+    quick:
+      - id: ruff
+        cmd: "uv run --project forge ruff check forge/src"
+        verify_status: VERIFIED
+      - id: mypy
+        cmd: "uv run --project forge mypy forge/src/forge"
+        verify_status: VERIFIED
+      - id: forge-validate
+        cmd: "uv run --project forge forge validate --no-check-drift"
+        verify_status: VERIFIED
+        note: >-
+          --no-check-drift matters: validate's default reads the BENCH, and a
+          hook in this repo must not depend on a bench being present.
+
+    full:
+      - id: pytest
+        cmd: "uv run --project forge pytest forge/tests -q"
+        timeout_seconds: 600
+        verify_status: VERIFIED
+      - id: forge-score
+        cmd: "uv run --project forge forge score --path canonical/ --fail-below 80"
+        verify_status: VERIFIED

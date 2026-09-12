@@ -1,0 +1,125 @@
+{#-
+  The Definition-of-Done runner. Rows come from gates.yaml -> stacks[<profile>].
+-#}
+#!/usr/bin/env bash
+# AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT
+# Source: canonical/harness/scripts/gates.sh.j2
+# Target: {{ target.name }} ({{ target.stack_profile }})
+#
+#   gates.sh quick   cheap checks — safe to run when a session ends
+#   gates.sh full    the real Definition of Done; minutes, not seconds
+#   gates.sh all     alias for full
+#
+# Prints one line per gate and a final RESULT. Never infer success from a quiet
+# exit: read the RESULT line.
+
+set -euo pipefail
+# shellcheck source=/dev/null
+. "$(dirname -- "${BASH_SOURCE[0]}")/common.sh"
+
+MODE="${1:-quick}"
+case "$MODE" in
+  quick|full|all) ;;
+  *) printf 'usage: gates.sh [quick|full|all]\n' >&2; exit 2 ;;
+esac
+
+# The `full` gates are per-app (`bench run-tests --app X`, a frontend build in
+# X's workspace), so they need a subject. Unlike check-file.sh this script is
+# not handed one — and the gate table's {app}/{app_dir}/{js_dir} placeholders
+# all expand to helpers that read $FILE. Referencing it undefined under `set -u`
+# aborted the whole run at the first full gate, which is why `gates.sh full`
+# has never completed.
+#
+# Explicit second argument wins; otherwise infer from what the working tree has
+# changed. Never guessed: an empty subject skips the per-app gates loudly.
+{% if target.owned_apps -%}
+# Which apps count as ours, from forge.config.yaml `lint_apps`. Target-specific,
+# so it is set here and consumed by common.sh — never rendered into common.sh,
+# which is shared byte-for-byte across targets.
+_OWNED_APPS="{{ target.owned_apps | join(' ') }}"
+{% endif -%}
+FILE="$(_subject_path "${2:-}")"
+if [ -z "$FILE" ] && [ "$MODE" != "quick" ]; then
+  FILE="$(_changed_app_path)"
+  [ -n "$FILE" ] && note "gates: subject inferred from working tree -> $FILE"
+fi
+
+failed=0
+declare -a RESULTS=()
+
+run_gate() {
+  local id="$1" secs="$2"; shift 2
+  local out status
+  printf '\n[gate] %s\n' "$id" >&2
+  set +e
+  out="$(run_to "$secs" "$@" 2>&1)"; status=$?
+  set -e
+  if [ "$status" -eq 0 ]; then
+    RESULTS+=("PASS  $id")
+  else
+    printf '%s\n' "$out" | cap >&2
+    RESULTS+=("FAIL  $id (exit $status)")
+    failed=1
+  fi
+}
+
+printf '=== harness gates (%s) — target %s ===\n' "$MODE" "{{ target.name }}" >&2
+
+{% for gate in profile.get('quick', []) -%}
+# {{ gate.id }} [{{ gate.verify_status }}]
+{%- if gate.get('note') %}
+# {{ gate.get('note') | replace('\n', ' ') | trim }}
+{%- endif %}
+run_gate "{{ gate.id }}" {{ gate.get('timeout_seconds', 300) }} {{ gate.cmd | render_gate_cmd(target.primary_site) }}
+{% endfor %}
+if [ "$MODE" != "quick" ]; then
+{%- if not profile.get('full') %}
+  : # no full gates declared for the {{ target.stack_profile }} profile
+{%- endif %}
+{%- for gate in profile.get('full', []) %}
+  # {{ gate.id }} [{{ gate.verify_status }}]
+{%- if gate.verify_status == 'UNVERIFIED' %}
+  # UNVERIFIED — not yet run against the real target.
+{%- endif %}
+{%- if gate.get('note') %}
+  # {{ gate.get('note') | replace('\n', ' ') | trim }}
+{%- endif %}
+{%- if gate.get('requires') %}
+  # `requires: {{ gate.get('requires') }}` — skip rather than fail when the
+  # subject has no such context (e.g. a Python-only change has no JS workspace).
+  if [ -n "$FILE" ] && [ -n "$(_{{ gate.get('requires') }}_of "$FILE")" ]; then
+    run_gate "{{ gate.id }}" {{ gate.get('timeout_seconds', 1800) }} {{ gate.cmd | render_gate_cmd(target.primary_site) }}
+  else
+    RESULTS+=("SKIP  {{ gate.id }} (no {{ gate.get('requires') }})")
+  fi
+{%- elif '_app_of' in (gate.cmd | render_gate_cmd(target.primary_site)) or '_app_dir_of' in (gate.cmd | render_gate_cmd(target.primary_site)) %}
+  # Needs a subject that RESOLVES to an app, not merely a non-empty one. Testing
+  # `-n "$FILE"` was the other half of HARNESS-005: `gates.sh full docs/x.md` or
+  # any bare non-app token left $FILE non-empty while _app_of returned "", so the
+  # guard passed and `--app ""` silently ran every app in the bench.
+  if [ -n "$(_app_of "$FILE")" ]; then
+    run_gate "{{ gate.id }}" {{ gate.get('timeout_seconds', 1800) }} {{ gate.cmd | render_gate_cmd(target.primary_site) }}
+  else
+    RESULTS+=("SKIP  {{ gate.id }} (subject '${FILE:-<none>}' does not resolve to an app under apps/)")
+  fi
+{%- elif '$FILE' in (gate.cmd | render_gate_cmd(target.primary_site)) %}
+  # Needs a subject; without one the command would run against an empty app.
+  if [ -n "$FILE" ]; then
+    run_gate "{{ gate.id }}" {{ gate.get('timeout_seconds', 1800) }} {{ gate.cmd | render_gate_cmd(target.primary_site) }}
+  else
+    RESULTS+=("SKIP  {{ gate.id }} (no changed app under apps/)")
+  fi
+{%- else %}
+  run_gate "{{ gate.id }}" {{ gate.get('timeout_seconds', 1800) }} {{ gate.cmd | render_gate_cmd(target.primary_site) }}
+{%- endif %}
+{%- endfor %}
+fi
+
+printf '\n=== harness gates (%s) ===\n' "$MODE" >&2
+for line in "${RESULTS[@]}"; do printf '  %s\n' "$line" >&2; done
+
+if [ "$failed" -ne 0 ]; then
+  printf '\nRESULT: RED — the task is NOT done until every gate above passes.\n' >&2
+  exit 1
+fi
+printf '\nRESULT: GREEN\n' >&2

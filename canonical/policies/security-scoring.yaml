@@ -85,11 +85,46 @@ deductions:
     severity: MEDIUM
     rationale: "Limit blast radius."
 
+  # Shell rules. These apply to .sh/.bash/.j2 only — never .md — because
+  # canonical/skills/debugging/bench-logs.md and data/mariadb-debugging.md teach
+  # these commands in prose, and a gate that blocks its own documentation is a
+  # gate people switch off. Prose directories (canonical/{agents,skills,commands,
+  # apps,policies}/ and docs/) are exempt; canonical/harness/ deliberately is not.
+  - id: D-SHELL-RM-RF
+    pattern: "Recursive delete rooted at / or at a variable, incl. the quoted form rm -rf \"$VAR\"/x"
+    deduction: 50
+    severity: CRITICAL
+    rationale: "An unset variable collapses the target to the filesystem root."
+
+  - id: D-SHELL-SUDO
+    pattern: "Invokes sudo from a script an agent runs unattended"
+    deduction: 40
+    severity: HIGH
+    rationale: "A hook runs on every edit with no human in the loop; privilege escalation there is not reviewable."
+
+  - id: D-SHELL-CHMOD-WORLD
+    pattern: "chmod 777 / chmod -R 777"
+    deduction: 30
+    severity: HIGH
+    rationale: "World-writable files in a bench are a local privilege-escalation vector."
+
+  - id: D-SHELL-EVAL-SUBSHELL
+    pattern: "eval \"$(...)\" — evaluating command substitution"
+    deduction: 30
+    severity: HIGH
+    rationale: "Hook stdin is model-controlled. Parse it with `IFS= read -r`, never by evaluating it."
+
+  - id: D-SHELL-NO-STRICT-MODE
+    pattern: "ABSENCE of `set -e` in a shell script"
+    deduction: 10
+    severity: MEDIUM
+    rationale: "Without it a hook continues past a failed command and exits 0, so a broken gate reports success."
+
 severities:
-  CRITICAL: { deduction_floor: 40, blocks_sync: true }
-  HIGH:     { deduction_floor: 20, blocks_sync: false }
-  MEDIUM:   { deduction_floor: 10, blocks_sync: false }
-  LOW:      { deduction_floor: 1,  blocks_sync: false }
+  CRITICAL: {deduction_floor: 40, blocks_sync: true}
+  HIGH: {deduction_floor: 20, blocks_sync: false}
+  MEDIUM: {deduction_floor: 10, blocks_sync: false}
+  LOW: {deduction_floor: 1, blocks_sync: false}
 
 calibration:
   scheduled: "After the first 10 skills are authored in Phase 1b, run `forge score canonical/skills/` and manually inspect any clusters of scores in unexpected bands. Adjust deductions if the distribution is too lenient or too punitive."

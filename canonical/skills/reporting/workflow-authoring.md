@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Designing a Workflow on a DocType (states + transitions + role-based approvals)"
-scope: [agent:architect, agent:backend-specialist]
+scope: [agent:novizna-architect, agent:backend-specialist]
 foundational: false
 domain: reporting
 security_score: 100
@@ -18,6 +18,7 @@ supersedes: []
 How to design a Frappe Workflow (states + transitions + role-based actions) and avoid the common pitfalls — self-approval, notification storms, lost state on amendment.
 
 ## When to Load
+
 - Adding an approval flow on a custom DocType (e.g., `noviznaerp_payroll` loan approval)
 - Wiring notifications to state transitions
 - Reviewing a workflow JSON for self-approval bypass
@@ -40,6 +41,7 @@ How to design a Frappe Workflow (states + transitions + role-based actions) and 
 **When:** Adding approval to `noviznaerp_payroll`'s Loan DocType.
 
 **Do:**
+
 ```json
 {
   "doctype": "Workflow",
@@ -79,6 +81,7 @@ The `doc.owner != frappe.session.user` condition on the Approve/Reject transitio
 **When:** Email HR Manager when a Loan enters Pending Approval.
 
 **Do (create a Notification doc):**
+
 ```json
 {
   "doctype": "Notification",
@@ -99,6 +102,7 @@ The `doc.owner != frappe.session.user` condition on the Approve/Reject transitio
 **When:** Only the HR Manager team should see Pending Approval rows.
 
 **Do:** Combine the workflow with role-based DocType perms and `if_owner` on the Employee role:
+
 ```json
 "permissions": [
   { "role": "Employee", "read": 1, "write": 1, "create": 1, "if_owner": 1 },
@@ -113,6 +117,7 @@ Then list views naturally filter so each persona sees only what they should.
 **When:** An Approved loan needs to be cancelled (docstatus 1 → 2).
 
 **Do:** Add a Cancelled state and a transition:
+
 ```json
 { "state": "Cancelled", "doc_status": "2", "allow_edit": "HR Manager" }
 
@@ -130,6 +135,7 @@ Then list views naturally filter so each persona sees only what they should.
 **Do:** Use the DocType controller's `on_update_after_submit` or a `doc_events` handler that checks `self.has_value_changed("workflow_state") and self.workflow_state == "Approved"`. Don't bury business logic inside the workflow JSON.
 
 ## Common Pitfalls
+
 - Missing self-approval guard — anyone with both roles can approve their own submission.
 - Transition condition references `frappe.session.user` but workflow runs in a background context (rare) — condition silently fails.
 - State name typo (e.g., `Approve` vs `Approved`) between the workflow JSON and the Notification condition — notification never fires.
@@ -138,6 +144,7 @@ Then list views naturally filter so each persona sees only what they should.
 - Renaming a Workflow State after rows have been created in that state — orphans the existing rows.
 
 ## References
+
 - [`frappe-core/doctype-authoring`](../frappe-core/doctype-authoring.md) — the target DocType's perms
 - [`frappe-core/permissions-model`](../frappe-core/permissions-model.md) — role + User Permissions interaction
 - [`erpnext-domains/hr-payroll`](../erpnext-domains/hr-payroll.md) — for HR-specific approval patterns

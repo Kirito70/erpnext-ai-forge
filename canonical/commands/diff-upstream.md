@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
-triggers_agents: [architect, frontend-frappe-ui-specialist]
+triggers_agents: [novizna-architect, frontend-frappe-ui-specialist]
 ---
 
 # /diff-upstream
@@ -14,7 +14,7 @@ Show the diff between a `src_override/` file and its upstream counterpart in `ap
 
 ## Usage
 
-```
+```text
 /diff-upstream <override-path>
 ```
 
@@ -26,7 +26,7 @@ Show the diff between a `src_override/` file and its upstream counterpart in `ap
 
 ## Example
 
-```
+```text
 /diff-upstream apps/novizna_crm/frontend/src_override/components/Leads/LeadsListHeader.vue
 ```
 

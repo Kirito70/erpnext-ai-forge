@@ -1,0 +1,77 @@
+{#-
+  BLOCKING per-file lint. Gate rows come from
+  gates.yaml -> stacks[<profile>].file_lint, inlined at render time.
+
+  One `case` block per gate: a file can legitimately match several gates, and
+  nesting them into a single case would silently run only the first.
+-#}
+#!/usr/bin/env bash
+# AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT
+# Source: canonical/harness/scripts/check-file.sh.j2
+# Target: {{ target.name }} ({{ target.stack_profile }})
+#
+# Lint one file and fail if anything remains. Called by the file-edit hook, and
+# usable by hand: scripts/harness/check-file.sh path/to/file [more…]
+
+set -euo pipefail
+# shellcheck source=/dev/null
+. "$(dirname -- "${BASH_SOURCE[0]}")/common.sh"
+
+[ "$#" -gt 0 ] || { note "check-file: no paths given; nothing to do."; exit 0; }
+
+rc=0
+
+for FILE in "$@"; do
+  [ -f "$FILE" ] || continue
+
+  # Generated and vendored trees are not ours to lint, and failures there are
+  # not actionable by whoever triggered the hook.
+  case "$FILE" in
+    */node_modules/*|*/.venv/*|*/dist/*|*/build/*|*/__pycache__/*|*.generated.*)
+      continue
+      ;;
+  esac
+
+{%- if not profile.get('file_lint') %}
+  # No file_lint gates declared for the {{ target.stack_profile }} profile.
+  :
+{%- endif %}
+{%- for gate in profile.get('file_lint', []) %}
+
+  # --- {{ gate.id }} [{{ gate.verify_status }}] ---
+{%- if gate.verify_status == 'UNVERIFIED' %}
+  # UNVERIFIED: this command has not been run against the real target. If it is
+  # wrong, it fails loudly here rather than passing silently — which is the
+  # intended failure mode.
+{%- endif %}
+{%- if gate.get('note') %}
+  # {{ gate.get('note') | replace('\n', ' ') | trim }}
+{%- endif %}
+  case "$FILE" in
+    {% for p in gate.match.split(',') %}{{ p | trim }}{% if not loop.last %}|{% endif %}{% endfor %})
+{%- if gate.get('requires') %}
+      # `requires: {{ gate.get('requires') }}` — this gate needs a context the
+      # file may not have. Missing context is a SKIP, not a failure: a JS file
+      # in an app with no package.json is not lintable, and blocking the edit
+      # over it just teaches people to bypass the hook.
+      if [ -z "$(_{{ gate.get('requires') }}_of "$FILE")" ]; then
+        note "{{ gate.id }}: no {{ gate.get('requires') }} for $FILE — skipped."
+      elif ! run_to {{ gate.get('timeout_seconds', 120) }} \
+           {{ gate.cmd | render_gate_cmd(target.primary_site) }} 2>&1 | cap; then
+        fail_block "{{ gate.id }} failed on $FILE"
+        rc=1
+      fi
+{%- else %}
+      if ! run_to {{ gate.get('timeout_seconds', 120) }} \
+           {{ gate.cmd | render_gate_cmd(target.primary_site) }} 2>&1 | cap; then
+        fail_block "{{ gate.id }} failed on $FILE"
+        rc=1
+      fi
+{%- endif %}
+      ;;
+  esac
+{%- endfor %}
+
+done
+
+exit "$rc"

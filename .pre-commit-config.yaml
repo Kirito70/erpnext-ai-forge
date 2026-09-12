@@ -38,6 +38,29 @@ repos:
       - id: yamllint
         args: [-c, .yamllint.yaml]
 
+  # Python lint + type check. Both were configured in forge/pyproject.toml from
+  # the start and wired into nothing, so `ruff` and `mypy --strict` had never
+  # actually run against forge/src.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^forge/(src|tests)/
+      # `ruff-format` is intentionally absent: 23 of 29 existing files differ
+      # from its output, so enabling it would reformat most of the codebase on
+      # the next unrelated commit. Land that reformat deliberately, then add
+      # this hook and the matching CI step together.
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (strict, forge/src)
+        entry: uv run --project forge mypy forge/src/forge
+        language: system
+        files: ^forge/src/
+        pass_filenames: false
+
   # forge score --staged — runs only on staged canonical artifacts
   - repo: local
     hooks:
@@ -45,7 +68,7 @@ repos:
         name: forge score (staged canonical artifacts)
         entry: forge score --staged
         language: system
-        files: ^canonical/.*\.(md|yaml|yml)$
+        files: ^canonical/.*\.(md|ya?ml|sh|bash|j2)$
         pass_filenames: false
 
       - id: forge-validate

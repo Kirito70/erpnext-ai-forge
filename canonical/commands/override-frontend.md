@@ -5,7 +5,7 @@ version: 1.0.0
 status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-23
-triggers_agents: [architect, frontend-frappe-ui-specialist]
+triggers_agents: [novizna-architect, frontend-frappe-ui-specialist]
 ---
 
 # /override-frontend
@@ -14,7 +14,7 @@ Create a correctly-pathed `src_override/` pair for an upstream CRM file.
 
 ## Usage
 
-```
+```text
 /override-frontend <upstream-path>
 ```
 
@@ -26,7 +26,7 @@ Create a correctly-pathed `src_override/` pair for an upstream CRM file.
 
 ## Example
 
-```
+```text
 /override-frontend apps/crm/frontend/src/components/Leads/LeadsListHeader.vue
 ```
 

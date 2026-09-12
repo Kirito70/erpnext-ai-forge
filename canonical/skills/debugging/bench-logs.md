@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Investigating any production issue — failed request, missed scheduler tick, worker timeout, slow query, socket error"
-scope: [agent:architect, agent:backend-specialist, agent:integrations-specialist, agent:devops-deployment]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:integrations-specialist, agent:devops-deployment]
 foundational: true
 domain: debugging
 security_score: 100
@@ -18,6 +18,7 @@ supersedes: []
 The diagnostic surface for the Novizna v16 bench. Covers the 3 main log files, `frappe.log_error`, the slow query log, and socketio errors. Loaded by every agent that needs to investigate runtime behavior.
 
 ## When to Load
+
 - A whitelist endpoint returns 500
 - A scheduler entry didn't fire
 - A background job timed out
@@ -43,6 +44,7 @@ The diagnostic surface for the Novizna v16 bench. Covers the 3 main log files, `
 **When:** A user reports `novizna_crm.api.deals.get_deal_addresses` returns 500.
 
 **Do:**
+
 ```bash
 # Terminal 1 — tail app log
 tail -F logs/frappe.log | grep -E "deals|ERROR"
@@ -58,6 +60,7 @@ Look for the traceback in `frappe.log` and cross-reference the `Error Log` DocTy
 **When:** A queued job (e.g., Invoice Ninja sync) doesn't complete.
 
 **Do:**
+
 ```bash
 tail -F logs/worker.log | grep -E "invoice_ninja|ERROR|Traceback"
 
@@ -76,6 +79,7 @@ If a job is stuck in `started` for an unreasonable time, the worker likely OOM-k
 **When:** A `scheduler_events.cron` entry added to `hooks.py` doesn't run.
 
 **Do:**
+
 ```bash
 # Check the scheduler is running
 bench --site novizna-v16 doctor
@@ -99,6 +103,7 @@ If the entry isn't visible: did you `bench restart` after editing `hooks.py`? (C
 **When:** Logging a vendor error in a connector.
 
 **Do:**
+
 ```python
 frappe.log_error(
     title="Zoho fetch failed",
@@ -107,10 +112,12 @@ frappe.log_error(
 ```
 
 Writes to:
+
 1. The `Error Log` DocType (visible at `/app/error-log` for admins)
 2. `logs/frappe.log` if app-side logging is wired
 
 **Don't:**
+
 ```python
 frappe.log_error(title="Zoho", message=str(resp.headers) + resp.text)
 # Headers may echo Authorization; body may echo client_secret
@@ -123,6 +130,7 @@ See [`security/secrets-handling`](../security/secrets-handling.md).
 **When:** Frappe Desk shows stale data; realtime updates aren't arriving.
 
 **Do:**
+
 ```bash
 tail -F logs/socketio.log
 
@@ -140,6 +148,7 @@ Common cause: `redis_socketio` worker died (in Procfile). DevOps restarts via `b
 **When:** A page is slow; you suspect DB.
 
 **Do:**
+
 ```bash
 # Tail slow log during repro
 sudo tail -F /var/log/mysql/mariadb-slow.log
@@ -155,6 +164,7 @@ Then `EXPLAIN` the offender per [`data/mariadb-debugging`](../data/mariadb-debug
 **When:** Need to test a function with real DB state.
 
 **Do:**
+
 ```bash
 bench --site novizna-v16 console
 >>> import frappe
@@ -166,6 +176,7 @@ bench --site novizna-v16 console
 This is faster than browser repro; output goes straight to your terminal.
 
 ## Common Pitfalls
+
 - `tail` (not `tail -F`) on a log that rotates — stops following after rotation.
 - Looking only at `frappe.log` when the error happened in a worker — check `worker.log`.
 - Increasing log verbosity in production via `developer_mode: 1` — performance cost is significant.
@@ -174,6 +185,7 @@ This is faster than browser repro; output goes straight to your terminal.
 - Forgetting to check the scheduler is enabled in `common_site_config.json` — if `pause_scheduler: 1` is set, nothing fires.
 
 ## References
+
 - [`tools/bench-logs`](../../tools/bench-logs.yaml) — surface the relevant log
 - [`tools/bench-console`](../../tools/bench-console.yaml) — for REPL repro
 - [`data/mariadb-debugging`](../data/mariadb-debugging.md) — slow query follow-up

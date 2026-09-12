@@ -1,0 +1,28 @@
+{#-
+  Shared partial: the SHORT pointer to the verification harness, included by
+  every tool's root instruction file. The full text is rendered separately to
+  bench-root AGENTS-HARNESS.md (same shared dir, `harness-and-gates.md.j2`).
+
+  Deliberately tiny, for the same reason as ticketing-pointer.md.j2: root files
+  are read on every turn and compete with the actual task for context. The
+  budget that matters is antigravity's — 15,000 chars total, of which ~6,300 is
+  already used. This partial must stay near 1 KB.
+-#}
+## Verification Harness
+
+Gates are **run, not assumed**. A task is done when the gates covering it have been
+executed and observed to pass — quote the real output; never infer success from a
+command that printed nothing.
+
+- `scripts/harness/gates.sh quick` — cheap checks; also runs automatically when a
+  session ends and **blocks** if red.
+- `scripts/harness/gates.sh full` — the real Definition of Done. Minutes, not
+  seconds. Run it once, deliberately, not from a hook.
+- `scripts/harness/check-file.sh <path>` — lint one file; runs automatically after
+  every edit and blocks on failure.
+
+Full details, including what each gate actually runs on this target, are in
+**`AGENTS-HARNESS.md`** at the repo root.
+
+**If a gate was already red before you started**, say so and name the ticket — do not
+silently skip it, and do not claim work is done on top of it.

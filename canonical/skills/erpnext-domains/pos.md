@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Work on novizna_pos — POS Invoice, POS Profile, POS Opening/Closing Entry, or any of the 33 novizna_pos whitelist endpoints"
-scope: [agent:architect, agent:backend-specialist, agent:frontend-quasar-specialist, agent:qa-test-engineer]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:frontend-quasar-specialist, agent:qa-test-engineer]
 foundational: true
 domain: erpnext-domains
 security_score: 100
@@ -18,6 +18,7 @@ supersedes: []
 The POS cycle on this bench. Combines upstream ERPNext POS DocTypes with `novizna_pos`'s 3 custom DocTypes and 33 whitelist endpoints — frontend is the Quasar PWA (see [`frontend/vue3-quasar-patterns`](../frontend/vue3-quasar-patterns.md)). Loaded for every POS-domain task on either backend or frontend.
 
 ## When to Load
+
 - Backend changes in `apps/novizna_pos/novizna_pos/api.py` or `invoice.py`
 - Frontend changes in `apps/novizna_pos/novizna-pos-ui/`
 - Authoring tests for POS critical flows
@@ -47,6 +48,7 @@ Per [`doctype-index.json`](../../../discovery/data/doctype-index.json):
 ## Auth Model — Decision 17 (CRITICAL)
 
 The Quasar POS authenticates against Frappe via:
+
 - **Frappe session cookie** (HttpOnly; set on login; sent via `withCredentials: true`)
 - **`X-Frappe-CSRF-Token`** header on every non-GET request
 
@@ -62,6 +64,7 @@ Per [`api-surface.json`](../../../discovery/data/api-surface.json), the 33 `novi
 - `novizna_pos/novizna_pos/invoice.py`
 
 Sample methods (5 of 33):
+
 - `get_users_for_pos_profile` — list users bound to a POS Profile
 - `save_invoice` — partial-save (draft) POS Invoice
 - `submit_invoice` — final submit + GL post
@@ -75,6 +78,7 @@ One of these endpoints (`api.py:82`) is in the AP-002 guest-endpoint finding. Ph
 ### Pattern: Save-and-submit POS Invoice (backend)
 
 **Do:**
+
 ```python
 import frappe
 from frappe import _
@@ -104,6 +108,7 @@ Both verbs pinned to POST (per [`frappe-core/whitelist-api-patterns`](../frappe-
 **When:** Cashier closes shift; counted cash differs from expected.
 
 **Do:**
+
 ```python
 @frappe.whitelist(methods=["POST"])
 def record_cash_variance(branch: str, variance_amount: float, reason: str) -> dict:
@@ -126,6 +131,7 @@ def record_cash_variance(branch: str, variance_amount: float, reason: str) -> di
 **When:** Need the operating warehouse for the current Branch.
 
 **Do:**
+
 ```python
 def warehouse_for_branch(branch: str) -> str:
     """Return the primary Warehouse mapped to this Branch."""
@@ -136,6 +142,7 @@ def warehouse_for_branch(branch: str) -> str:
 ### Pattern: POS Profile context for a user
 
 **Do:**
+
 ```python
 @frappe.whitelist()
 def get_pos_profile_for_user() -> dict:
@@ -168,6 +175,7 @@ POS receipts use a narrow (e.g., 80mm) Print Format. See [`reporting/print-forma
 `if_owner: 1` on POS Invoice for POS User is the common pattern — see [`frappe-core/permissions-model`](../frappe-core/permissions-model.md).
 
 ## Common Pitfalls
+
 - Forgetting `X-Frappe-CSRF-Token` on a new POST endpoint — Quasar tests catch this; production users hit 403.
 - POS Invoice without a POS Profile — falls back to global defaults; usually wrong warehouse.
 - Submitting POS Invoice from a worker context where `frappe.session.user = "Administrator"` — bypasses User Permissions; data leaks across branches.
@@ -177,6 +185,7 @@ POS receipts use a narrow (e.g., 80mm) Print Format. See [`reporting/print-forma
 - Mutating cart state across tabs without a sync mechanism — Pinia store + BroadcastChannel is one option.
 
 ## References
+
 - [`frontend/vue3-quasar-patterns`](../frontend/vue3-quasar-patterns.md) — frontend counterpart
 - [`erpnext-domains/sales`](./sales.md) — for SI / Customer machinery POS leans on
 - [`erpnext-domains/accounting`](./accounting.md) — POS Invoice posts to GL on submit

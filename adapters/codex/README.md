@@ -6,7 +6,7 @@ Per [Decision 8](../../../../erp/novizna-v16/novizna-v16/ULTRAPLAN-AI-FRAMEWORK-
 
 ## Output
 
-```
+```text
 <bench>/
   AGENTS.codex.md          # full aggregate
   .forge-manifest.json     # written in same directory

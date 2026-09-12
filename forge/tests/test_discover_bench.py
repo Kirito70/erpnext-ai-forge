@@ -219,3 +219,53 @@ def test_discover_bench_only_app_filter(repo_root, fake_bench, monkeypatch, tmp_
     apps_idx = json.loads(written["apps-index.json"].read_text())
     custom_names = {a["name"] for a in apps_idx["custom_apps"]}
     assert custom_names == {"novizna_crm"}
+
+
+def test_third_party_app_is_not_custom(repo_root, fake_bench, monkeypatch, tmp_path):
+    """An app whose remote points elsewhere is excluded even when it is absent
+    from `upstream_apps`.
+
+    The bench vendors third-party apps (raven, cargo_management, changemakers)
+    that nobody adds to `upstream_apps` because they are not Frappe-ecosystem
+    apps. Classifying on that list alone walked them as ours, putting another
+    organisation's DocTypes and APIs into the indexes agents read as our own.
+    """
+    import subprocess
+
+    vendor = fake_bench / "apps" / "vendor_app" / "vendor_app"
+    vendor.mkdir(parents=True)
+    (vendor / "hooks.py").write_text("app_name = 'vendor_app'\n")
+    app_root = fake_bench / "apps" / "vendor_app"
+    subprocess.run(["git", "-C", str(app_root), "init", "-q"], check=True)
+    subprocess.run(
+        [
+            "git", "-C", str(app_root), "remote", "add", "origin",
+            "git@github.com:SomeoneElse/vendor_app.git",
+        ],
+        check=True,
+    )
+
+    fake_repo = tmp_path / "fake-repo-3"
+    fake_repo.mkdir()
+    (fake_repo / "forge.config.yaml").write_text(
+        "project: {name: erpnext-ai-forge, version: 0.0.0}\n"
+        "bench:\n"
+        "  path: '{{ env.FORGE_BENCH_PATH }}'\n"
+        "  primary_site: '{{ env.FORGE_PRIMARY_SITE }}'\n"
+        "  owned_remotes: [novizna-codes]\n"
+        "enabled_tools: [claude-code]\n"
+        "upstream_apps: [frappe, erpnext]\n"
+    )
+    monkeypatch.setenv("FORGE_BENCH_PATH", str(fake_bench))
+    monkeypatch.setenv("FORGE_PRIMARY_SITE", "test-site")
+
+    written = discover_bench(repo_root=fake_repo, bench_override=fake_bench)
+    apps_idx = json.loads(written["apps-index.json"].read_text())
+    custom_names = {a["name"] for a in apps_idx["custom_apps"]}
+    excluded = {a["name"]: a for a in apps_idx["upstream_apps"]}
+
+    assert "vendor_app" not in custom_names, "foreign-remote app walked as custom"
+    assert excluded["vendor_app"]["type"] == "third_party"
+    assert excluded["frappe"]["type"] == "upstream"
+    # An app with no remote at all stays ours — local work is not foreign.
+    assert "novizna_crm" in custom_names

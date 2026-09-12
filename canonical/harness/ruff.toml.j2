@@ -1,0 +1,46 @@
+# AUTO-GENERATED FROM erpnext-ai-forge {{ forge.version }} — DO NOT EDIT
+# Source: canonical/harness/ruff.toml.j2
+# Target: {{ target.name }} ({{ target.stack_profile }})
+#
+# Scope for the `python-lint` and `python-lint-all` gates. Without it,
+# `ruff check apps` lints every app in the bench — including upstream Frappe
+# apps and third-party apps that are not ours to edit, burying our own findings
+# under theirs.
+#
+# The allow-list lives in forge.config.yaml as `lint_apps`; this file is the
+# rendered inverse. Edit the config and re-sync — changes here are overwritten.
+#
+# Linted ({{ lint_apps | length }}):
+{% for app in lint_apps %}#   {{ app }}
+{% endfor %}#
+# Why not reuse an existing list:
+#   owned_remotes  — the upstream apps are forks into our own org
+#                    (frappe -> novizna_framework, erpnext -> noviznaerp,
+#                    crm -> novizna_crm_core, hrms -> novizna_hrms,
+#                    press -> novizna_press_core). Remote ownership calls all
+#                    five ours; lint scope must not.
+#   upstream_apps  — names the Frappe-ecosystem apps. Omits third-party ones we
+#                    equally never lint (raven, cargo_management, changemakers).
+# The guard itself combines them (is_upstream or is_foreign) and is exact; only
+# using either one alone would be wrong here.
+
+# `extend-exclude`, not `exclude`: a bare `exclude` REPLACES ruff's built-in
+# defaults (node_modules, .venv, __pycache__, build, dist). The bench root is
+# not a git repository, so `respect-gitignore` offers no cover here — those
+# defaults are the only thing keeping ruff out of vendored trees inside the
+# apps we do lint.
+extend-exclude = [
+{% for app in excluded_apps %}  "apps/{{ app }}",
+{% endfor %}]
+
+# Applies the excludes to paths passed explicitly, not just to paths found by
+# walking a directory. The per-file gate (`ruff check --fix {file}`) hands ruff
+# one path, so without this it would lint a file in an excluded app.
+#
+# Known limit: ruff resolves configuration hierarchically, so this only holds
+# for excluded apps that ship no ruff config of their own. An app with its own
+# [tool.ruff] in pyproject.toml (frappe, erpnext, crm, hrms, lms, gameplan,
+# press, cargo_management) resolves against that file and never consults this
+# one. The whole-bench gate is unaffected — it excludes during the walk, before
+# per-app configs are consulted.
+force-exclude = true

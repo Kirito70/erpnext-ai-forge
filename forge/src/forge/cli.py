@@ -14,11 +14,15 @@ from rich.console import Console
 
 from forge import __version__
 from forge.commands import (
+    adopt as adopt_cmd,
+    apps as apps_cmd,
     audit as audit_cmd,
     commit as commit_cmd,
     discover as discover_cmd,
+    ledger as ledger_cmd,
     render as render_cmd,
     score as score_cmd,
+    skills as skills_cmd,
     stats as stats_cmd,
     sync as sync_cmd,
     test as test_cmd,
@@ -166,9 +170,44 @@ def sync(
         "--justify",
         help="One-line justification when a 80–94 score artifact is being synced.",
     ),
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="Write into apps whose git remote is not ours without asking. "
+        "Without it, an unattended run skips them.",
+    ),
+    target: Optional[str] = typer.Option(
+        None,
+        "--target",
+        help="Which repo to render into: 'bench' (default) or 'self' (this repo).",
+    ),
+    all_targets: bool = typer.Option(
+        False,
+        "--all-targets",
+        help="Sync every declared target, each with its own enabled_tools.",
+    ),
+    prune_harness: bool = typer.Option(
+        False,
+        "--prune-harness",
+        help="Delete harness scripts the render no longer produces. Opt-in: the "
+             "swap never deletes, so an orphaned script would otherwise linger.",
+    ),
+    prune: bool = typer.Option(
+        False,
+        "--prune",
+        help="Delete outputs a manifest records but the render no longer "
+             "produces — what a changed `output:` leaves behind. Orphans are "
+             "reported without this flag; files with no manifest row, and "
+             "hand-edited ones, are never removed.",
+    ),
 ) -> None:
-    """Render and sync canonical artifacts into the bench (transactional per file)."""
-    sync_cmd.run(tool=tool, all_tools=all_tools, dry_run=dry_run, justify=justify)
+    """Render and sync canonical artifacts into a target (transactional per file)."""
+    sync_cmd.run(
+        tool=tool, all_tools=all_tools, dry_run=dry_run, justify=justify,
+        assume_yes=yes, target=target, all_targets=all_targets,
+        prune_harness_dir=prune_harness, prune=prune,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -195,6 +234,128 @@ def audit_tail(
 def audit_backup() -> None:
     """Create a monthly tar+gpg backup of the audit log (per Decision 14)."""
     audit_cmd.backup()
+
+
+# ---------------------------------------------------------------------------
+# apps
+# ---------------------------------------------------------------------------
+apps_app = typer.Typer(
+    help="Choose which apps forge writes per-app instruction files into.",
+    no_args_is_help=False,
+    invoke_without_command=True,
+)
+app.add_typer(apps_app, name="apps")
+
+
+@apps_app.callback()
+def apps_default(ctx: typer.Context) -> None:
+    """List every app, whether forge manages it, and the remote it points at."""
+    if ctx.invoked_subcommand is None:
+        raise typer.Exit(apps_cmd.run_list())
+
+
+@apps_app.command("add")
+def apps_add(
+    names: list[str] = typer.Argument(..., help="App name(s) to start managing."),
+) -> None:
+    """Start writing per-app instruction files into these apps."""
+    raise typer.Exit(apps_cmd.run_add(names))
+
+
+@apps_app.command("remove")
+def apps_remove(
+    names: list[str] = typer.Argument(..., help="App name(s) to stop managing."),
+    prune: bool = typer.Option(
+        False,
+        "--prune",
+        help="Also delete files already written into those apps.",
+    ),
+) -> None:
+    """Stop writing per-app files into these apps (third-party repos, usually)."""
+    raise typer.Exit(apps_cmd.run_remove(names, prune=prune))
+
+
+# ---------------------------------------------------------------------------
+# skills
+# ---------------------------------------------------------------------------
+skills_app = typer.Typer(
+    help="Skills provenance lockfile — detect unreviewed drift in external skills.",
+)
+app.add_typer(skills_app, name="skills")
+
+
+@skills_app.command("verify")
+def skills_verify() -> None:
+    """Verify every provenance: external skill against canonical/skills-lock.json."""
+    skills_cmd.run_verify()
+
+
+@skills_app.command("list")
+def skills_list() -> None:
+    """List every skill with its provenance (internal/external)."""
+    skills_cmd.run_list()
+
+
+# ---------------------------------------------------------------------------
+# ledger
+# ---------------------------------------------------------------------------
+ledger_app = typer.Typer(
+    help="Reconcile vault tickets against the repo build ledger.",
+)
+app.add_typer(ledger_app, name="ledger")
+
+
+@ledger_app.command("sync")
+def ledger_sync(
+    project: str = typer.Option(..., "--project", help="Vault project, e.g. novizna-pos."),
+    target: Optional[str] = typer.Option(
+        None, "--target", help="Which target's ledger to check. Default: bench."
+    ),
+    vault_path: Optional[Path] = typer.Option(
+        None, "--vault-path", help="Override vault discovery ($NOVIZNA_VAULT, brains.toml)."
+    ),
+    fix: bool = typer.Option(
+        False, "--fix",
+        help="Seed a `todo` row for tickets with no ledger coverage. Never touches "
+             "the vault, never edits an existing row, never removes an orphan row.",
+    ),
+) -> None:
+    """Report vault tickets with no ledger coverage, and orphan ledger rows.
+
+    Does not sync field values — the vault's `status:` and the ledger's
+    `build_state:` are deliberately independent (see definition-of-done.md).
+    This only checks that every actively-worked ticket has SOME ledger row.
+    """
+    ledger_cmd.run_sync(project, target, vault_path, fix)
+
+
+# ---------------------------------------------------------------------------
+# adopt
+# ---------------------------------------------------------------------------
+@app.command()
+def adopt(
+    tool: str = typer.Option(
+        "claude-code",
+        "--tool",
+        help="Adapter whose outputs to inspect for hand edits.",
+    ),
+    app_name: Optional[str] = typer.Option(
+        None,
+        "--app",
+        help="Limit adoption to one app (e.g. --app novizna_pos).",
+    ),
+    apply: bool = typer.Option(
+        False,
+        "--apply",
+        help="Write the changes. Without this, adopt only reports what it would do.",
+    ),
+) -> None:
+    """Fold hand edits in generated files back into canonical/apps/<app>.md.
+
+    `forge sync` refuses to overwrite a file someone edited by hand; this is how
+    that edit gets back into the source of truth so the next sync keeps it.
+    """
+    raise typer.Exit(adopt_cmd.run(tool=tool, app=app_name, apply=apply))
 
 
 # ---------------------------------------------------------------------------
@@ -326,17 +487,35 @@ def deprecate(
         console.print(
             f"  supersedes: set on {result.superseded_by_path.relative_to(repo_root)}"
         )
-    console.print(f"\n[cyan]Suggested CHANGELOG line:[/cyan]")
+    console.print("\n[cyan]Suggested CHANGELOG line:[/cyan]")
     console.print(f"  {result.changelog_line}")
 
 
 @app.command()
 def diff(
-    tool: str = typer.Option(..., "--tool"),
+    tool: str = typer.Option(..., "--tool", help="Adapter to diff, e.g. claude-code"),
+    content: bool = typer.Option(
+        True, "--content/--no-content", help="Show the unified diff body, not just the file list"
+    ),
+    unchanged: bool = typer.Option(
+        False, "--unchanged", help="Also list files that would not change"
+    ),
+    target: Optional[str] = typer.Option(
+        None, "--target", help="Which repo to diff against: 'bench' (default) or 'self'."
+    ),
 ) -> None:
-    """Show what `forge sync --tool <tool>` would change in the bench."""
-    console.print(f"[yellow]not yet implemented[/yellow] — would diff for tool={tool}")
-    raise typer.Exit(code=0)
+    """Show what `forge sync --tool <tool>` would change. Writes nothing.
+
+    Worth running before any sync you cannot easily eyeball afterwards — the
+    settings.json merge and the executable hook scripts in particular.
+    """
+    from forge.commands import diff as diff_cmd
+
+    raise typer.Exit(
+        code=diff_cmd.run(
+            tool, show_content=content, show_unchanged=unchanged, target=target
+        )
+    )
 
 
 if __name__ == "__main__":

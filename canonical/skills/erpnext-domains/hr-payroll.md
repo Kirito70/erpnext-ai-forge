@@ -6,7 +6,7 @@ status: stable
 owners: [m.tayyab9736@gmail.com]
 last_reviewed: 2026-05-24
 trigger: "Work touching Employee, Salary Structure, Salary Slip, Payroll Entry, EOBI, biometric attendance, loans, or any noviznaerp_payroll DocType"
-scope: [agent:architect, agent:backend-specialist, agent:security-reviewer]
+scope: [agent:novizna-architect, agent:backend-specialist, agent:security-reviewer]
 foundational: false
 domain: erpnext-domains
 security_score: 100
@@ -18,6 +18,7 @@ supersedes: []
 The HRMS Employee/Salary cycle plus the **73 custom DocTypes in `noviznaerp_payroll`** (the largest custom app on this bench). Critical reading because `noviznaerp_payroll` carries every standing anti-pattern finding: AP-001 (11 SQL f-strings), AP-003 (`ignore_permissions`), AP-004 (`db.commit`).
 
 ## When to Load
+
 - Adding fields or controllers to `Employee`, `Salary Slip`, `Salary Structure`, `Payroll Entry`
 - Working with `noviznaerp_payroll` DocTypes (EOBI, biometric, loans, attendance tool)
 - Reviewing an override under `noviznaerp_payroll/overrides/`
@@ -74,6 +75,7 @@ When extending these, prefer adding methods over modifying `validate` (which is 
 **When:** Computing EOBI deduction (lines around `salary_slip_override.py:149` flagged in AP-001).
 
 **Do:**
+
 ```python
 import frappe
 from erpnext.payroll.doctype.salary_slip.salary_slip import SalarySlip
@@ -103,6 +105,7 @@ class SalarySlipNovizna(SalarySlip):
 ```
 
 **Don't (AP-001 lineage):**
+
 ```python
 rows = frappe.db.sql(f"""
     SELECT eobi_rate FROM `tabEOBI Policy`
@@ -127,6 +130,7 @@ rows = frappe.db.sql(f"""
 **When:** Recomputing the loan schedule (currently `custom/loan_custom.py:137,150,240` — AP-001 recurrences).
 
 **Do:**
+
 ```python
 def update_loan_payment(loan_id: str, paid_amount: float) -> None:
     """Apply a payment to the loan; recompute total_payment."""
@@ -144,6 +148,7 @@ def update_loan_payment(loan_id: str, paid_amount: float) -> None:
 **When:** EOBI rate varies by Employee Grade.
 
 **Do:** Reference the `EOBI Policy` DocType (already in the app). Look up by grade; cache per request:
+
 ```python
 @functools.lru_cache(maxsize=64)
 def _eobi_rate(grade: str) -> float:
@@ -167,6 +172,7 @@ Clear the cache after any policy change (`frappe.cache().delete_keys("eobi_rate_
 `noviznaerp_payroll` typically ships custom Salary Slip print formats for local compliance. See [`reporting/print-format-authoring`](../reporting/print-format-authoring.md) for the safe-rendering rules — Salary Slips contain salary numbers that should never go through `| safe`.
 
 ## Common Pitfalls
+
 - New code touching this app that introduces another `frappe.db.sql(f"...")` — instant AP-001 recurrence.
 - Calling `frappe.db.commit()` after auto-posting JE — breaks atomicity if a later assertion fails.
 - Editing `Salary Slip` JSON directly to add a field instead of Custom Field fixture.
@@ -175,6 +181,7 @@ Clear the cache after any policy change (`frappe.cache().delete_keys("eobi_rate_
 - Bulk Salary tool that processes synchronously — use `frappe.enqueue` for any N>100 batch.
 
 ## References
+
 - [`erpnext-domains/accounting`](./accounting.md) — for the JE shape this app emits
 - [`data/sql-best-practices`](../data/sql-best-practices.md) — for the AP-001 fixes
 - [`frappe-core/hooks-and-events`](../frappe-core/hooks-and-events.md) — for `override_doctype_class`

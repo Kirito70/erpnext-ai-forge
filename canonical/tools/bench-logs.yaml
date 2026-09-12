@@ -52,6 +52,6 @@ allowed_callers:
   - agent:devops-deployment
   - agent:backend-specialist
   - agent:integrations-specialist
-  - agent:architect
+  - agent:novizna-architect
   - command:/bench-logs
   - command:/explain-hook

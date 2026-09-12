@@ -4,7 +4,7 @@ Renders canonical erpnext-ai-forge content into OpenCode's native multi-file lay
 
 ## Output
 
-```
+```text
 <bench>/
   AGENTS.md                              # slim index pointing at .opencode/
   .opencode/

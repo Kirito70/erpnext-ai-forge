@@ -45,7 +45,7 @@ A third job: enforce a **security gate** before anything is written to the bench
 
 ## 2. The big picture in one diagram
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │  CANONICAL LAYER  (you edit here — the source of truth)         │
 │                                                                 │
@@ -133,6 +133,7 @@ The renderer (`forge/src/forge/render.py`) is the same for all adapters. The dif
 ### 3.3 Bench Integration
 
 The Frappe v16 bench at `$FORGE_BENCH_PATH`. Forge writes into specific paths inside the bench:
+
 - `.claude/...` for Claude Code
 - `.cursor/...` for Cursor
 - `.github/...` for Copilot
@@ -192,7 +193,7 @@ The architect orchestrator + 7 specialist personas. Each file has frontmatter + 
 
 Each skill is a Markdown file with frontmatter (`foundational: true|false`, `scope: [agent:...]`, `trigger`, `domain`) plus body sections (When to Load, Key Concepts, Patterns, Common Pitfalls, References).
 
-```
+```text
 canonical/skills/
   frappe-core/          (6 skills — conventions, doctype-authoring, hooks-and-events,
                          whitelist-api-patterns, permissions-model, migration-patches)
@@ -217,7 +218,7 @@ Every skill is grounded in real bench facts — it cites AP-ids from `discovery/
 
 Each command file declares: which agents it triggers, what arguments it takes, the pipeline of work, and example invocations.
 
-```
+```text
 scaffold-doctype, scaffold-api, review-security, write-tests, migrate-patch,
 add-integration, explain-hook, optimize-query, forge-sync, audit-skills,
 override-frontend, generate-report, generate-print-format, sync-erpnext,
@@ -236,7 +237,7 @@ Each tool spec declares:
 - `safety_checks:` — pre/post conditions
 - `allowed_callers:` — which agents can invoke this tool
 
-```
+```text
 bench-{migrate, clear-cache, restart, console, logs}
 doctype-scaffolder, fixture-exporter, patch-generator,
 override-checker, frontend-build, mariadb-query,
@@ -268,7 +269,7 @@ Each adapter directory has the same shape: `adapter.yaml`, `templates/*.j2`, `RE
 
 ### `forge/` — the CLI implementation
 
-```
+```text
 forge/
   pyproject.toml          ← uv-managed dependencies + project metadata
   uv.lock                 ← reproducible install (committed)
@@ -358,6 +359,7 @@ Skills cite these JSONs by relative path so the AI agents can ground recommendat
 | `audit/<YYYY>/<MM>/forge-audit.jsonl` | Append-only log; one entry per `forge` invocation. Gitignored. |
 
 Schema per entry (enriched by `audit.py:audit_log()`):
+
 ```json
 {"ts": "...", "session_id": "uuid", "host": "...", "user": "...",
  "action": "sync.live", "tool": "claude-code", "files_written": [...],
@@ -402,6 +404,7 @@ At module import (before Typer dispatches), `_load_env_files()` walks up from cw
 ### Step 5 — `sync_tool` builds the render plan
 
 For each tool:
+
 1. Resolves `$FORGE_BENCH_PATH` to a `Path`. Refuses if the path doesn't exist or has no `apps/` directory.
 2. Calls `render.render(repo_root, tool)`.
 
@@ -433,6 +436,7 @@ Any zero-byte staged file aborts the sync.
 ### Step 9 — `_security_gate` scores canonical sources
 
 `scoring.score_file()` runs the deduction-table regex matches against every unique `source_path` referenced by the rendered artifacts (not against the staging output — see [ADR-006](../ARCHITECTURE.md#adr-006--security-gate-scores-canonical-sources-not-staging-phase-4) for why). Computes a `GateOutcome`:
+
 - `blocked` if any file scores `< block_floor` (80)
 - `warned` if any file scores in `[warn_floor, auto_accept)` (80–94)
 
@@ -447,6 +451,7 @@ If warned with `--justify`: audit-log `sync.justified_accept` with the reason te
 ### Step 11 — Atomic per-file swap
 
 For each successful tool, `_swap_into_bench()` walks the staging tree and for each staged file:
+
 1. Computes target path under the bench
 2. Creates parent dirs
 3. Writes content to `target.with_suffix(...tmp)`
@@ -495,16 +500,19 @@ Every command is a thin wrapper in `forge/src/forge/commands/<name>.py` over the
 The gate sits in `forge.sync._security_gate()` and runs **before** any bench write happens.
 
 ### Inputs
+
 - The list of `RenderedArtifact` objects from the render step
 - The `security:` block from `forge.config.yaml` (`auto_accept_threshold`, `warn_threshold`, `block_threshold`, `external_skill_threshold`)
 - An optional `--justify "<one-line reason>"` from the CLI
 
 ### Process
+
 1. For each distinct `source_path` in the rendered set, call `scoring.score_file(path)`
 2. `score_file` reads the file, starts at 100, iterates `_DEDUCTION_PATTERNS`, subtracts deductions for matches (respecting `applies_to_extensions` and `skip_if_path_matches` filters)
 3. Aggregate min/max across files into a `GateOutcome`
 
 ### Outcomes
+
 | Score band | Outcome | Audit action |
 |------------|---------|--------------|
 | ≥ 95 | sync proceeds silently | `sync.live` |
@@ -535,6 +543,7 @@ The gate scores **canonical sources**, not rendered staging output. Reason: skil
 Every `forge` action appends one JSONL line to `audit/<YYYY>/<MM>/forge-audit.jsonl`. The file structure is by-month so a year of activity stays browsable.
 
 Each entry is enriched with:
+
 - `ts` — UTC ISO-8601 timestamp
 - `session_id` — random UUID per process (groups related entries)
 - `host`, `user` — environment context
@@ -634,6 +643,7 @@ A directory-by-directory thought experiment: what breaks if you delete it?
 **The framework is feature-complete per the v0.2 ULTRAPLAN roadmap.** All 5 phases shipped (Phase 0 scaffold, Phase 1a/b canonical authoring, Phase 2 sync engine, Phase 3 per-tool adapters, Phase 4 security gates + CI, Phase 5 stats + deprecate + onboarding). 146 tests passing on Python 3.14 under uv.
 
 Future iteration is calibration-driven, not roadmap-driven:
+
 - Skill scoring re-calibration after the first 10 real-bench tasks
 - Quarterly `/audit-skills` runs per `governance.md` §5
 - 3-month AI Forge convention checkpoint (next: 2026-08-23 per ADR-001)

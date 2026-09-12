@@ -10,7 +10,6 @@ import json
 import os
 import socket
 import subprocess
-import sys
 import tarfile
 import uuid
 from dataclasses import dataclass

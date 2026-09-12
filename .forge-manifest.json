@@ -1,0 +1,33 @@
+{
+  "adapter": {
+    "name": "claude-code",
+    "version": "0.1.0"
+  },
+  "outputs": [
+    {
+      "adapter": "claude-code",
+      "path": "AGENTS-HARNESS.md",
+      "sha256": "db58acbad31455c30c5eb5defebf11a2b165a112b082b4c730f858a1273ddc2d",
+      "version": "0.1.0"
+    },
+    {
+      "adapter": "claude-code",
+      "path": "AGENTS-OPERATING-MANUAL.md",
+      "sha256": "2a45eb4d14391da43c684201bde3b95e8d6381ad79d0d8208c05b5220ad16fcb",
+      "version": "0.1.0"
+    }
+  ],
+  "rendered_at": "2026-08-17T16:01:49+05:00",
+  "rendered_by": "forge 0.1.0",
+  "schema_version": 2,
+  "source_commit": "93db56214d3c432c9b1b4b36587bc990533bcbaa",
+  "source_files": [
+    {
+      "adapter": "claude-code",
+      "path": "canonical",
+      "sha256": "2a45eb4d14391da43c684201bde3b95e8d6381ad79d0d8208c05b5220ad16fcb",
+      "version": "0.1.0"
+    }
+  ],
+  "source_repo": "erpnext-ai-forge"
+}

@@ -31,7 +31,7 @@ OpenCode reads this file to bootstrap. The framework's agents, commands, skills,
 
 ## Architect Workflow (always run first)
 
-The `architect` agent at `.opencode/agents/architect.md` orchestrates every task:
+The `novizna-architect` agent at `.opencode/agents/novizna-architect.md` orchestrates every task:
 
 1. Pre-flight stale-reference check against `discovery/data/*.json`
 2. Draft TASK BRIEF: goal, constraints, acceptance criteria, specialists, tools
@@ -102,6 +102,14 @@ Tool reference docs at `.opencode/tools/<id>.md`. Actual wiring lives in `openco
   - `override-map.json`, `integrations-map.json`
   - `anti-pattern-findings.json` (AP-001 through AP-006)
   - `site-config-keys.json` (key names only — never values)
+
+---
+
+{% include "operating-manual-pointer.md.j2" %}
+
+{% include "ticketing-pointer.md.j2" %}
+
+{% include "harness-pointer.md.j2" %}
 
 ---
 
