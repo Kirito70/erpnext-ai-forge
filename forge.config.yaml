@@ -38,6 +38,7 @@ bench:
     - novizna_pos
     - noviznaerp_payroll
     - erpnext_location
+    - novizna_integrations
 
   # Apps the Python linter may see. Renders canonical/harness/ruff.toml.j2 into
   # the target's ruff.toml, excluding every app in the bench not named here.
@@ -63,6 +64,8 @@ bench:
     - invoice_ninja_integration
     - novizna_core
     - novizna_crm
+    - novizna_hr_legal
+    - novizna_integrations
     - novizna_pos
     - novizna_restaurant
     - noviznaerp_payroll
