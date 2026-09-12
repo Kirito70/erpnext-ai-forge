@@ -38,7 +38,7 @@ esac
 # which is shared byte-for-byte across targets.
 _OWNED_APPS="{{ target.owned_apps | join(' ') }}"
 {% endif -%}
-FILE="${2:-}"
+FILE="$(_subject_path "${2:-}")"
 if [ -z "$FILE" ] && [ "$MODE" != "quick" ]; then
   FILE="$(_changed_app_path)"
   [ -n "$FILE" ] && note "gates: subject inferred from working tree -> $FILE"
@@ -91,6 +91,16 @@ if [ "$MODE" != "quick" ]; then
     run_gate "{{ gate.id }}" {{ gate.get('timeout_seconds', 1800) }} {{ gate.cmd | render_gate_cmd(target.primary_site) }}
   else
     RESULTS+=("SKIP  {{ gate.id }} (no {{ gate.get('requires') }})")
+  fi
+{%- elif '_app_of' in (gate.cmd | render_gate_cmd(target.primary_site)) or '_app_dir_of' in (gate.cmd | render_gate_cmd(target.primary_site)) %}
+  # Needs a subject that RESOLVES to an app, not merely a non-empty one. Testing
+  # `-n "$FILE"` was the other half of HARNESS-005: `gates.sh full docs/x.md` or
+  # any bare non-app token left $FILE non-empty while _app_of returned "", so the
+  # guard passed and `--app ""` silently ran every app in the bench.
+  if [ -n "$(_app_of "$FILE")" ]; then
+    run_gate "{{ gate.id }}" {{ gate.get('timeout_seconds', 1800) }} {{ gate.cmd | render_gate_cmd(target.primary_site) }}
+  else
+    RESULTS+=("SKIP  {{ gate.id }} (subject '${FILE:-<none>}' does not resolve to an app under apps/)")
   fi
 {%- elif '$FILE' in (gate.cmd | render_gate_cmd(target.primary_site)) %}
   # Needs a subject; without one the command would run against an empty app.

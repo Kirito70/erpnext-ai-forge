@@ -58,15 +58,21 @@ stacks:
     # Cheap enough to run when a session ends.
     quick:
       - id: python-lint-all
-        cmd: "ruff check apps"
+        cmd: "env/bin/ruff check apps"
         verify_status: VERIFIED
         note: >-
-          Run against the bench 2026-08-14. Scoped by the generated bench-root
-          ruff.toml (see lint_apps): 2189 findings across all 21 apps became
-          1231 across the 7 we own. Exits 1 today and that is correct — the
-          remaining findings are real pre-existing debt (973 auto-fixable),
-          concentrated in novizna_restaurant and noviznaerp_payroll. VERIFIED
-          means the command is right, not that the gate is green.
+          Scoped by the generated bench-root ruff.toml (see lint_apps): 2189
+          findings across all 21 apps become ~1200 across the apps we own.
+          Exits 1 today and that is correct — the remaining findings are real
+          pre-existing debt, concentrated in novizna_restaurant and
+          noviznaerp_payroll (HARNESS-004). VERIFIED means the command is
+          right, not that the gate is green.
+          `env/bin/ruff`, not bare `ruff` (HARNESS-006, fixed 2026-09-11): the
+          bare form resolved to whatever was first on the operator's PATH — on
+          one machine anaconda's ruff 0.12.0, reporting 1223, against the bench
+          venv's 0.14.2 reporting 1212. Same class as HARNESS-002, and this one
+          failed quietly: some ruff is always found, so nothing ever errored and
+          the debt count was simply not reproducible between operators.
 
     # The real Definition of Done. Minutes, not seconds — run by the
     # orchestrator during /ticket-review, never from a Stop hook.
@@ -81,13 +87,24 @@ stacks:
           that FORGE_PRIMARY_SITE is the site tests should run against — the
           bench has four.
       - id: coverage-floor
-        cmd: "env/bin/coverage report --fail-under=80"
+        cmd: "env/bin/coverage report --data-file sites/.coverage --fail-under=80"
         verify_status: VERIFIED
         note: >-
           Same source; the project-wide floor is 80% on new code. Invoked
           through the bench venv: `coverage` is installed there (7.14.0) but is
           not on PATH, so the bare `coverage` this used to run failed with
           "command not found" on every full-gate run (HARNESS-002).
+          `--data-file sites/.coverage` (HARNESS-003, fixed 2026-09-11): bench
+          commands chdir to sites/, so frappe's CodeCoverage
+          (apps/frappe/frappe/coverage.py) writes sites/.coverage — while this
+          gate ran from the bench root and resolved .coverage relative to cwd.
+          Measured 2026-09-11: a stale bench-root .coverage left by an earlier
+          workaround made the gate exit 0 at 80%+, while the authoritative
+          sites/.coverage reported 66% and failed. So the symptom was not only
+          the documented "No data to report" — once any root copy exists the
+          gate passes on data from a different run, which is worse. Reading the
+          file explicitly removes the cwd dependency in both directions.
+          Note the floor is bench-wide-per-run, not per-changed-file.
       - id: frontend-build
         cmd: "yarn --cwd {js_dir} build"
         requires: js_dir
