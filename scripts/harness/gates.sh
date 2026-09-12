@@ -29,7 +29,7 @@ esac
 #
 # Explicit second argument wins; otherwise infer from what the working tree has
 # changed. Never guessed: an empty subject skips the per-app gates loudly.
-FILE="${2:-}"
+FILE="$(_subject_path "${2:-}")"
 if [ -z "$FILE" ] && [ "$MODE" != "quick" ]; then
   FILE="$(_changed_app_path)"
   [ -n "$FILE" ] && note "gates: subject inferred from working tree -> $FILE"
