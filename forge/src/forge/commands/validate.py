@@ -224,6 +224,15 @@ def run(path: Optional[Path], check_drift: bool) -> None:
                     f"change must MOVE the row, not copy it"
                 )
 
+    # App-note narration (BRAIN-T14): warn, never fail. Reads canonical, so a
+    # fix survives `forge sync`.
+    from forge.loader import load_app_notes
+    from forge.narration import measure
+
+    narration: list[str] = []
+    for app_name, note in sorted(load_app_notes(repo_root).items()):
+        narration.extend(measure(f"canonical/apps/{app_name}.md", note.body).warnings())
+
     # Skills provenance: every provenance: external skill must match its
     # canonical/skills-lock.json entry (hash + score). Internal skills (the
     # default, and all 31 currently in this repo) are untouched by this.
@@ -254,6 +263,15 @@ def run(path: Optional[Path], check_drift: bool) -> None:
         console.print(
             "  [dim]Run each against the real target, then set "
             "verify_status: VERIFIED in canonical/harness/gates.yaml.[/dim]"
+        )
+
+    if narration:
+        console.print(f"\n[yellow]App-note narration:[/yellow] {len(narration)}")
+        for w in narration:
+            console.print(f"  • {w}")
+        console.print(
+            "  [dim]Ticket detail belongs in the vault; agents reach it via "
+            "`brain_ticket`, not an always-loaded note.[/dim]"
         )
 
     if issues:
