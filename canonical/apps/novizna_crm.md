@@ -165,12 +165,17 @@ novizna_crm/public/frontend/    ← compiled output (gitignored)
 
 ```text
 novizna_crm/
-  hooks.py                            ← app config: doc_events, scheduler_events, after_install
+  hooks.py                            ← app config: doc_events, scheduler_events, after_install,
+                                        has_permission / permission_query_conditions
   api/
     crm_hooks.py                      ← doc event handlers (after_insert, on_update)
     crm_import.py                     ← generic import API (validate, execute, log)
     import_leads.py                   ← lead-specific import (CSV/Excel preview + run_import)
     erpnext_sync.py                   ← ERPNext customer ↔ CRM Lead sync
+  marketing/                          ← NCRM-MKT marketing engine (vault epic NCRM-MKT)
+    services/                         ← gates.py (GateResult), strategy, evidence, campaign
+    api/                              ← whitelisted POST endpoints (thin; checks live in services)
+    permissions.py                    ← Lead Research Finding row scope via CRM's lead rules
   novizna_crm/
     custom/
       crm_lead.py                     ← after_migrate(): hides upstream industry field
@@ -179,6 +184,9 @@ novizna_crm/
     doctype/
       crm_lead_industry/              ← child table: multi-industry support
       crm_import_log/                 ← import audit log
+      marketing_strategy*/            ← versioned strategy (submit = activate) + change requests
+      marketing_campaign*/            ← campaign / lead dataset (+ country, industry children)
+      lead_research_finding*/         ← proof-backed claims per lead (+ evidence child)
     page/
       import_leads/                   ← Frappe page: import-leads
 ```
