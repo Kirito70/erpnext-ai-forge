@@ -49,7 +49,10 @@ cd apps/novizna_crm/frontend
 yarn dev              # start dev server (rebuilds crm_build/, then watches src_override/ and src/)
 yarn build            # production build → novizna_crm/public/frontend/
 yarn check-conflicts  # verify every src_override/ file still exists upstream (run after CRM updates)
+yarn check-drift      # which upstream changes each override has not picked up (run after CRM updates)
 ```
+
+After pulling upstream CRM, run `/sync-overrides` — it merges upstream changes into every drifting override and stamps `upstream-base.json`.
 
 ---
 
@@ -153,6 +156,8 @@ frontend/
   custom-dev.cjs                ← dev server script (3-layer merge + chokidar watch)
   vite.config.js                ← overrides CRM's vite config, copied into crm_build/ at build time
   check-conflicts.cjs           ← validates all src_override/ files still exist in upstream
+  check-drift.cjs               ← per-override drift vs upstream since its recorded base (--diff / --stamp)
+  upstream-base.json            ← upstream CRM commit each override was last synced to
   package.json                  ← extra deps (xlsx) merged into crm_build/package.json at build time
 
 crm_build/                      ← GENERATED (gitignored, wiped on every build — never edit)
