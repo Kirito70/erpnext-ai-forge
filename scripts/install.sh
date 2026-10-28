@@ -4,31 +4,34 @@
 #   curl -fsSL https://github.com/Kirito70/erpnext-ai-forge/releases/latest/download/install.sh | bash
 #
 # Installs into ~/.local/share/erpnext-ai-forge/<version>, points `current` at
-# it, and puts a `forge` wrapper in ~/.local/bin. Re-run to upgrade.
+# it, puts a `forge` wrapper in ~/.local/bin, then runs `forge setup` to write
+# ~/.forge.yaml (bench, site, your company's apps). Re-run to upgrade; existing
+# settings are kept.
 #
 # Options (flags after `bash -s --` when piped):
 #   --version vX.Y.Z   install a specific release (default: latest)
-#   --uninstall        remove the wrapper and every installed version (keeps config)
+#   --uninstall        remove the wrapper and every installed version (keeps ~/.forge.yaml)
 #
 # Environment:
+#   FORGE_INVITE         settings from `forge invite`; pre-answers the company questions
 #   FORGE_GITHUB_TOKEN   read-only token, needed only if the repo is private;
 #                        used for this run, never written to disk
-#   FORGE_BENCH_PATH     bench path   } skip the prompts (non-interactive installs)
-#   FORGE_PRIMARY_SITE   site name    }
+#   FORGE_REPO           owner/name to install from (default Kirito70/erpnext-ai-forge)
+#   FORGE_REPO_URL       clone URL, for a fork hosted elsewhere (default https://github.com/$FORGE_REPO.git)
+#   FORGE_VERSION        same as --version
+#   FORGE_BENCH_PATH     bench path   } skip those prompts; with no terminal,
+#   FORGE_PRIMARY_SITE   site name    } setup runs non-interactively
 #   FORGE_INSTALL_DIR    default ~/.local/share/erpnext-ai-forge
 #   FORGE_BIN_DIR        default ~/.local/bin
-#   FORGE_CONFIG_DIR     default ~/.config/erpnext-ai-forge
 #
 # Why a git clone, not a tarball: generated files stamp the commit that last
 # touched their source, which needs history. A blobless clone has full history
 # at a fraction of the size.
 set -euo pipefail
 
-REPO="Kirito70/erpnext-ai-forge"
+REPO="${FORGE_REPO:-Kirito70/erpnext-ai-forge}"
 INSTALL_DIR="${FORGE_INSTALL_DIR:-$HOME/.local/share/erpnext-ai-forge}"
 BIN_DIR="${FORGE_BIN_DIR:-$HOME/.local/bin}"
-CONFIG_DIR="${FORGE_CONFIG_DIR:-$HOME/.config/erpnext-ai-forge}"
-CONFIG_FILE="$CONFIG_DIR/env"
 WRAPPER="$BIN_DIR/forge"
 WRAPPER_MARKER="# erpnext-ai-forge wrapper"
 # Directories forge writes into at runtime; everything else is made read-only.
@@ -39,13 +42,6 @@ warn() { printf '\033[1;33mwarning:\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 
 has_tty() { [[ -r /dev/tty ]] && (exec </dev/tty) 2>/dev/null; }
-
-ask() {  # ask <prompt> <default> -> echoes answer
-    local prompt=$1 default=$2 reply=""
-    has_tty || die "no terminal to prompt on; set FORGE_BENCH_PATH and FORGE_PRIMARY_SITE"
-    read -r -p "$prompt${default:+ [$default]}: " reply </dev/tty
-    printf '%s' "${reply:-$default}"
-}
 
 github_api() {  # github_api <path>
     local auth=()
@@ -67,7 +63,7 @@ uninstall() {
         rm -r "$INSTALL_DIR"
         say "removed $INSTALL_DIR"
     fi
-    say "config kept at $CONFIG_FILE (delete it by hand if you want)"
+    say "settings kept at ~/.forge.yaml (delete it by hand if you want)"
 }
 
 require_tools() {
@@ -76,20 +72,18 @@ require_tools() {
     command -v uv   >/dev/null && return
     [[ -x "$HOME/.local/bin/uv" ]] && { PATH="$HOME/.local/bin:$PATH"; return; }
     say "uv (Python package manager) is not installed"
+    local yn="N"
     if has_tty; then
-        local yn
-        yn=$(ask "Install uv from https://astral.sh/uv now? (y/N)" "N")
-        [[ "$yn" =~ ^[Yy] ]] || die "uv is required: https://docs.astral.sh/uv/getting-started/installation/"
-    else
-        die "uv is required: https://docs.astral.sh/uv/getting-started/installation/"
+        read -r -p "Install uv from https://astral.sh/uv now? (y/N): " yn </dev/tty
     fi
+    [[ "$yn" =~ ^[Yy] ]] || die "uv is required: https://docs.astral.sh/uv/getting-started/installation/"
     curl -LsSf https://astral.sh/uv/install.sh | sh
     PATH="$HOME/.local/bin:$PATH"
     command -v uv >/dev/null || die "uv installed but not on PATH; open a new shell and re-run"
 }
 
 clone_release() {  # clone_release <version> <dest>
-    local version=$1 dest=$2 url="https://github.com/$REPO.git" git_auth=()
+    local version=$1 dest=$2 url="${FORGE_REPO_URL:-https://github.com/$REPO.git}" git_auth=()
     if [[ -n "${FORGE_GITHUB_TOKEN:-}" ]]; then
         local basic
         basic=$(printf 'x-access-token:%s' "$FORGE_GITHUB_TOKEN" | base64 | tr -d '\n')
@@ -120,27 +114,6 @@ lock_down() {  # lock_down <dir>
     done
 }
 
-write_config() {
-    mkdir -p "$CONFIG_DIR"
-    # shellcheck disable=SC1090
-    [[ -f "$CONFIG_FILE" ]] && source "$CONFIG_FILE"
-    local bench="${FORGE_BENCH_PATH:-}" site="${FORGE_PRIMARY_SITE:-}"
-    if [[ -z "$bench" || -z "$site" ]]; then
-        say "configure your bench"
-        bench=$(ask "Absolute path to your Frappe bench" "$bench")
-        site=$(ask "Primary site name" "$site")
-    fi
-    [[ "$bench" = /* ]] || die "bench path must be absolute: $bench"
-    [[ -d "$bench/apps" ]] || warn "$bench/apps not found; is that a Frappe bench?"
-    umask 077
-    cat >"$CONFIG_FILE" <<EOF
-# erpnext-ai-forge settings — read by the forge wrapper. Edit freely.
-FORGE_BENCH_PATH=$(printf '%q' "$bench")
-FORGE_PRIMARY_SITE=$(printf '%q' "$site")
-EOF
-    say "settings saved to $CONFIG_FILE"
-}
-
 write_wrapper() {
     mkdir -p "$BIN_DIR"
     if [[ -e "$WRAPPER" ]] && ! grep -qF "$WRAPPER_MARKER" "$WRAPPER"; then
@@ -149,25 +122,35 @@ write_wrapper() {
     cat >"$WRAPPER" <<EOF
 #!/usr/bin/env bash
 $WRAPPER_MARKER — regenerated by install.sh; do not edit.
+# Settings: ~/.forge.yaml (or \$FORGE_CONFIG). forge finds its canonical/ tree
+# from the working directory, hence the cd.
 set -euo pipefail
-set -a
-# shellcheck disable=SC1091
-source "$CONFIG_FILE"
-set +a
-# forge locates its canonical/ tree from the working directory.
 cd "$INSTALL_DIR/current"
 exec "$INSTALL_DIR/current/forge/.venv/bin/forge" "\$@"
 EOF
     chmod 755 "$WRAPPER"
 }
 
+run_setup() {
+    local args=(setup --if-needed)
+    [[ -n "${FORGE_BENCH_PATH:-}" ]]   && args+=(--bench "$FORGE_BENCH_PATH")
+    [[ -n "${FORGE_PRIMARY_SITE:-}" ]] && args+=(--site "$FORGE_PRIMARY_SITE")
+    # FORGE_INVITE reaches `forge setup` through the environment.
+    if has_tty; then
+        "$WRAPPER" "${args[@]}" </dev/tty && return
+    else
+        "$WRAPPER" "${args[@]}" --yes </dev/null && return
+    fi
+    warn "setup did not finish; run \`forge setup\` to configure your bench"
+}
+
 main() {
-    local version="" action=install
+    local version="${FORGE_VERSION:-}" action=install
     while [[ $# -gt 0 ]]; do
         case $1 in
             --version)   version=${2:?--version needs a value}; shift 2 ;;
             --uninstall) action=uninstall; shift ;;
-            -h|--help)   sed -n '2,24p' "$0" 2>/dev/null || true; exit 0 ;;
+            -h|--help)   sed -n '2,30p' "$0" 2>/dev/null || true; exit 0 ;;
             *)           die "unknown option: $1" ;;
         esac
     done
@@ -187,12 +170,14 @@ main() {
         install_deps "$dest"
         lock_down "$dest"
     fi
+    [[ -f "$dest/forge.config.example.yaml" ]] \
+        || die "$version predates \`forge setup\`; install v0.8.0 or later"
     ln -sfn "$version" "$INSTALL_DIR/current"
 
-    write_config
     write_wrapper
-
     say "installed erpnext-ai-forge $version"
+    run_setup
+
     # shellcheck disable=SC2016  # the printf prints a literal $PATH to paste
     case ":$PATH:" in
         *":$BIN_DIR:"*) ;;
@@ -202,7 +187,8 @@ main() {
     cat <<EOF
 
 Next:
-  forge --version
+  forge apps add <app>           # an app you create later
+  forge discover                 # index your bench
   forge sync --all --dry-run     # preview what would be written to your bench
   forge sync --all               # write it
 

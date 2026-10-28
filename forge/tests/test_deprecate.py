@@ -24,7 +24,7 @@ def fake_repo(tmp_path: Path) -> Path:
     that will supersede it."""
     repo = tmp_path / "repo"
     repo.mkdir()
-    (repo / "forge.config.yaml").write_text("project: {name: t, version: 0.0.0}\n")
+    (repo / "forge.config.example.yaml").write_text("project: {name: t, version: 0.0.0}\n")
     skills_dir = repo / "canonical" / "skills" / "frappe-core"
     skills_dir.mkdir(parents=True)
 

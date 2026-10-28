@@ -249,7 +249,7 @@ def _managed_apps_for(target: Target) -> set[str] | None:
     an unwanted diff in a repo we do not own. Opt-in by name, declared per
     target so every adapter honours the same list.
     """
-    return set(target.managed_apps) if target.managed_apps else None
+    return set(target.managed_apps) if target.managed_apps is not None else None
 
 
 

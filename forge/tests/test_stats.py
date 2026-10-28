@@ -15,14 +15,14 @@ from forge.stats import collect_stats, parse_relative_since, render_markdown
 @pytest.fixture
 def empty_repo(tmp_path: Path) -> Path:
     """A minimal repo without an audit/ dir at all."""
-    (tmp_path / "forge.config.yaml").write_text("project: {name: t, version: 0.0.0}\n")
+    (tmp_path / "forge.config.example.yaml").write_text("project: {name: t, version: 0.0.0}\n")
     return tmp_path
 
 
 @pytest.fixture
 def repo_with_audit(tmp_path: Path) -> Path:
     """A repo with a variety of audit entries seeded."""
-    (tmp_path / "forge.config.yaml").write_text("project: {name: t, version: 0.0.0}\n")
+    (tmp_path / "forge.config.example.yaml").write_text("project: {name: t, version: 0.0.0}\n")
     # Seed entries
     audit_log(tmp_path, {"action": "sync.live", "tool": "claude-code", "per_file_scores": {"a.md": 100, "b.md": 92}})
     audit_log(tmp_path, {"action": "sync.dry_run", "tool": "cursor"})
@@ -86,7 +86,7 @@ def test_collect_stats_escalations_counted(repo_with_audit):
 
 
 def test_collect_stats_recent_truncated_to_10(tmp_path):
-    (tmp_path / "forge.config.yaml").write_text("project: {name: t, version: 0.0.0}\n")
+    (tmp_path / "forge.config.example.yaml").write_text("project: {name: t, version: 0.0.0}\n")
     for i in range(15):
         audit_log(tmp_path, {"action": f"a{i}", "tool": "t"})
     report = collect_stats(tmp_path)
@@ -96,7 +96,7 @@ def test_collect_stats_recent_truncated_to_10(tmp_path):
 
 
 def test_collect_stats_since_filter_drops_older_entries(tmp_path):
-    (tmp_path / "forge.config.yaml").write_text("project: {name: t, version: 0.0.0}\n")
+    (tmp_path / "forge.config.example.yaml").write_text("project: {name: t, version: 0.0.0}\n")
     audit_log(tmp_path, {"action": "old", "ts": "2020-01-01T00:00:00Z"})
     audit_log(tmp_path, {"action": "new", "tool": "t"})
     # NOTE: audit_log overwrites ts, so the manually-supplied "old" entry's ts

@@ -27,20 +27,35 @@ A single set of canonical specifications is rendered into per-tool configuration
 
 ## Install (team members)
 
-One command installs the latest release read-only. No repo access or GitHub account needed; requires `git` and `curl` (it offers to install [uv](https://docs.astral.sh/uv/) if missing):
+The easiest path: run `forge invite "<name>"` on a configured machine and send the printed command. It carries the settings you choose (your company's apps, owned GitHub orgs, a token if the repo is private), so the new user is only asked for their bench path and site.
+
+Without an invite, one command installs the latest release read-only. No repo access or GitHub account needed; requires `git` and `curl` (it offers to install [uv](https://docs.astral.sh/uv/) if missing).
+
+Linux / macOS / WSL:
 
 ```bash
 curl -fsSL https://github.com/Kirito70/erpnext-ai-forge/releases/latest/download/install.sh | bash
 ```
 
-It asks for your bench path and site name, then puts `forge` on your PATH. Settings live in `~/.config/erpnext-ai-forge/env`. Re-run to upgrade; pin a version with `| bash -s -- --version v0.7.0`; remove with `| bash -s -- --uninstall`. If the repo is private, use a fine-grained token with read-only *Contents* access to this repo:
+Windows (PowerShell; installs into WSL2, where Frappe benches run):
 
-```bash
-T=<token>
-curl -fsSL -H "Authorization: Bearer $T" -H "Accept: application/vnd.github.raw" \
-  https://api.github.com/repos/Kirito70/erpnext-ai-forge/contents/scripts/install.sh \
-  | FORGE_GITHUB_TOKEN=$T bash
+```powershell
+irm https://github.com/Kirito70/erpnext-ai-forge/releases/latest/download/install.ps1 | iex
 ```
+
+The installer runs `forge setup`, which asks for your bench and site, lists the bench's non-upstream apps and asks which are your company's. Answers go to `~/.forge.yaml`, never into this repo. Add apps you create later with `forge apps add <app>`; re-run `forge setup` to change anything.
+
+Re-run the install command to upgrade (settings are kept). Pin a version with `| bash -s -- --version v0.8.0` (`$env:FORGE_VERSION='v0.8.0'` on Windows); remove with `| bash -s -- --uninstall`. For a private repo, `forge invite --token <read-only token>` prints commands that authenticate.
+
+### Configuration files
+
+| File | Tracked | Holds |
+|------|---------|-------|
+| `forge.config.example.yaml` | yes | Company-neutral defaults |
+| `forge.config.yaml` | no (gitignored) | Your overlay in a dev checkout |
+| `~/.forge.yaml` | — | Your overlay for installed copies |
+
+Forge layers one overlay on the defaults: `$FORGE_CONFIG` if set, else `forge.config.yaml` beside the defaults, else `~/.forge.yaml`. Mappings merge; lists replace.
 
 ## Quick Start (development)
 

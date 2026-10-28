@@ -1,11 +1,24 @@
-# erpnext-ai-forge — global configuration
-# Version: 0.1.0
-# Spec: ULTRAPLAN-AI-FRAMEWORK-v0.2.md
+# erpnext-ai-forge — default configuration (tracked; company-neutral)
+#
+# Do not put company or machine settings here. Forge layers ONE overlay file on
+# top of these defaults, the first that exists of:
+#
+#   1. $FORGE_CONFIG
+#   2. forge.config.yaml next to this file   (gitignored; for a dev checkout)
+#   3. ~/.forge.yaml                          (installed copies)
+#
+# Mappings merge key by key; lists and scalars in the overlay replace these.
+# `forge setup` writes the overlay; `forge apps add|remove` edits it.
 
 project:
   name: erpnext-ai-forge
   version: 0.1.0
-  description: "Cross-tool AI agent standardization framework for the Novizna v16 ERPNext/Frappe bench"
+  description: "Cross-tool AI agent standardization framework for ERPNext/Frappe benches"
+
+# Where installers and `forge invite` fetch releases from. A company running
+# its own fork sets this in its overlay.
+distribution:
+  repo: Kirito70/erpnext-ai-forge
 
 # Target bench (resolved at sync time; can be overridden via FORGE_BENCH_PATH env var)
 bench:
@@ -18,9 +31,8 @@ bench:
   # `git remote get-url`, so it cannot drift out of date the way a hand-kept
   # list would.
   #
-  # Empty or absent disables the check entirely.
-  owned_remotes:
-    - novizna-codes
+  # Empty or absent disables the check entirely. Set in your overlay.
+  owned_remotes: []
 
   # Apps forge may write per-app instruction files into. Discovery finds every
   # custom app in the bench, but "custom to this bench" is not the same as
@@ -32,13 +44,7 @@ bench:
   # Manage with `forge apps add|remove <app>`. Removing a name stops future
   # syncs writing there; it does NOT delete a file already written — use
   # `forge apps remove <app> --prune` for that.
-  managed_apps:
-    - novizna_crm
-    - novizna_core
-    - novizna_pos
-    - noviznaerp_payroll
-    - erpnext_location
-    - novizna_integrations
+  managed_apps: []   # set in your overlay; empty means "no app gets per-app files"
 
   # Apps the Python linter may see. Renders canonical/harness/ruff.toml.j2 into
   # the target's ruff.toml, excluding every app in the bench not named here.
@@ -48,27 +54,14 @@ bench:
   # narrow; this is "is this app's Python ours to fix", which covers apps we
   # own but have not onboarded to forge yet.
   #
-  # Deliberately its own list rather than derived:
-  #   - from `owned_remotes`: the upstream apps are forks into our own org
-  #     (frappe -> novizna_framework, erpnext -> noviznaerp,
-  #     crm -> novizna_crm_core, hrms -> novizna_hrms,
-  #     press -> novizna_press_core), so remote ownership calls all five ours.
-  #   - from `upstream_apps`: that list is the write guard's and omits the
-  #     third-party apps (raven, cargo_management, changemakers) we also never
-  #     lint.
+  # Deliberately its own list rather than derived from `owned_remotes`
+  # (upstream apps are often forks into your own org, so remote ownership would
+  # call them yours) or from `upstream_apps` (the write guard's list, which
+  # omits third-party apps).
   #
   # An allow-list, so an app vendored in later is linted (noisy, prompts a
   # re-sync) rather than skipped (quiet, and nobody notices).
-  lint_apps:
-    - erpnext_location
-    - invoice_ninja_integration
-    - novizna_core
-    - novizna_crm
-    - novizna_hr_legal
-    - novizna_integrations
-    - novizna_pos
-    - novizna_restaurant
-    - noviznaerp_payroll
+  lint_apps: []      # set in your overlay; empty skips the generated ruff scope
 
 # Additional render targets, layered on top of `bench:` above.
 #

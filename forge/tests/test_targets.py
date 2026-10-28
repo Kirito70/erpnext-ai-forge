@@ -24,7 +24,7 @@ from forge.render import _managed_apps_for, _target_wants
 
 
 def _write_cfg(root: Path, cfg: dict) -> Path:
-    (root / "forge.config.yaml").write_text(yaml.safe_dump(cfg))
+    (root / "forge.config.example.yaml").write_text(yaml.safe_dump(cfg))
     return root
 
 

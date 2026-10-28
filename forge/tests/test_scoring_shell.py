@@ -48,7 +48,7 @@ def sandbox(tmp_path: Path, repo_root: Path) -> Path:
     dst = tmp_path / "canonical" / "policies" / "security-scoring.yaml"
     dst.parent.mkdir(parents=True)
     dst.write_text(src.read_text())
-    (tmp_path / "forge.config.yaml").write_text("project:\n  name: t\n")
+    (tmp_path / "forge.config.example.yaml").write_text("project:\n  name: t\n")
     return tmp_path
 
 

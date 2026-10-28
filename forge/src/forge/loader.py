@@ -28,19 +28,24 @@ from forge.models import (
     Target,
     ToolSpec,
 )
+from forge.user_config import DEFAULTS_FILE, deep_merge, read_overlay, read_yaml
 
 
 # ---------------------------------------------------------------------------
 # Repo root resolution
 # ---------------------------------------------------------------------------
 def find_repo_root(start: Path | None = None) -> Path:
-    """Walk up from `start` (default: cwd) until a `forge.config.yaml` is found."""
+    """Walk up from `start` (default: cwd) to the dir holding the tracked defaults.
+
+    The marker is `forge.config.example.yaml`, not the overlay: the overlay is
+    gitignored and may live in $HOME, so it says nothing about where the repo is.
+    """
     current = (start or Path.cwd()).resolve()
     for parent in [current, *current.parents]:
-        if (parent / "forge.config.yaml").is_file():
+        if (parent / DEFAULTS_FILE).is_file():
             return parent
     raise FileNotFoundError(
-        "Could not locate erpnext-ai-forge repo root (no forge.config.yaml found)."
+        f"Could not locate erpnext-ai-forge repo root (no {DEFAULTS_FILE} found)."
     )
 
 
@@ -338,11 +343,9 @@ def load_adapter_config(repo_root: Path, tool: str) -> dict[str, Any]:
 
 
 def load_forge_config(repo_root: Path) -> dict[str, Any]:
-    """Load forge.config.yaml as a plain dict."""
-    path = repo_root / "forge.config.yaml"
-    with path.open() as f:
-        cfg: dict[str, Any] = yaml.safe_load(f) or {}
-    return cfg
+    """The tracked defaults with the user's overlay merged on top (see user_config)."""
+    defaults = read_yaml(repo_root / DEFAULTS_FILE)
+    return deep_merge(defaults, read_overlay(repo_root))
 
 
 def load_harness(repo_root: Path) -> HarnessSpec | None:
@@ -502,7 +505,9 @@ def load_targets(repo_root: Path, forge_cfg: dict[str, Any] | None = None) -> di
             enabled_tools=list(raw.get("enabled_tools") or cfg.get("enabled_tools") or []),
             primary_site=resolve_config_str(str(site), env) if site else None,
             owned_remotes=frozenset(raw.get("owned_remotes") or []),
-            managed_apps=tuple(managed) if managed else None,
+            # `[]` means "no app", absent means "no restriction"; collapsing
+            # the two would make an empty overlay write into every app.
+            managed_apps=tuple(managed) if managed is not None else None,
             lint_apps=tuple(lint) if lint else None,
             renders=frozenset(raw["renders"]) if raw.get("renders") is not None else None,
             self_target=bool(raw.get("self_target", False)),

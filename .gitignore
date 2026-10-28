@@ -73,3 +73,6 @@ forge/reports/
 
 # machine-local brain config (vault paths etc.)
 .brain/local.toml
+
+# Personal/company forge settings (overlay on forge.config.example.yaml)
+forge.config.yaml

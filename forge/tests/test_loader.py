@@ -22,7 +22,7 @@ from forge.loader import (
 
 def test_find_repo_root_from_tests_dir():
     root = find_repo_root(Path(__file__).parent)
-    assert (root / "forge.config.yaml").is_file()
+    assert (root / "forge.config.example.yaml").is_file()
 
 
 def test_load_agents(repo_root):

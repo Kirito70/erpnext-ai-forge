@@ -39,7 +39,7 @@ def isolated_repo(tmp_path: Path, repo_root: Path, monkeypatch) -> Path:
     monkeypatch.setenv("FORGE_PRIMARY_SITE", "test-site")
 
     # forge.config.yaml — keep parity with the real repo's security thresholds
-    (mini / "forge.config.yaml").write_text(
+    (mini / "forge.config.example.yaml").write_text(
         f"""project:
   name: erpnext-ai-forge-test
   version: 0.0.0

@@ -289,20 +289,17 @@ def discover_bench(
     if bench_override is not None:
         bench = bench_override
     else:
-        # Resolve `{{ env.FORGE_BENCH_PATH }}` ourselves to avoid dragging in Jinja
+        # `bench.path` is either a literal (written by `forge setup`) or the
+        # default `{{ env.FORGE_BENCH_PATH }}` template.
         import os
+        raw_path = str(cfg["bench"]["path"])
         env_bench = os.environ.get("FORGE_BENCH_PATH", "")
-        if not env_bench:
+        if "{{" in raw_path and not env_bench:
             raise FileNotFoundError(
-                "FORGE_BENCH_PATH is not set. Set it in your shell:\n"
-                "  export FORGE_BENCH_PATH=/path/to/bench\n"
-                "Or copy `.env.example` to `.env` at the repo root and fill it in — "
-                "`.env` is auto-loaded by forge."
+                "No bench configured. Run `forge setup`, or set it in your shell:\n"
+                "  export FORGE_BENCH_PATH=/path/to/bench"
             )
-        bench_str = cfg["bench"]["path"].replace(
-            "{{ env.FORGE_BENCH_PATH }}", env_bench
-        )
-        bench = Path(bench_str)
+        bench = Path(raw_path.replace("{{ env.FORGE_BENCH_PATH }}", env_bench))
     if not bench.is_dir() or not (bench / "apps").is_dir():
         raise FileNotFoundError(
             f"Bench apps/ not found at {bench}\n"

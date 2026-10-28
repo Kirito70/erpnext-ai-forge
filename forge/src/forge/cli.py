@@ -19,9 +19,11 @@ from forge.commands import (
     audit as audit_cmd,
     commit as commit_cmd,
     discover as discover_cmd,
+    invite as invite_cmd,
     ledger as ledger_cmd,
     render as render_cmd,
     score as score_cmd,
+    setup as setup_cmd,
     skills as skills_cmd,
     stats as stats_cmd,
     sync as sync_cmd,
@@ -38,10 +40,10 @@ def _load_env_files() -> None:
     Existing environment variables are NOT overridden — explicit `export`
     in the shell always takes precedence.
     """
-    # Walk upward from cwd looking for forge.config.yaml (the repo root marker)
+    # Walk upward from cwd looking for the repo root marker
     current = Path.cwd().resolve()
     for parent in [current, *current.parents]:
-        if (parent / "forge.config.yaml").is_file():
+        if (parent / "forge.config.example.yaml").is_file():
             env_path = parent / ".env"
             if env_path.is_file():
                 load_dotenv(env_path, override=False)
@@ -234,6 +236,59 @@ def audit_tail(
 def audit_backup() -> None:
     """Create a monthly tar+gpg backup of the audit log (per Decision 14)."""
     audit_cmd.backup()
+
+
+# ---------------------------------------------------------------------------
+# setup / invite
+# ---------------------------------------------------------------------------
+@app.command()
+def setup(
+    bench: Optional[str] = typer.Option(None, "--bench", help="Bench path (skips the prompt)."),
+    site: Optional[str] = typer.Option(None, "--site", help="Primary site (skips the prompt)."),
+    invite: Optional[str] = typer.Option(
+        None, "--invite", envvar="FORGE_INVITE", help="Settings payload from `forge invite`."
+    ),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Accept defaults; never prompt."),
+    if_needed: bool = typer.Option(
+        False, "--if-needed", help="Do nothing when settings already name a bench (used by installers)."
+    ),
+) -> None:
+    """Configure this machine: bench, site, and which apps are your company's."""
+    try:
+        code = setup_cmd.run_setup(
+            bench=bench, site=site, invite=invite, assume_yes=yes, if_needed=if_needed
+        )
+    except ValueError as exc:
+        console.print(f"[red]✗[/red] {exc}")
+        raise typer.Exit(1) from exc
+    raise typer.Exit(code)
+
+
+@app.command()
+def invite(
+    name: Optional[str] = typer.Argument(None, help="Who it is for (shown in the output only)."),
+    copy_all: bool = typer.Option(False, "--all", help="Copy every shareable setting without asking."),
+    only: Optional[str] = typer.Option(
+        None, "--only", help="Comma-separated settings to copy, e.g. bench.managed_apps,bench.owned_remotes."
+    ),
+    token: Optional[str] = typer.Option(
+        None, "--token", help="Read-only GitHub token for a private repo (else $FORGE_GITHUB_TOKEN or a prompt)."
+    ),
+    no_token: bool = typer.Option(False, "--no-token", help="Do not include a token."),
+) -> None:
+    """Print Linux and Windows install commands carrying your chosen settings."""
+    try:
+        code = invite_cmd.run_invite(
+            name,
+            copy_all=copy_all,
+            only=[k.strip() for k in only.split(",") if k.strip()] if only else None,
+            token=token,
+            no_token=no_token,
+        )
+    except ValueError as exc:
+        console.print(f"[red]✗[/red] {exc}")
+        raise typer.Exit(1) from exc
+    raise typer.Exit(code)
 
 
 # ---------------------------------------------------------------------------

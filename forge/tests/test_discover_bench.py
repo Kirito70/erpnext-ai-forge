@@ -167,8 +167,8 @@ def test_discover_bench_end_to_end(repo_root, fake_bench, monkeypatch, tmp_path)
     # clobbering the real Phase 0 hand-authored snapshot.
     fake_repo = tmp_path / "fake-repo"
     fake_repo.mkdir()
-    # forge.config.yaml is the only file the loader requires
-    (fake_repo / "forge.config.yaml").write_text(
+    # forge.config.example.yaml is the only file the loader requires
+    (fake_repo / "forge.config.example.yaml").write_text(
         "project: {name: erpnext-ai-forge, version: 0.0.0}\n"
         "bench: {path: '{{ env.FORGE_BENCH_PATH }}', primary_site: '{{ env.FORGE_PRIMARY_SITE }}'}\n"
         "enabled_tools: [claude-code]\n"
@@ -205,7 +205,7 @@ def test_discover_bench_end_to_end(repo_root, fake_bench, monkeypatch, tmp_path)
 def test_discover_bench_only_app_filter(repo_root, fake_bench, monkeypatch, tmp_path):
     fake_repo = tmp_path / "fake-repo-2"
     fake_repo.mkdir()
-    (fake_repo / "forge.config.yaml").write_text(
+    (fake_repo / "forge.config.example.yaml").write_text(
         "project: {name: erpnext-ai-forge, version: 0.0.0}\n"
         "bench: {path: '{{ env.FORGE_BENCH_PATH }}', primary_site: '{{ env.FORGE_PRIMARY_SITE }}'}\n"
         "enabled_tools: [claude-code]\n"
@@ -247,7 +247,7 @@ def test_third_party_app_is_not_custom(repo_root, fake_bench, monkeypatch, tmp_p
 
     fake_repo = tmp_path / "fake-repo-3"
     fake_repo.mkdir()
-    (fake_repo / "forge.config.yaml").write_text(
+    (fake_repo / "forge.config.example.yaml").write_text(
         "project: {name: erpnext-ai-forge, version: 0.0.0}\n"
         "bench:\n"
         "  path: '{{ env.FORGE_BENCH_PATH }}'\n"

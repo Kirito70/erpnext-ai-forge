@@ -113,7 +113,7 @@ def test_stale_manifest_flagged(repo_root, tmp_path):
     # Point the row at a real file in the forge repo, recording a hash that
     # deliberately does not match its current content.
     manifest = read_manifest(manifest_dir)
-    manifest.source_files[0].path = "forge.config.yaml"
+    manifest.source_files[0].path = "forge.config.example.yaml"
     manifest.source_files[0].source_sha256 = sha256_text("not what is on disk")
     write_manifest(manifest_dir, manifest)
 
@@ -127,9 +127,9 @@ def test_unchanged_source_is_not_stale(repo_root, tmp_path):
     bench, manifest_dir, _ = _make_fake_bench_with_manifest(tmp_path)
 
     manifest = read_manifest(manifest_dir)
-    manifest.source_files[0].path = "forge.config.yaml"
+    manifest.source_files[0].path = "forge.config.example.yaml"
     manifest.source_files[0].source_sha256 = sha256_text(
-        (repo_root / "forge.config.yaml").read_text()
+        (repo_root / "forge.config.example.yaml").read_text()
     )
     write_manifest(manifest_dir, manifest)
 

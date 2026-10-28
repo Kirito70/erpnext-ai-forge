@@ -20,7 +20,7 @@ from forge.skills_lock import list_skills, load_lockfile, sha256_of, verify
 def _repo(tmp_path: Path, *, lock: dict | None = None) -> Path:
     root = tmp_path / "repo"
     (root / "canonical" / "skills" / "domain").mkdir(parents=True)
-    (root / "forge.config.yaml").write_text(
+    (root / "forge.config.example.yaml").write_text(
         yaml.safe_dump({"security": {"external_skill_threshold": 98}})
     )
     (root / "canonical" / "policies").mkdir(parents=True)

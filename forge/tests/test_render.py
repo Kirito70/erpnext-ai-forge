@@ -77,7 +77,7 @@ def test_rendered_skill_carries_domain(repo_root):
     ), "skills must be addressable as <name>/SKILL.md"
 
 
-def test_rendered_per_app_includes_all_custom_apps(repo_root):
+def test_rendered_per_app_includes_all_custom_apps(repo_root, company_overlay):
     rendered = render(repo_root, "claude-code")
     per_app = [r for r in rendered if r.artifact_id.startswith("per-app-claude-md/")]
     app_names = {r.artifact_id.split("/", 1)[1] for r in per_app}

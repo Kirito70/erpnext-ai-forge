@@ -3,15 +3,15 @@
 A bench mixes apps we own with apps that merely happen to be installed. Forge
 generating a `CLAUDE.md` into the second kind puts an unwanted diff in someone
 else's repository, so per-app rendering is opt-in: `bench.managed_apps` in
-forge.config.yaml lists the apps forge may write to, and everything else is
-skipped by both render paths.
+the overlay config (see forge.user_config) lists the apps forge may write to,
+and everything else is skipped by both render paths.
 
 This command is the way to see and edit that list without hand-editing YAML,
 and — more usefully — to tell the two kinds of app apart, by showing the git
 remote each one actually points at.
 
     forge apps                          # what is managed, what is skipped, and why
-    forge apps add novizna_billing
+    forge apps add acme_billing
     forge apps remove cargo_management --prune
 
 `remove` alone only stops FUTURE syncs; files already written stay on disk.
@@ -20,7 +20,6 @@ remote each one actually points at.
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 from rich.console import Console
@@ -29,6 +28,7 @@ from rich.table import Table
 from forge.loader import find_repo_root, load_discovery, load_forge_config, load_target
 from forge.manifest import read_manifest, sha256_text
 from forge.repo import git_remote as _git_remote, is_foreign, remote_owner as _owner_of
+from forge.user_config import write_bench_list
 
 console = Console()
 
@@ -44,35 +44,8 @@ def _read_managed(repo_root: Path) -> list[str]:
 
 
 def _write_managed(repo_root: Path, apps: list[str]) -> None:
-    """Rewrite the managed_apps list in place, preserving comments.
-
-    forge.config.yaml is heavily commented and PyYAML round-tripping would
-    discard every one of those comments, so this rewrites just the list items
-    under the existing key and leaves the rest of the file byte-identical.
-    """
-    path = repo_root / "forge.config.yaml"
-    text = path.read_text()
-
-    match = re.search(
-        rf"^(?P<indent>[ \t]*){MANAGED_KEY}:[ \t]*\n(?P<items>(?:[ \t]*-[ \t]*\S.*\n)*)",
-        text,
-        re.M,
-    )
-    if not match:
-        raise ValueError(
-            f"`{MANAGED_KEY}:` not found in {path}. Add it under `bench:` first."
-        )
-
-    indent = match.group("indent")
-    item_indent = indent + "  "
-    rendered = "".join(f"{item_indent}- {app}\n" for app in apps)
-    if not apps:
-        # An empty YAML list is not the same as an absent one: absent means "no
-        # restriction" to the renderer, which would write into every app.
-        rendered = f"{item_indent}[]\n"
-
-    start, end = match.span()
-    path.write_text(text[:start] + f"{indent}{MANAGED_KEY}:\n" + rendered + text[end:])
+    path = write_bench_list(repo_root, MANAGED_KEY, apps)
+    console.print(f"[dim]saved to {path}[/dim]")
 
 
 def _discovered_apps(repo_root: Path) -> list[str]:

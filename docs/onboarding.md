@@ -241,7 +241,7 @@ Reference one of the existing adapters as a starting point:
 - **Aggregate + per-app glob** like Cursor: `adapters/cursor/`
 - **Minimal target** like Antigravity: `adapters/antigravity/`
 
-Add the tool to `forge.config.yaml` `enabled_tools:` and write a test in `forge/tests/test_adapters.py`.
+Add the tool to `forge.config.example.yaml` `enabled_tools:` and write a test in `forge/tests/test_adapters.py`.
 
 ---
 

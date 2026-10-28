@@ -35,7 +35,7 @@ def _managed_app_count(repo_root) -> int:
 # ---------------------------------------------------------------------------
 # Cursor
 # ---------------------------------------------------------------------------
-def test_cursor_renders_main_plus_per_app(repo_root):
+def test_cursor_renders_main_plus_per_app(repo_root, company_overlay):
     rendered = render(repo_root, "cursor")
     summary = render_summary(rendered)
     # 1 forge-main.mdc + one .mdc per managed app + the shared AGENTS-TICKETING.md
@@ -91,7 +91,7 @@ def test_opencode_writes_to_dot_opencode_tree(repo_root):
 # ---------------------------------------------------------------------------
 # Cline
 # ---------------------------------------------------------------------------
-def test_cline_renders_main_plus_per_app(repo_root):
+def test_cline_renders_main_plus_per_app(repo_root, company_overlay):
     rendered = render(repo_root, "cline")
     summary = render_summary(rendered)
     # 1 main + one per managed app + the shared AGENTS-TICKETING.md

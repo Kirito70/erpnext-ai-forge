@@ -50,7 +50,9 @@ def test_unmanaged_apps_get_no_per_app_file(repo_root, monkeypatch, tmp_path):
                 assert app in managed, f"{tool} would write into unmanaged app {app}"
 
 
-def test_app_notes_are_rendered_into_the_per_app_file(repo_root, monkeypatch, tmp_path):
+def test_app_notes_are_rendered_into_the_per_app_file(
+    repo_root, monkeypatch, tmp_path, company_overlay
+):
     monkeypatch.setenv("FORGE_BENCH_PATH", str(tmp_path))
     monkeypatch.setenv("FORGE_PRIMARY_SITE", "test-site")
     (tmp_path / "apps").mkdir()

@@ -1,6 +1,6 @@
 """`forge apps` — the managed-app list and its editing.
 
-What matters here: editing the list must not shred forge.config.yaml's comments
+What matters here: editing the list must not shred the overlay's comments
 (PyYAML round-tripping would), and an empty list must not be written in a way
 the renderer reads as "no restriction" — that would silently re-enable writing
 into every app in the bench.
@@ -31,8 +31,10 @@ enabled_tools:
 
 
 @pytest.fixture
-def repo(tmp_path: Path) -> Path:
+def repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    # The overlay is where the list lives now; point forge at this one.
     (tmp_path / "forge.config.yaml").write_text(CONFIG)
+    monkeypatch.setenv("FORGE_CONFIG", str(tmp_path / "forge.config.yaml"))
     return tmp_path
 
 
@@ -68,11 +70,27 @@ def test_removing_every_app_writes_an_explicit_empty_list(repo):
     assert _read_managed(repo) == []
 
 
-def test_missing_key_is_a_clear_error(tmp_path):
-    (tmp_path / "forge.config.yaml").write_text("bench:\n  path: x\n")
+def test_missing_key_is_added_to_the_overlay(tmp_path, monkeypatch):
+    # A fresh ~/.forge.yaml has no managed_apps yet; adding the first app
+    # must create the key, not demand the user hand-edit YAML first.
+    overlay = tmp_path / "home.yaml"
+    overlay.write_text("bench:\n  path: /srv/bench\n")
+    monkeypatch.setenv("FORGE_CONFIG", str(overlay))
 
-    with pytest.raises(ValueError, match="managed_apps"):
-        _write_managed(tmp_path, ["alpha"])
+    _write_managed(tmp_path, ["alpha"])
+
+    assert _read_managed(tmp_path) == ["alpha"]
+    assert "/srv/bench" in overlay.read_text()
+
+
+def test_absent_overlay_is_created(tmp_path, monkeypatch):
+    overlay = tmp_path / "nested" / ".forge.yaml"
+    monkeypatch.setenv("FORGE_CONFIG", str(overlay))
+
+    _write_managed(tmp_path, ["alpha"])
+
+    assert overlay.is_file()
+    assert _read_managed(tmp_path) == ["alpha"]
 
 
 @pytest.mark.parametrize(

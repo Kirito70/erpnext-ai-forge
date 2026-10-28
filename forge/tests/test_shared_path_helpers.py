@@ -52,7 +52,7 @@ def test_bench_root_refuses_an_unset_env_var(tmp_path, monkeypatch):
     cwd, which is a real place forge would then write into. `load_target` renders
     with StrictUndefined and refuses instead.
     """
-    (tmp_path / "forge.config.yaml").write_text(
+    (tmp_path / "forge.config.example.yaml").write_text(
         "bench:\n  path: '{{ env.FORGE_BENCH_PATH }}'\nenabled_tools: [claude-code]\n"
     )
     monkeypatch.delenv("FORGE_BENCH_PATH", raising=False)

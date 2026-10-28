@@ -11,6 +11,24 @@ Section order per release: **Added / Changed / Deprecated / Removed / Fixed / Se
 
 ## [Unreleased]
 
+### Added — company settings live outside the repo; setup, invite, Windows installer
+
+- **Overlay config.** `forge.config.yaml` is no longer tracked. The tracked, company-neutral defaults are `forge.config.example.yaml`; forge layers one overlay on them: `$FORGE_CONFIG`, else a gitignored `forge.config.yaml` in the checkout, else `~/.forge.yaml`. Mappings merge, lists replace. `forge apps add|remove` edits the overlay.
+- **`forge setup`** asks for the bench and site, lists the bench's non-upstream apps with their remote owners, and asks which are your company's. Nothing about any company is in code: candidates come from the bench on disk.
+- **`forge invite [name]`** asks which of your settings to share (and an optional read-only token), then prints a Linux/WSL command and a Windows PowerShell command that install forge with those answers filled in.
+- **`scripts/install.ps1`** installs into WSL2 (Frappe benches and forge's bash hooks live there), passing settings through `WSLENV`. Both installers are attached to every release.
+- `distribution.repo` names the repo installers and invites fetch from; `FORGE_REPO_URL` overrides the clone URL for forks hosted elsewhere.
+
+### Fixed — an empty `managed_apps` wrote into every app
+
+`managed_apps: []` collapsed to "no restriction", so per-app files went to every custom app in the bench. `[]` now means none; only an absent key means unrestricted. With `[]` as the shipped default this would have hit every fresh install.
+
+### Changed
+
+- `forge discover` accepts a literal `bench.path` (as `forge setup` writes) instead of requiring `$FORGE_BENCH_PATH`.
+- The installer no longer keeps `~/.config/erpnext-ai-forge/env`; settings are in `~/.forge.yaml`.
+- `.env.example` uses placeholders instead of a real bench path and site.
+
 ---
 
 ## [0.7.0] — 2026-10-28

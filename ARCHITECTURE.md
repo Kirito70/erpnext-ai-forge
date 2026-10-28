@@ -349,7 +349,7 @@ Per-tool char budgets (advisory in Phase 3; could become hard-enforced in a futu
 - The scorer already has `skip_if_path_matches: (canonical|docs)` for exactly this reason. But staging paths don't include `canonical/`.
 - Rendering is template substitution — it never introduces new anti-patterns. If the canonical source is clean, the rendered output is clean. Scoring canonical sources is sufficient AND eliminates the false-positive class entirely.
 
-`_security_gate(rendered: list[RenderedArtifact])` walks every distinct `source_path` from the rendered set, runs `score_file()`, and aggregates findings. Block/warn thresholds come from `forge.config.yaml` `security:`.
+`_security_gate(rendered: list[RenderedArtifact])` walks every distinct `source_path` from the rendered set, runs `score_file()`, and aggregates findings. Block/warn thresholds come from `security:` in the merged config (`forge.config.example.yaml` plus overlay).
 
 **Consequences:**
 

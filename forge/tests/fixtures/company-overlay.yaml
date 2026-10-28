@@ -1,0 +1,18 @@
+# Sample company overlay for tests that exercise per-app rendering against the
+# repo's own canonical/apps notes. Real installs keep this in ~/.forge.yaml.
+bench:
+  owned_remotes: [novizna-codes]
+  managed_apps:
+    - novizna_crm
+    - novizna_core
+    - novizna_pos
+    - noviznaerp_payroll
+    - erpnext_location
+    - novizna_integrations
+  lint_apps:
+    - erpnext_location
+    - novizna_core
+    - novizna_crm
+    - novizna_integrations
+    - novizna_pos
+    - noviznaerp_payroll
