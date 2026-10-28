@@ -1,0 +1,26 @@
+# Attach the installer to every published release, so the one-line install
+# (releases/latest/download/install.sh) always fetches the installer that
+# shipped with the newest release.
+
+name: release-assets
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  installer:
+    name: attach install.sh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Upload install.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" scripts/install.sh --clobber

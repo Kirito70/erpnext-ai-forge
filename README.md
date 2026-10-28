@@ -25,7 +25,24 @@ A single set of canonical specifications is rendered into per-tool configuration
 | `audit/` | Append-only JSONL audit logs (gitignored) |
 | `docs/` | Onboarding, adapter authoring, incident response |
 
-## Quick Start
+## Install (team members)
+
+One command installs the latest release read-only. No repo access or GitHub account needed; requires `git` and `curl` (it offers to install [uv](https://docs.astral.sh/uv/) if missing):
+
+```bash
+curl -fsSL https://github.com/Kirito70/erpnext-ai-forge/releases/latest/download/install.sh | bash
+```
+
+It asks for your bench path and site name, then puts `forge` on your PATH. Settings live in `~/.config/erpnext-ai-forge/env`. Re-run to upgrade; pin a version with `| bash -s -- --version v0.7.0`; remove with `| bash -s -- --uninstall`. If the repo is private, use a fine-grained token with read-only *Contents* access to this repo:
+
+```bash
+T=<token>
+curl -fsSL -H "Authorization: Bearer $T" -H "Accept: application/vnd.github.raw" \
+  https://api.github.com/repos/Kirito70/erpnext-ai-forge/contents/scripts/install.sh \
+  | FORGE_GITHUB_TOKEN=$T bash
+```
+
+## Quick Start (development)
 
 Prerequisite: **[uv](https://docs.astral.sh/uv/)** ≥ 0.10.
 
