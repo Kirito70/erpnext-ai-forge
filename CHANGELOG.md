@@ -13,6 +13,14 @@ Section order per release: **Added / Changed / Deprecated / Removed / Fixed / Se
 
 ---
 
+## [0.8.1] — 2026-10-28
+
+### Fixed — `forge discover --app` wiped every other app's index entries
+
+Narrowing discovery to one app rewrote the shared per-app index files (`apps-index.json`, `doctype-index.json`, `api-surface.json`, …) with that app alone. The freshly walked app is now merged into what is on disk, and totals are recomputed. An app name that is not a custom app on the bench is rejected instead of writing empty indexes.
+
+---
+
 ## [0.8.0] — 2026-10-28
 
 ### Upgrading from 0.7.x
@@ -27,10 +35,6 @@ Section order per release: **Added / Changed / Deprecated / Removed / Fixed / Se
 - **`forge invite [name]`** asks which of your settings to share (and an optional read-only token), then prints a Linux/WSL command and a Windows PowerShell command that install forge with those answers filled in.
 - **`scripts/install.ps1`** installs into WSL2 (Frappe benches and forge's bash hooks live there), passing settings through `WSLENV`. Both installers are attached to every release.
 - `distribution.repo` names the repo installers and invites fetch from; `FORGE_REPO_URL` overrides the clone URL for forks hosted elsewhere.
-
-### Fixed — `forge discover --app` wiped every other app's index entries
-
-Narrowing discovery to one app rewrote the shared per-app index files (`apps-index.json`, `doctype-index.json`, `api-surface.json`, …) with that app alone. The freshly walked app is now merged into what is on disk, and totals are recomputed. An app name that is not a custom app on the bench is rejected instead of writing empty indexes.
 
 ### Fixed — an empty `managed_apps` wrote into every app
 

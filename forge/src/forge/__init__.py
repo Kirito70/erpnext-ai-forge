@@ -6,4 +6,4 @@ configuration surfaces for the Novizna v16 ERPNext/Frappe bench.
 See ARCHITECTURE.md and ULTRAPLAN-AI-FRAMEWORK-v0.2.md for design context.
 """
 
-__version__ = "0.8.0"
+__version__ = "0.8.1"
