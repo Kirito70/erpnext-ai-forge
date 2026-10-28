@@ -266,4 +266,4 @@ Halt, present options, and wait. Do not choose for the user:
 
 ---
 
-<sub>Synced from `canonical/policies/` in erpnext-ai-forge v0.1.0 (c2ec49a) at 2026-09-12T06:17:07+05:00. Shared by all seven tool adapters — do not hand-edit.</sub>
+<sub>Synced from `canonical/policies/` in erpnext-ai-forge v0.1.0 (1110efa) at 2026-10-28T16:13:30+05:00. Shared by all seven tool adapters — do not hand-edit.</sub>

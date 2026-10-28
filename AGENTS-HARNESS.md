@@ -91,4 +91,4 @@ generated script.
 
 ---
 
-<sub>Synced from `canonical/harness/` in erpnext-ai-forge v0.1.0 (c2ec49a) at 2026-09-12T06:17:07+05:00. Shared by all seven tool adapters — do not hand-edit.</sub>
+<sub>Synced from `canonical/harness/` in erpnext-ai-forge v0.1.0 (1110efa) at 2026-10-28T16:13:30+05:00. Shared by all seven tool adapters — do not hand-edit.</sub>
