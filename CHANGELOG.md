@@ -11,6 +11,15 @@ Section order per release: **Added / Changed / Deprecated / Removed / Fixed / Se
 
 ## [Unreleased]
 
+---
+
+## [0.8.0] — 2026-10-28
+
+### Upgrading from 0.7.x
+
+- Your `forge.config.yaml` is now an untracked overlay. A dev checkout keeps working if the file stays beside `forge.config.example.yaml`; trim it to the keys you change. Installed copies: re-run the installer, which runs `forge setup`.
+- The old installer's `~/.config/erpnext-ai-forge/env` is no longer read; `forge setup` asks for the same values once.
+
 ### Added — company settings live outside the repo; setup, invite, Windows installer
 
 - **Overlay config.** `forge.config.yaml` is no longer tracked. The tracked, company-neutral defaults are `forge.config.example.yaml`; forge layers one overlay on them: `$FORGE_CONFIG`, else a gitignored `forge.config.yaml` in the checkout, else `~/.forge.yaml`. Mappings merge, lists replace. `forge apps add|remove` edits the overlay.
