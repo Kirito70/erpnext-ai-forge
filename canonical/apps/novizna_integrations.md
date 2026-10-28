@@ -34,10 +34,12 @@ where the two disagree — read it before changing anything in this app.
 - **Standalone, and it stays that way.** This app depends on `frappe` and nothing else. The
   core must import nothing from `crm`, `erpnext`, `hrms` or `novizna_crm` — consumers live in
   the business app and register through a hook, so the dependency only ever points inward:
+
   ```bash
   grep -rnE '^\s*(from|import)\s+(crm|erpnext|hrms|novizna_crm)\b' \
     apps/novizna_integrations/novizna_integrations/{core,services,providers}/   # must be empty
   ```
+
 - **No new runtime dependencies.** `pyproject.toml` `dependencies` is `[]` and must stay `[]`.
   The HTTP client, OAuth2 pair and template engine all arrive through `frappe`; a second
   declaration here lets the two pins drift.

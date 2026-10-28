@@ -7,25 +7,25 @@
     {
       "adapter": "claude-code",
       "path": "AGENTS-HARNESS.md",
-      "sha256": "db58acbad31455c30c5eb5defebf11a2b165a112b082b4c730f858a1273ddc2d",
+      "sha256": "fe4ecee120a5dc3355a4bc4493fd7ca69536f12ef86c82fef1e99d75896f162f",
       "version": "0.1.0"
     },
     {
       "adapter": "claude-code",
       "path": "AGENTS-OPERATING-MANUAL.md",
-      "sha256": "2a45eb4d14391da43c684201bde3b95e8d6381ad79d0d8208c05b5220ad16fcb",
+      "sha256": "f73fede434c9344223a1476e064a828f064acbcd3e3fdf456a798c673f972c32",
       "version": "0.1.0"
     }
   ],
-  "rendered_at": "2026-08-17T16:01:49+05:00",
+  "rendered_at": "2026-09-12T06:17:07+05:00",
   "rendered_by": "forge 0.1.0",
   "schema_version": 2,
-  "source_commit": "93db56214d3c432c9b1b4b36587bc990533bcbaa",
+  "source_commit": "c2ec49a7fe74fbb0214745da8c5fc803a5915285",
   "source_files": [
     {
       "adapter": "claude-code",
       "path": "canonical",
-      "sha256": "2a45eb4d14391da43c684201bde3b95e8d6381ad79d0d8208c05b5220ad16fcb",
+      "sha256": "f73fede434c9344223a1476e064a828f064acbcd3e3fdf456a798c673f972c32",
       "version": "0.1.0"
     }
   ],
