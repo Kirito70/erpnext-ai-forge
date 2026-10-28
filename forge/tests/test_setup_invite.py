@@ -186,3 +186,13 @@ def test_public_repo_commands_use_the_release_download():
     linux, windows = invite_cmd.install_commands("o/r", "UEFZ", None)
     assert "github.com/o/r/releases/latest/download/install.sh" in linux
     assert "Bearer" not in linux + windows
+
+
+def test_forge_apps_lists_this_bench_not_the_tracked_snapshot(env, monkeypatch):
+    # The repo's discovery snapshot comes from whoever last ran `forge
+    # discover`; an installed copy must show the user's own bench instead.
+    from forge.commands.apps import _discovered_apps
+
+    monkeypatch.setenv("FORGE_BENCH_PATH", str(env["bench"]))
+    monkeypatch.setenv("FORGE_PRIMARY_SITE", "site1")
+    assert _discovered_apps(env["repo"]) == ["acme_crm", "scratch_app", "vendor_tool"]

@@ -22,10 +22,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from jinja2.exceptions import UndefinedError
+
 from rich.console import Console
 from rich.table import Table
 
-from forge.loader import find_repo_root, load_discovery, load_forge_config, load_target
+from forge.commands.setup import scan_bench_apps
+from forge.loader import find_repo_root, load_forge_config, load_target
 from forge.manifest import read_manifest, sha256_text
 from forge.repo import git_remote as _git_remote, is_foreign, remote_owner as _owner_of
 from forge.user_config import write_bench_list
@@ -49,8 +52,18 @@ def _write_managed(repo_root: Path, apps: list[str]) -> None:
 
 
 def _discovered_apps(repo_root: Path) -> list[str]:
-    discovery = load_discovery(repo_root)
-    return [a["name"] for a in discovery.apps.get("custom_apps", [])]
+    """Non-upstream apps in the bench on disk.
+
+    Read live rather than from the discovery snapshot: the snapshot is whatever
+    bench last ran `forge discover`, which for an installed copy is not this
+    user's bench, and listing it would show another company's apps.
+    """
+    upstream = set(load_forge_config(repo_root).get("upstream_apps") or [])
+    try:
+        bench_root = load_target(repo_root).root
+    except (KeyError, ValueError, FileNotFoundError, UndefinedError):
+        return []  # no bench configured yet: `forge setup` has not run
+    return [a.name for a in scan_bench_apps(bench_root, upstream)]
 
 
 def run_list(repo_root: Path | None = None) -> int:
@@ -143,9 +156,8 @@ def run_add(names: list[str], repo_root: Path | None = None) -> int:
             continue
         if name not in discovered:
             console.print(
-                f"[yellow]![/yellow] {name} is not a custom app in this bench "
-                f"(discovery knows: {', '.join(sorted(discovered))}). Adding anyway — "
-                f"re-run [cyan]forge discover[/cyan] if the app is new."
+                f"[yellow]![/yellow] {name} is not in this bench's apps/ "
+                f"(found: {', '.join(sorted(discovered)) or 'none'}). Adding anyway."
             )
         managed.append(name)
         added.append(name)
