@@ -8,89 +8,89 @@
       "adapter": "claude-code",
       "mode": 493,
       "path": "check-file.sh",
-      "sha256": "82cb982c6c05591f43faf2cb563ec381b082c8be6fb216830ca4f9c2b0931482",
+      "sha256": "7ee57d8fa7bfcee470f494838968b02ea69c5db2f409127fcb66676be59c87c7",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "mode": 420,
       "path": "common.sh",
-      "sha256": "7616228b35b7a93d498257bceea1c12a445658c161fcc2c0305e82c650c9137f",
+      "sha256": "4afced2495ac55bee08d40a0312fe821a63dca130f565b1f73ae253e0b70b34e",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "mode": 493,
       "path": "gates.sh",
-      "sha256": "dd2ece485ef771fc6bfc13757f59e0a261a4def2481a029b32d2142f831bcbeb",
+      "sha256": "57adb2eeb92facae616df6cad425c4edfd44d2dd5b7c77ea762bafaa61ba40d4",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "mode": 493,
       "path": "hook-posttooluse.sh",
-      "sha256": "470bf41af3592ae2e85d1ca094ee70a2bbd1d3309131dc85b6ab2b880a5319a0",
+      "sha256": "0318a983f5a7c5e4942673fcf13e645c0e8cc2114e9acf39afedd7f2c29d26c5",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "mode": 493,
       "path": "hook-stop.sh",
-      "sha256": "308ef74ef72843cc12b3e3f42c4df2690b4a1b2149a710bf608c64247a28fa38",
+      "sha256": "62f1e3004239d480a3f33ce136942406088daf811041a03d5c10debeae660a9c",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "mode": 493,
       "path": "typecheck.sh",
-      "sha256": "24b2b59d1abbb390e137042238c24b4e594ac46cd13d8d102345b6b262820e32",
+      "sha256": "6840f5a37880af7c5a701d2bf67ef537a0f259967c107753a2494ab91eaaa329",
       "version": "1.0.0"
     }
   ],
   "rendered_at": "2026-09-12T06:16:41+05:00",
-  "rendered_by": "forge 0.1.0",
+  "rendered_by": "forge 0.7.0",
   "schema_version": 2,
   "source_commit": "293de2bd1eb97aec5fa3f0c5887a2795fb4e941e",
   "source_files": [
     {
       "adapter": "claude-code",
       "path": "canonical/harness/scripts/check-file.sh.j2",
-      "sha256": "82cb982c6c05591f43faf2cb563ec381b082c8be6fb216830ca4f9c2b0931482",
+      "sha256": "7ee57d8fa7bfcee470f494838968b02ea69c5db2f409127fcb66676be59c87c7",
       "source_sha256": "7d2fa4cafca2b81b9939f45f3606d6eff1bcef8c7a8efead5d0b10694470f537",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "path": "canonical/harness/scripts/common.sh.j2",
-      "sha256": "7616228b35b7a93d498257bceea1c12a445658c161fcc2c0305e82c650c9137f",
+      "sha256": "4afced2495ac55bee08d40a0312fe821a63dca130f565b1f73ae253e0b70b34e",
       "source_sha256": "528620a3c5aa1dafdcc0bbcc1527bf54c27d7620be491867ccf2784da6db2191",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "path": "canonical/harness/scripts/gates.sh.j2",
-      "sha256": "dd2ece485ef771fc6bfc13757f59e0a261a4def2481a029b32d2142f831bcbeb",
+      "sha256": "57adb2eeb92facae616df6cad425c4edfd44d2dd5b7c77ea762bafaa61ba40d4",
       "source_sha256": "fd4a439c25e3afe73fb8f9f3301834137959e9b4aaab14ae94ce6efe686ee4e5",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "path": "canonical/harness/scripts/hook-posttooluse.sh.j2",
-      "sha256": "470bf41af3592ae2e85d1ca094ee70a2bbd1d3309131dc85b6ab2b880a5319a0",
+      "sha256": "0318a983f5a7c5e4942673fcf13e645c0e8cc2114e9acf39afedd7f2c29d26c5",
       "source_sha256": "3794eb21c2370876d863ecbec3beec32a0dde3c443bec832d80994442e1fff6c",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "path": "canonical/harness/scripts/hook-stop.sh.j2",
-      "sha256": "308ef74ef72843cc12b3e3f42c4df2690b4a1b2149a710bf608c64247a28fa38",
+      "sha256": "62f1e3004239d480a3f33ce136942406088daf811041a03d5c10debeae660a9c",
       "source_sha256": "07e2a9c08adb6cc61579916814c7730315e047cb633ed4c0c26b714457a3d416",
       "version": "1.0.0"
     },
     {
       "adapter": "claude-code",
       "path": "canonical/harness/scripts/typecheck.sh.j2",
-      "sha256": "24b2b59d1abbb390e137042238c24b4e594ac46cd13d8d102345b6b262820e32",
+      "sha256": "6840f5a37880af7c5a701d2bf67ef537a0f259967c107753a2494ab91eaaa329",
       "source_sha256": "9575bd43f95316dc3c2bdaccf87492dc2ddfdc421aabecb999b74b0244beacb7",
       "version": "1.0.0"
     }
