@@ -277,6 +277,41 @@ def _site_config_keys(bench: Path, primary_site: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Main entry
 # ---------------------------------------------------------------------------
+_ANTI_PATTERN_KEYS = ("sql_fstring", "allow_guest", "ignore_permissions", "db_commit_non_test")
+
+
+def _merge_single_app(path: Path, fresh: dict[str, Any], app: str) -> dict[str, Any]:
+    """Return `fresh` with every app other than `app` carried over from `path`.
+
+    `fresh` was built from a walk of `app` alone. Missing or unreadable
+    existing data merges as empty, which degrades to the old single-app output
+    rather than failing a first run.
+    """
+    try:
+        existing = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return fresh
+    merged = dict(fresh)
+
+    if "custom_apps" in fresh and isinstance(fresh["custom_apps"], list):
+        by_name = {a["name"]: a for a in existing.get("custom_apps", [])}
+        by_name.update({a["name"]: a for a in fresh["custom_apps"]})
+        apps = [by_name[n] for n in sorted(by_name)]
+        merged["custom_apps"] = apps
+        totals = dict(fresh["totals"])
+        totals["custom_app_count"] = len(apps)
+        totals["custom_doctype_count"] = sum(a["doctype_count"] for a in apps)
+        totals["custom_whitelist_api_count"] = sum(a["whitelist_api_count"] for a in apps)
+        merged["totals"] = totals
+    elif "custom_apps" in fresh:
+        merged["custom_apps"] = {**existing.get("custom_apps", {}), **fresh["custom_apps"]}
+    elif "per_app" in fresh:
+        per_app = {**existing.get("per_app", {}), **fresh["per_app"]}
+        merged["per_app"] = per_app
+        merged["totals"] = {k: sum(len(v[k]) for v in per_app.values()) for k in _ANTI_PATTERN_KEYS}
+    return merged
+
+
 def discover_bench(
     repo_root: Path | None = None,
     bench_override: Path | None = None,
@@ -335,6 +370,14 @@ def discover_bench(
     data_dir = repo_root / "discovery" / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
     written: dict[str, Path] = {}
+
+    if only_app and only_app not in custom_apps_names:
+        # A typo must not fall through to an empty walk that then overwrites
+        # every per-app index with nothing.
+        raise ValueError(
+            f"--app {only_app!r} is not a custom app on this bench "
+            f"(custom apps: {', '.join(custom_apps_names) or 'none'})."
+        )
 
     # Decide which custom apps to walk this run.
     walk_targets = (
@@ -470,16 +513,23 @@ def discover_bench(
         ),
     }
 
-    for name, payload in files.items():
-        if only_app and name not in {
+    if only_app:
+        per_app_files = {
             "apps-index.json",
             "hooks-index.json",
             "doctype-index.json",
             "api-surface.json",
             "anti-pattern-findings.json",
-        }:
-            # When narrowing to one app, only rewrite per-app files
-            continue
+        }
+        # `--app` is a read filter, not a rewrite: fold the freshly-walked app
+        # into what is already on disk so every other app's entry survives.
+        files = {
+            name: _merge_single_app(data_dir / name, payload, only_app)
+            for name, payload in files.items()
+            if name in per_app_files
+        }
+
+    for name, payload in files.items():
         target = data_dir / name
         tmp = target.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(payload, indent=2, sort_keys=False) + "\n")

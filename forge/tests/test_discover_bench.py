@@ -221,6 +221,55 @@ def test_discover_bench_only_app_filter(repo_root, fake_bench, monkeypatch, tmp_
     assert custom_names == {"novizna_crm"}
 
 
+def _two_app_setup(fake_bench, monkeypatch, tmp_path):
+    fake_repo = tmp_path / "fake-repo-merge"
+    fake_repo.mkdir()
+    (fake_repo / "forge.config.example.yaml").write_text(
+        "project: {name: erpnext-ai-forge, version: 0.0.0}\n"
+        "bench: {path: '{{ env.FORGE_BENCH_PATH }}', primary_site: '{{ env.FORGE_PRIMARY_SITE }}'}\n"
+        "enabled_tools: [claude-code]\n"
+        "upstream_apps: [frappe, erpnext]\n"
+    )
+    monkeypatch.setenv("FORGE_BENCH_PATH", str(fake_bench))
+    monkeypatch.setenv("FORGE_PRIMARY_SITE", "test-site")
+    return fake_repo
+
+
+def test_only_app_merges_into_existing_index_and_keeps_other_apps(fake_bench, monkeypatch, tmp_path):
+    """GAP2: `--app X` used to rewrite the per-app files with only X, silently
+    deleting every other app's entry."""
+    fake_repo = _two_app_setup(fake_bench, monkeypatch, tmp_path)
+    full = discover_bench(repo_root=fake_repo, bench_override=fake_bench)
+    before = json.loads(full["apps-index.json"].read_text())
+    all_names = {a["name"] for a in before["custom_apps"]}
+    assert len(all_names) > 1 and "novizna_crm" in all_names
+
+    narrowed = discover_bench(repo_root=fake_repo, bench_override=fake_bench, only_app="novizna_crm")
+
+    for name in ("apps-index.json", "hooks-index.json", "doctype-index.json", "api-surface.json"):
+        data = json.loads(narrowed[name].read_text())
+        keys = (
+            {a["name"] for a in data["custom_apps"]}
+            if isinstance(data["custom_apps"], list)
+            else set(data["custom_apps"])
+        )
+        assert keys == all_names, name
+    ap = json.loads(narrowed["anti-pattern-findings.json"].read_text())
+    assert set(ap["per_app"]) == all_names
+    after = json.loads(narrowed["apps-index.json"].read_text())
+    assert after["totals"]["custom_app_count"] == len(all_names)
+    assert after["totals"] == before["totals"]
+
+
+def test_only_app_unknown_name_raises_and_writes_nothing(fake_bench, monkeypatch, tmp_path):
+    fake_repo = _two_app_setup(fake_bench, monkeypatch, tmp_path)
+    full = discover_bench(repo_root=fake_repo, bench_override=fake_bench)
+    snapshot = {n: p.read_text() for n, p in full.items()}
+    with pytest.raises(ValueError, match="not a custom app"):
+        discover_bench(repo_root=fake_repo, bench_override=fake_bench, only_app="no_such_app")
+    assert {n: p.read_text() for n, p in full.items()} == snapshot
+
+
 def test_third_party_app_is_not_custom(repo_root, fake_bench, monkeypatch, tmp_path):
     """An app whose remote points elsewhere is excluded even when it is absent
     from `upstream_apps`.

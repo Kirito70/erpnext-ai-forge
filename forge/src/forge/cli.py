@@ -99,7 +99,7 @@ def discover(
     app_name: Optional[str] = typer.Option(
         None,
         "--app",
-        help="Limit discovery to a single app (e.g. --app novizna_crm).",
+        help="Re-walk a single app and merge it into the existing indexes; other apps keep their entries (e.g. --app novizna_crm).",
     ),
     json_only: bool = typer.Option(
         False,
