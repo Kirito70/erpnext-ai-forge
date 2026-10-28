@@ -52,9 +52,9 @@ def test_architect_is_foundational(repo_root):
     assert architect.body.strip()  # body is non-empty
 
 
-def test_load_commands_returns_21(repo_root):
+def test_load_commands_returns_22(repo_root):
     commands = load_commands(repo_root)
-    assert len(commands) == 21  # +write-ticket, +refine-ticket, +ticket-review, +gap-ticket
+    assert len(commands) == 22  # +write-ticket, +refine-ticket, +ticket-review, +gap-ticket, +sync-overrides
     expected_subset = {"scaffold-doctype", "review-security", "forge-sync"}
     assert expected_subset <= {c.id for c in commands}
 
