@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AUTO-GENERATED FROM erpnext-ai-forge 0.8.0 — DO NOT EDIT
+# AUTO-GENERATED FROM erpnext-ai-forge 0.8.1 — DO NOT EDIT
 # Source: canonical/harness/scripts/check-file.sh.j2
 # Target: self (python_cli)
 #

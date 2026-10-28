@@ -7,26 +7,26 @@
     {
       "adapter": "claude-code",
       "path": "AGENTS-HARNESS.md",
-      "sha256": "d2e1e1827ee8079e0e11f273e0bbb1d45c8f35d42174a588cf4507f1e4cf0f10",
-      "version": "0.8.0"
+      "sha256": "a94bb24184d98da03f85e4762624e140b640cfd1453ceb392d2f8bc46fc631bd",
+      "version": "0.8.1"
     },
     {
       "adapter": "claude-code",
       "path": "AGENTS-OPERATING-MANUAL.md",
-      "sha256": "d015f3515ef5f47ef7ad5fe726204969d6a986a8970effced40b61faa594f3f5",
-      "version": "0.8.0"
+      "sha256": "bc1638973b47fb8802f051dab972f6fce3df93fd24253ad1f42a94c6797f9334",
+      "version": "0.8.1"
     }
   ],
   "rendered_at": "2026-10-28T16:24:14+05:00",
-  "rendered_by": "forge 0.8.0",
+  "rendered_by": "forge 0.8.1",
   "schema_version": 2,
   "source_commit": "6d9b1a14b38a92f2e9b2b7b6415c6a003dabef0a",
   "source_files": [
     {
       "adapter": "claude-code",
       "path": "canonical",
-      "sha256": "d015f3515ef5f47ef7ad5fe726204969d6a986a8970effced40b61faa594f3f5",
-      "version": "0.8.0"
+      "sha256": "bc1638973b47fb8802f051dab972f6fce3df93fd24253ad1f42a94c6797f9334",
+      "version": "0.8.1"
     }
   ],
   "source_repo": "erpnext-ai-forge"

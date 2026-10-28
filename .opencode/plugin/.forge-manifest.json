@@ -7,19 +7,19 @@
     {
       "adapter": "opencode",
       "path": "harness.js",
-      "sha256": "d01d31a62455ccb490238e9a6286ae4185df0f07ecc81073ec4ce4c74ea85b81",
+      "sha256": "35294a431d57a29476382791bce44b9a4e30281764933a5a5af009c1eab5a4d4",
       "version": "1.0.0"
     }
   ],
   "rendered_at": "2026-08-14T10:26:39+05:00",
-  "rendered_by": "forge 0.8.0",
+  "rendered_by": "forge 0.8.1",
   "schema_version": 2,
   "source_commit": "81cc0c0ec73a5e425c1ea2b2d43d1ac9f49b8310",
   "source_files": [
     {
       "adapter": "opencode",
       "path": "canonical/harness/harness.yaml",
-      "sha256": "d01d31a62455ccb490238e9a6286ae4185df0f07ecc81073ec4ce4c74ea85b81",
+      "sha256": "35294a431d57a29476382791bce44b9a4e30281764933a5a5af009c1eab5a4d4",
       "source_sha256": "5b2678d2da9d3c1d4fd24ba6c6191cbdda79f7b4c92c541f7286ab84c8bd41bb",
       "version": "1.0.0"
     }
