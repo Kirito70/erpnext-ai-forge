@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AUTO-GENERATED FROM erpnext-ai-forge 0.7.0 — DO NOT EDIT
+# AUTO-GENERATED FROM erpnext-ai-forge 0.8.0 — DO NOT EDIT
 # Source: canonical/harness/scripts/hook-stop.sh.j2
 # Target: self (python_cli)
 #

@@ -1,4 +1,4 @@
-// AUTO-GENERATED FROM erpnext-ai-forge 0.7.0 — DO NOT EDIT
+// AUTO-GENERATED FROM erpnext-ai-forge 0.8.0 — DO NOT EDIT
 // Source: adapters/opencode/templates/harness-plugin.js.j2
 // Target: self (python_cli)
 //
