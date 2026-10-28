@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "forge"
-version = "0.1.0"
+version = "0.7.0"
 description = "erpnext-ai-forge CLI — render canonical AI agent specs into per-tool configs"
 license = { text = "Proprietary" }
 authors = [{ name = "Muhammad Tayyab", email = "m.tayyab9736@gmail.com" }]

@@ -11,6 +11,27 @@ Section order per release: **Added / Changed / Deprecated / Removed / Fixed / Se
 
 ## [Unreleased]
 
+---
+
+## [0.7.0] — 2026-10-28
+
+### Summary
+
+- **Rendered output Claude Code actually loads**: frontmatter on line 1 for agents, commands and skills; skills render as `<name>/SKILL.md`.
+- **Idempotent sync and content-based drift**: provenance stamps the source's last commit, not repo HEAD or wall-clock time, so a re-sync with unchanged sources is byte-identical. Drift false positives dropped from 48 to 0.
+- **Per-app files**: forge owns per-app files without eating hand edits; `forge adopt` folds hand edits back into canonical; `forge apps` manages which apps get them.
+- **Sync safety**: confirms before creating files in repos we do not own, fails loudly on unresolved output paths, reports and prunes outputs left behind by a changed `output:`, and closes four paths that destroyed work forge did not create.
+- **New engine pieces**: sync targets (`--target`, `--all-targets`), shell-aware scoring, `forge diff`, skills provenance lockfile, verification harness with gate commands for all seven adapters.
+- **Ticketing**: vault ticket authoring, refinement and review pipeline; `forge ledger sync`; brain contract shipped to all seven tools.
+- **New commands and apps**: `/sync-overrides` for novizna_crm frontend overrides; `novizna_integrations` and `novizna_hr_legal` registered; app-note narration guard in `forge validate`.
+
+### Upgrading from 0.6.x
+
+- **Per-app rendering is opt-in.** List the apps that should get per-app files under `bench.managed_apps` in `forge.config.yaml` (or use `forge apps`); unlisted apps are left alone.
+- **`architect` is now `novizna-architect`.** Update anything that invokes the agent by name.
+- **`AGENTS.codex.md` is no longer rendered** (Codex never read it). Delete the stale copy from your bench.
+- After upgrading, run `forge sync --all` once and review the diff: provenance footers change format.
+
 ### Added — harness `configs:` and a forge-managed ruff scope
 
 `harness.yaml` gains a `configs:` section alongside `scripts:`, for tool-config files the harness ships. Configs differ from scripts in the one way rendering cares about: a script lands in the shared `scripts_dir`, while a config must land where its tool looks for it, so each declares its own target-root-relative `output_path`. They render under the existing `harness_scripts` group and inherit its single-owner rule, security gate, drift detection and hand-edit protection unchanged.
